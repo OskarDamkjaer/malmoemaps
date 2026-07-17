@@ -61,3 +61,24 @@ Every generated artifact (`malmo-<hash>.pmtiles`, `food-<hash>.geojson`) carries
 content hash so immutable `Cache-Control` is safe even for mid-cycle regenerations.
 `manifest.json` (no-cache) maps logical name → current file. Fixes the latent bug in
 the spec's month-only `malmo-2026-07.pmtiles` naming.
+
+### D7 — Malmö stad open data vs OSM (IN PROGRESS, not resolved)
+Owner suspects Malmö stad's open-data archive may have better **parks, torg (squares),
+or area splits** than OSM. Investigation so far:
+- **Two portals.** `opendata.malmo.se` is a client-rendered Next.js "Dataplatform.se"
+  app (the classic OpenDataSoft `/api/explore/...` path returns HTML, not JSON).
+  `malmo.dataplatform.se` refused connection via WebFetch (`ECONNREFUSED 185.170.4.210`).
+- **Primärkarta (primary map) is open data** since 2024-03-28 (Geoforum) — the likely
+  authoritative source for named parks/squares. EU aggregator entry:
+  `https://data.europa.eu/data/datasets/5fcde58b-ca30-4b41-b6c2-9dcca67dd016`
+- **Stadsområden dataset** exists at `https://opendata.malmo.se/@malmo/stadsomraden`
+  but is the defunct 2013–2017 division; current split = delområden (which OSM already
+  has completely — see D4).
+
+**Next step:** fetch the data.europa.eu distribution links for the primärkarta to get
+real GeoJSON/WFS URLs, pull `parker` + `torg` layers, and diff against OSM
+(`leisure=park`, `place=square`/`leisure=common`). Hypothesis to test: Malmö stad has
+better-named/complete parks and squares; OSM's delområden are already good enough that
+Malmö-stad area splits add little. **No decision yet** — do not swap any layer until the
+diff is done.
+
