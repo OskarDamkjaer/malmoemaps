@@ -22,6 +22,9 @@ _Last updated: 2026-07-17._
 - **Comparing Malmö stad open data vs OSM** (parks/squares/area-splits). Findings so far
   in DECISIONS.md **D7**. NOT finished — next action is to pull real distribution URLs
   and diff against OSM. Nothing committed for this yet.
+  - **Owner wants to SEE it:** produce a visual overlay of the official Malmö stad
+    delområden/stadsområden boundaries vs our OSM `districts.geojson`, to check whether
+    the areas are the same. Throwaway scratch preview, not the Phase 3 app.
 
 ### Not started ⬜ (remaining Phase 1/2)
 1. **Malmö stad open-data comparison** — finish D7 (see its "next step").

@@ -82,3 +82,11 @@ better-named/complete parks and squares; OSM's delområden are already good enou
 Malmö-stad area splits add little. **No decision yet** — do not swap any layer until the
 diff is done.
 
+**Owner explicitly wants a VISUAL comparison of the area boundaries:** pull the official
+Malmö stad delområden/stadsområden polygons and show them overlaid against our OSM
+`districts.geojson` (AL9/AL10) so it's obvious whether the boundaries are identical or
+differ. Deliver this as a quick throwaway map/overlay (a scratch preview — NOT the
+Phase 3 app), since the two sources may share lineage (OSM delområden may have been
+imported from, or aligned to, Malmö stad's own split). Compare geometry, count, and
+names, not just counts.
+
