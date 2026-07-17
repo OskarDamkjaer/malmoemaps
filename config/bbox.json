@@ -1,0 +1,12 @@
+{
+  "name": "malmo",
+  "description": "Malmö with margin: Öresund coast + bridge landfall (W), Husie/Bulltofta (E), Arlöv (N), Klagshamn/Bunkeflo (S).",
+  "bbox": {
+    "west": 12.80,
+    "south": 55.49,
+    "east": 13.16,
+    "north": 55.66
+  },
+  "minzoom": 6,
+  "maxzoom": 16
+}
