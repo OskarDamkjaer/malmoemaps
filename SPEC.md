@@ -54,8 +54,9 @@ Overlays, one minimal GeoJSON each (`name`, `osm_id`, source tag, nothing else):
 - **cycling** — route=bicycle relations + highway=cycleway ways; `kind` distinguishes
   named official route from generic cycleway (lines, not points).
 - **transit** — bus_stop, PT platform, railway station, tram_stop; keep name.
-- **districts** — Malmö stadsdelar/delområden polygons. **Deferred** — OSM coverage
-  suspect; see DECISIONS.md D4. Fallback: Malmö stad open data.
+- **districts** — Malmö stadsområden + delområden polygons from OSM admin boundaries
+  (AL9 coarse + AL10 fine, `admin_level` kept). OSM coverage verified complete; see
+  DECISIONS.md D4. 141 polygons.
 
 - **landmarks.geojson** — hand-curated (not queryable). Schema: `name`, `lat`, `lon`,
   `icon` (id), `min_zoom`, short description, `tier`. ~17 Tier-1 (drawn icons) +

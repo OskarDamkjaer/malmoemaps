@@ -37,12 +37,19 @@ visible "© OpenMapTiles" credit in addition to "© OpenStreetMap contributors".
 `© OpenMapTiles © OpenStreetMap contributors`. (Alternative rejected: a custom bare
 profile, which would lose the prepared water/natural-earth layers.)
 
-### D4 — Districts deferred; OSM coverage under investigation
-`districts.geojson` (stadsdelar/delområden polygons) is deferred: OSM sub-municipal
-coverage for Malmö is historically thin/stale, and this layer is load-bearing.
-Consequence: `search.json` ships **without** the district tag (we won't fake it via
-nearest-name). Fallback source if OSM is inadequate: Malmö stad open data portal.
-*(Investigating actual OSM coverage — results appended here.)*
+### D4 — Districts: OSM coverage is complete, so we build from OSM (reversed)
+The spec feared OSM sub-municipal coverage for Malmö was thin/stale. **Investigated
+2026-07-17 (`scripts/probe-districts.mjs`) — it is not.** OSM has:
+- **admin_level 10 = 136 delområden** (complete; matches the city's official count),
+- admin_level 9 = 5 stadsområden (coarse), plus ~45 `place=suburb` point names.
+
+**Decision (reversed): build `districts.geojson` from OSM** (`scripts/build-districts.mjs`,
+osmium-assembled multipolygons) — both AL9 (coarse) and AL10 (fine), tagged with
+`admin_level` so the map can show coarse names at low zoom, fine at higher. 141
+polygons, 266 KB. Malmö-stad open data is no longer needed as a fallback.
+Consequence: `search.json` **regains** its district tag (point-in-polygon at build
+time is viable again). Open design question for Phase 3: which granularity labels at
+which zoom (5 stadsområden are unfamiliar; 136 delområden are too many for z11).
 
 ### D5 — Toolchain: Homebrew, not Docker
 Local Docker is colima and was not running. Went Homebrew: `osmium-tool` 1.19.1 +
