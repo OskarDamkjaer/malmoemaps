@@ -52,6 +52,50 @@ bullet lands here only when something non-obvious was actually decided.
   physical stop, and ~2k bus pins are clutter on a reference map. 2,071 → 20
   features (train stations + the museum tramway).
 
+- **The style is carved from OSM Liberty, by script, from a pinned commit**
+  (2026-07-26). `scripts/build-style.mjs` fetches `osm-liberty@649d12a`, then
+  drops 18 layers, retunes 22 and adds 1 — each with a one-line reason in the
+  source. Upstream is never hand-edited, so re-running against a newer Liberty
+  is a diff you can read instead of a merge you can't. The script also refuses
+  to emit a style that references a font we haven't vendored or a layer that a
+  patched minzoom would hide entirely.
+
+- **The whole pmtiles archive is downloaded up front, not read by Range**
+  (2026-07-26). The app fetches all 13.3 MB, wraps it in a `File`, and hands it
+  to the pmtiles reader as an in-memory source. Costs one visible wait on first
+  load; buys two things: panning and zooming never touch the network, and
+  offline is not a separate code path — the service worker answers the same
+  single request. Range support is still required of the host, because that
+  first request is what the browser does with a 13 MB file.
+
+- **Two service-worker caches, versioned separately** (2026-07-26). Code is
+  stale-while-revalidate (edits appear on the next load, and dev isn't fighting
+  a cache); data is cache-first and only re-fetched when `DATA` in `app/sw.js`
+  changes. One cache would mean every CSS tweak re-downloads the basemap.
+
+- **z6–9 exist in the tileset but are unreachable in the app** (2026-07-26). The
+  extract is ~22 km across, so `maxBounds` (which is what keeps you from panning
+  into empty background) clamps zoom-out at ~z10–11 — the whole-city view. The
+  low zooms are ~0.2 MB of the archive, so they stay; if the bbox ever grows,
+  they are already there. The style's low-zoom rung was written for z6–9 and
+  simply takes effect at z10–11 instead.
+
+- **District labels come from computed points, and prominence is area for now**
+  (2026-07-26). A district is one name but several polygons — Västra Hamnen is
+  cut into four by the docks — and MapLibre labels every part, so the name
+  appeared four times. Labels therefore render from a separate point layer, one
+  centroid-of-largest-part per district, computed in the app (display concern,
+  not data). Which districts get labelled first is ranked by area: honest,
+  tunable, and wrong about Malmö (Hyllievång outranks Möllevången) until the
+  hand-picked list from STATUS's open question exists.
+
+- **App icons are drawn in code** (2026-07-26). Installing to a home screen
+  needs real PNGs (iOS ignores SVG icons), and rasterising one would mean a
+  rendering dependency for one asset. `scripts/build-icons.mjs` is ~80 lines of
+  scanline fill plus a zlib-deflated PNG writer, drawing the Turning Torso's
+  twist. No dependency, and the mark is defined in the same 24-unit grid as the
+  landmark icons.
+
 - **Toolchain: Homebrew + Node, no Docker** (2026-07-17). `osmium-tool`, keg-only
   `openjdk@21`, `tools/planetiler.jar`; all scripts in Node so the search-index
   shape is defined once, where the app consumes it.

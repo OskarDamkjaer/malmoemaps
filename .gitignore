@@ -9,6 +9,15 @@
 # planetiler.jar (89 MB), fetched by build-basemap.sh
 /tools/*.jar
 
+# Third-party runtime assets, fetched at pinned versions by
+# scripts/fetch-app-assets.mjs. Build output, not source.
+/app/vendor/
+/app/glyphs/
+/app/sprite/
+
+# Home-screen icons, drawn by scripts/build-icons.mjs (icon.svg IS source).
+/app/icons/*.png
+
 # Node
 node_modules/
 
