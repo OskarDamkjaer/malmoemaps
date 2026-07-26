@@ -32,13 +32,32 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
   extract is only ~22 km wide, so the whole-city view is z10–11 — the tileset's
   z6–9 exist but can't be reached without leaving Malmö behind.
 - **Areas, one level at a time** — zooming steps through the hierarchy instead
-  of blending it: **Malmö** alone below z11, then **all ten stadsdelar**
-  (Malmö stad, CC0: Limhamn-Bunkeflo, Rosengård, Centrum…) to z12.8, then **all
-  136 delområden** with their boundaries. Level 3 also carries the OSM
-  `place=suburb` names neither division has (Slottsstaden, Västra Hamnen),
-  deduplicated against both. Each level says how it sits in the others: a
-  stadsdel lists the delområden it covers, a delområde says which stadsdel it is
-  in. The 5 stadsområden are kept in the data and in search but not drawn.
+  of blending it. Four levels, each with its own names *and* its own outline,
+  each handing over in a hard cut so no two are ever on screen together:
+
+  | | zoom | what you see | outline from |
+  |---|---|---|---|
+  | 1 | < 11 | **Malmö** | the ten stadsdelar, dissolved |
+  | 2 | 11 – 12.3 | the ten **stadsdelar** — Västra Innerstaden, Limhamn-Bunkeflo, Rosengård… | Malmö stad, CC0 |
+  | 3 | 12.3 – 13.4 | the 14 names **in between** — Slottsstaden, Sorgenfri, Limhamn, Hamnen… | their delområden, dissolved |
+  | 4 | ≥ 13.4 | all 136 **delområden** — Västra Sorgenfri, Rönneholm, Ribersborg… | OSM admin boundaries |
+
+  The ladder lives in `app/area-levels.mjs` and nowhere else; `app/layers.js`
+  draws from it and `scripts/build-style.mjs` imports its top rung to cap the
+  basemap's own "Malmö" label. `test/` holds it to all of the above.
+
+  **Level 3 has holes, on purpose.** Only 14 of these in-between names exist
+  (`areas/areas.json`, hand-written with a source each), and most of Malmö
+  simply has no word between "Västra Innerstaden" and "Rönneholm". An earlier
+  version filled the gaps with the delområden nobody had grouped, which put 93
+  names on two levels at once — the one thing the ladder exists to prevent.
+
+  Each level says how it sits in the others: a stadsdel lists the delområden it
+  covers, a delområde says which stadsdel it is in, a level-3 name lists what it
+  is made of. The 5 stadsområden are kept in the data and in search but not
+  drawn, and the parts below level 4 (Fullriggaren, Dockan, Seved) are built and
+  searchable but not drawn either — names finer than a delområde, with no
+  boundary to sit in.
 - **Selection** — tapping anything named gives its name, what kind of thing it
   is, and its shape: a street lit end to end, an area outlined, an icon ringed.
   Basemap pictograms answer too, so an unfamiliar icon can be identified.
@@ -84,7 +103,8 @@ Prereqs (macOS): `brew install osmium-tool openjdk@21`; Node ≥ 20.
 scripts/build-basemap.sh            # Sweden pbf → clip → data/cache/malmo.pmtiles (13.3 MB)
 node scripts/build-overlays.mjs     # Overpass → build/data/{food,culture,cycling,transit}.geojson
 node scripts/build-districts.mjs    # OSM boundaries → build/data/districts.geojson
-node scripts/build-areas.mjs        # Malmö stad CC0 → build/data/stadsdelar.geojson (+ what each covers)
+node scripts/build-areas.mjs        # Malmö stad CC0 → build/data/stadsdelar.geojson + kommun.geojson
+node scripts/build-neighbourhoods.mjs  # areas/areas.json → build/data/{neighbourhoods,parts}.geojson
 node scripts/build-streets.mjs      # pbf → data/cache/streets.json (search intermediate)
 node scripts/build-landmarks.mjs    # landmarks.json → build/data/landmarks.geojson (--resolve fills coords)
 node scripts/build-search.mjs       # everything above → build/data/search.json
@@ -107,6 +127,26 @@ The dev server stitches `app/`, `build/`, `landmarks/icons/` and the pmtiles
 into one URL layout (`scripts/lib/site.mjs`), which is the same layout the
 deployed site has. `window.map` is exposed for tuning zoom thresholds from the
 console.
+
+## Tests
+
+```
+node --test 'test/*.test.mjs'       # no deps, no runner, no config
+```
+
+There is one thing here worth testing and it is the area ladder, because it is
+the only part of the map whose bugs are invisible: two levels overlapping for
+half a zoom step reads as clutter, not as a fault, and you only find it by
+being at exactly the wrong zoom. So the tests ask the four questions you would
+otherwise ask by squinting — is each level alone at its zoom, does each have an
+outline as well as names, do the bands tile the zoom axis with no seam, does
+the ladder stop where it should — plus what is actually *on* each rung, and
+whether the hand-written groupings still agree with Malmö stad's own
+statistics (`areas/statistikomraden.json`, derived once from the CC0 dataset so
+the check runs offline).
+
+`test/areas.test.mjs` and `test/style.test.mjs` read `build/`, which is
+gitignored; they skip with a note rather than fail if you haven't built yet.
 
 ## Hosting
 

@@ -154,6 +154,46 @@ bullet lands here only when something non-obvious was actually decided.
   twist. No dependency, and the mark is defined in the same 24-unit grid as the
   landmark icons.
 
+- **The area ladder is unit-tested, not eyeballed** (2026-07-26). Every previous
+  zoom-threshold bug was found by being at exactly the wrong zoom on a phone —
+  two levels overlapping for half a step looks like clutter, not like a fault,
+  so it survives casual use. The fix is that the ladder is now *data*
+  (`app/area-levels.mjs`: one array of layer specs, each tagged with the level
+  and role it belongs to) rather than a sequence of `map.addLayer` calls with
+  numbers inlined. That makes "which levels are on at z12.35?" a pure function
+  of no map, no DOM and no tiles, so `node --test` answers it for every tenth of
+  a zoom from 6 to 18. Cost: the app now imports a module whose only job is to
+  be inspectable. Worth it — the same file is what `build-style.mjs` reads to
+  cap the basemap's "Malmö" at the top rung, which was the one seam no test
+  could have covered while the numbers lived in two files. Deliberately *not*
+  tested: anything about how it looks. Collision, halo, letter-spacing and
+  whether Slottsstaden's label sits in the water are eye questions.
+
+- **Level 3 is 14 names with gaps between them** (2026-07-26). The in-between
+  level was first built complete — the curated groupings plus every delområde no
+  grouping claimed — on the theory that a level with holes teaches nothing. That
+  was wrong in a way that took a test to see: 93 of the 136 delområden then
+  appeared at level 3 *and* level 4, so zooming past 13.4 changed the type size
+  and nothing else. A level that repeats the level below is not a level. So
+  level 3 is now only the names that actually exist between "Västra
+  Innerstaden" and "Rönneholm", and most of the map is blank at that zoom —
+  which is the honest answer, because most of Malmö has no such name.
+
+- **The hand-written groupings are checked against the city's statistics**
+  (2026-07-26). `areas/areas.json` is hand-written because no dataset contains
+  Slottsstaden — but Malmö stad does publish a division at roughly that grain,
+  the 14 *geografiska statistikområden* (CC0). Their names are unusable
+  ("Ribersborg, Bellevue m fl"), but their *groupings* are official, so
+  `areas/statistikomraden.json` holds them as a delområde→område table (derived
+  once by point-in-polygon, so the test runs offline) and a grouping that
+  straddles two of them has to be justified in the test or it fails. Two are
+  justified: Slottsstaden takes a corner of Malmö Hus, Sorgenfri takes Norra
+  Sorgenfri from Kirseberg's statistical area — in both the vernacular name is
+  the right one. **Bellevue is not justified and is currently failing**: it
+  groups Bellevue and Nya Bellevue (villa areas by Ribersborg) with
+  Bellevuegården, 1.8 km away, which shares no boundary with either and which
+  the city counts to Lorensborg. Left red on purpose — it is a data decision.
+
 - **Toolchain: Homebrew + Node, no Docker** (2026-07-17). `osmium-tool`, keg-only
   `openjdk@21`, `tools/planetiler.jar`; all scripts in Node so the search-index
   shape is defined once, where the app consumes it.
