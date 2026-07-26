@@ -27,17 +27,22 @@ fi
 command -v java >/dev/null || { echo "FATAL: java not found (need 21+)"; exit 1; }
 command -v osmium >/dev/null || { echo "FATAL: osmium not found"; exit 1; }
 
-# planetiler.jar (fetch once).
+# planetiler.jar (fetch once; pinned so re-runs don't silently change tool).
+PLANETILER_VERSION=v0.10.2
 if [ ! -f "$JAR" ]; then
-  echo "downloading planetiler.jar ..."
-  curl -fSL -o "$JAR.tmp" "https://github.com/onthegomap/planetiler/releases/latest/download/planetiler.jar"
+  echo "downloading planetiler.jar $PLANETILER_VERSION ..."
+  curl -fSL -o "$JAR.tmp" "https://github.com/onthegomap/planetiler/releases/download/$PLANETILER_VERSION/planetiler.jar"
   mv "$JAR.tmp" "$JAR"
 fi
 
-# 1. Download Sweden extract (fresh each run; atomic).
-echo "downloading Sweden extract (~772 MB) ..."
-curl -fSL --retry 3 -o "$SRC.tmp" "$GEOFABRIK"
-mv "$SRC.tmp" "$SRC"
+# 1. Download Sweden extract (atomic; reused if < 30 days old).
+if [ -f "$SRC" ] && [ -z "$(find "$SRC" -mtime +30)" ]; then
+  echo "using cached Sweden extract ($(ls -l "$SRC" | awk '{printf "%.0f MB", $5/1024/1024}'), < 30 days old)"
+else
+  echo "downloading Sweden extract (~772 MB) ..."
+  curl -fSL --retry 3 -o "$SRC.tmp" "$GEOFABRIK"
+  mv "$SRC.tmp" "$SRC"
+fi
 
 # 2. Clip to Malmö bbox.
 echo "clipping to bbox ..."

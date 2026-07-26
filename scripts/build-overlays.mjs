@@ -67,25 +67,21 @@ async function culture() {
   });
 }
 
-// ---- transit: bus_stop, PT platform, railway station, tram_stop ----------
+// ---- transit: railway stations + tram stops only -------------------------
+// Bus stops and PT platforms were cut (owner decision 2026-07-26): the two
+// tags largely duplicate the same physical stop, and ~2k bus-stop pins are
+// clutter on a reference map.
 async function transit() {
   const ql = `[out:json][timeout:180];
     (
-      node["highway"="bus_stop"]${bb};
-      nwr["public_transport"="platform"]${bb};
       nwr["railway"="station"]${bb};
       nwr["railway"="tram_stop"]${bb};
     );
     out center;`;
   const json = await overpass(ql, { label: 'transit', refresh });
-  return pointLayer(json, (el) => {
-    const t = el.tags;
-    let kind = 'platform';
-    if (t.highway === 'bus_stop') kind = 'bus_stop';
-    else if (t.railway === 'station') kind = 'station';
-    else if (t.railway === 'tram_stop') kind = 'tram_stop';
-    return { kind };
-  });
+  return pointLayer(json, (el) => ({
+    kind: el.tags.railway === 'tram_stop' ? 'tram_stop' : 'station',
+  }));
 }
 
 // ---- cycling: route=bicycle relations (named) + highway=cycleway ways -----
