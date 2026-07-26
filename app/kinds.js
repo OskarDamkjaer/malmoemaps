@@ -75,7 +75,10 @@ export const KIND_LABEL = {
   lake: 'Sjö', pond: 'Damm', water: 'Vatten', ocean: 'Hav', swimming_area_water: 'Badplats',
 
   // places
-  city: 'Stad', town: 'Tätort', village: 'By', hamlet: 'Småort', suburb: 'Stadsdel',
+  city: 'Stad', town: 'Tätort', village: 'By', hamlet: 'Småort',
+  // Not "stadsdel": that name belongs to the ten official ones, which have
+  // boundaries. An OSM suburb node is a name someone put on the map.
+  suburb: 'Område',
   neighbourhood: 'Kvarter', quarter: 'Kvarter', island: 'Ö', islet: 'Holme', locality: 'Plats',
 };
 

@@ -23,10 +23,15 @@ const SRC = 'highlight';
 const ACCENT = '#b8562b';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
-// Districts are kept unclipped here, straight from their GeoJSON: they are the
-// one thing being highlighted where tile seams would show as stray lines.
+// Districts and stadsdelar are kept unclipped here, straight from their
+// GeoJSON: they are what gets highlighted where tile seams would show as stray
+// lines, and the stadsdelar double as the answer to "which part of town is
+// this in?" for everything that has a point but no boundary.
 let districtFeatures = [];
+let stadsdelFeatures = [];
 export function setDistrictFeatures(features) { districtFeatures = features; }
+export function setStadsdelar(features) { stadsdelFeatures = features; }
+export const stadsdelNames = () => stadsdelFeatures.map((f) => f.properties.name);
 
 // Symbol layers whose icons and labels should answer for themselves. The app's
 // own layers are added to this at pick time.
@@ -231,10 +236,41 @@ const ringAt = (coords) => [{
   type: 'Feature', geometry: { type: 'Point', coordinates: coords }, properties: {},
 }];
 
-function districtShape(name) {
-  return districtFeatures
-    .filter((f) => f.properties.name === name)
-    .map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { _outline: true } }));
+const asShape = (features) => features
+  .map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { _outline: true } }));
+
+const districtShape = (name) => asShape(districtFeatures.filter((f) => f.properties.name === name));
+const stadsdelShape = (name) => asShape(stadsdelFeatures.filter((f) => f.properties.name === name));
+
+// Ray casting, the textbook version. Ten polygons, one point, on a tap.
+function pointInRing(ring, [x, y]) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInFeature(feature, point) {
+  const polys = feature.geometry.type === 'MultiPolygon'
+    ? feature.geometry.coordinates : [feature.geometry.coordinates];
+  // Outer ring in, holes out.
+  return polys.some(([outer, ...holes]) => pointInRing(outer, point)
+    && !holes.some((h) => pointInRing(h, point)));
+}
+
+// Which stadsdel a point falls in — the "in Västra Innerstaden" half of the
+// card, and the only thing that can be said about a name with no boundary.
+function stadsdelAt(point) {
+  return stadsdelFeatures.find((f) => pointInFeature(f, point))?.properties.name ?? null;
+}
+
+// A delområde's stadsdel comes from the build (covers), not from geometry:
+// build-areas.mjs already decided, and deciding twice invites disagreeing.
+function stadsdelOfDistrict(name) {
+  return stadsdelFeatures.find((f) => f.properties.covers.includes(name))?.properties.name ?? null;
 }
 
 export function highlight(map, hit) {
@@ -250,7 +286,12 @@ export function highlight(map, hit) {
     setShape(map, shapeOf(map, feature, feature.sourceLayer));
     return;
   }
-  if (feature.layer?.id.startsWith('district-label') && name) {
+  const layer = feature.layer?.id ?? '';
+  if (layer === 'area-label-stadsdel' && name) {
+    setShape(map, stadsdelShape(name));
+    return;
+  }
+  if (layer.startsWith('district-label') && name) {
     setShape(map, districtShape(name));
     return;
   }
@@ -264,6 +305,10 @@ export function highlight(map, hit) {
 // Search results arrive as a name and a point, with no feature behind them, so
 // the shape has to be found again once the map has flown there and loaded it.
 export function highlightSearchResult(map, entry) {
+  if (entry.cat === 'stadsdel') {
+    const shape = stadsdelShape(entry.name);
+    if (shape.length) { setShape(map, shape); return; }
+  }
   if (entry.cat === 'district') {
     const shape = districtShape(entry.name);
     if (shape.length) { setShape(map, shape); return; }
@@ -290,8 +335,33 @@ export function describeHit({ feature, origin }, overlays) {
       description: p.description,
     };
   }
+  // The three tiers of area, each saying how it sits in the others: a stadsdel
+  // lists what it covers, a delområde says which stadsdel it is in, and a name
+  // with no boundary of its own at least says where it is.
+  if (layer === 'area-label-stadsdel') {
+    const covers = p.covers ?? [];
+    return {
+      name: p.name,
+      meta: ['Stadsdel', `${covers.length} delområden`, p.area_km2 ? `${p.area_km2} km²` : null]
+        .filter(Boolean).join(' · '),
+      description: covers.join(' · '),
+    };
+  }
   if (layer.startsWith('district-label')) {
-    return { name: p.name, meta: p.admin_level === 9 ? 'Stadsområde' : 'Delområde' };
+    const inside = stadsdelOfDistrict(p.name);
+    return {
+      name: p.name,
+      meta: ['Delområde', inside && `i ${inside}`].filter(Boolean).join(' · '),
+    };
+  }
+  if (layer.startsWith('area-label')) {
+    const inside = stadsdelAt(feature.geometry.coordinates);
+    return {
+      name: p.name,
+      meta: [kindLabel(p) ?? 'Område', inside && `i ${inside}`].filter(Boolean).join(' · '),
+      // Said plainly rather than drawn, because there is nothing to draw.
+      description: 'Namn utan egen gräns i kartdatan.',
+    };
   }
 
   const overlay = overlays.find((o) => layer.startsWith(`${o.id}-`));

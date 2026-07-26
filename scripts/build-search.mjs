@@ -29,6 +29,9 @@ const read = (f) => JSON.parse(readFileSync(f, 'utf8'));
 // several entries match equally well, the more significant place wins.
 const RANK = {
   landmark1: 1, landmark2: 2,
+  // Above everything: "Limhamn" and "Rosengård" are answers in themselves, and
+  // used to lose the search box to a bus stop and a pizzeria of the same name.
+  stadsdel: 1,
   stadsomrade: 2, delomrade: 3,
   station: 3,
   majorStreet: 4, street: 5, minorStreet: 7,
@@ -46,6 +49,16 @@ const districtOf = (point) => index.find(point)?.properties.name ?? null;
 
 const entries = [];
 const push = (...e) => { entries.push(...e); };
+
+// The ten stadsdelar (build-areas.mjs, Malmö stad CC0) — the coarsest names on
+// the map, and the ones most likely to be typed. Optional so the index can
+// still be built before that step has run.
+if (existsSync(`${dataDir}/stadsdelar.geojson`)) {
+  for (const f of read(`${dataDir}/stadsdelar.geojson`).features) {
+    push({ name: f.properties.name, cat: 'stadsdel', kind: 'stadsdel',
+      point: roundPoint(interiorPoint(f.geometry)), district: null, rank: RANK.stadsdel });
+  }
+}
 
 // Districts are searchable in their own right.
 for (const f of al9) {
@@ -186,7 +199,7 @@ if (existsSync(landmarksFile)) {
 // all (Öresundsbron, Ribersborgs Kallbadhus on its pier).
 const before = entries.length;
 const clipped = entries.filter((e) => e.district !== null
-  || e.kind === 'stadsområde' || e.cat === 'landmark');
+  || e.kind === 'stadsområde' || e.cat === 'stadsdel' || e.cat === 'landmark');
 const dropped = before - clipped.length;
 
 clipped.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, 'sv'));

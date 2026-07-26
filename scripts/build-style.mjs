@@ -66,9 +66,13 @@ const OVERRIDE = {
   // z6-9 — water, the strait, the bridge, the city name.
   water_name_point: { minzoom: 6 },
   water_name_line: { minzoom: 6 },
-  place_city: { minzoom: 6 },
-  place_town: { minzoom: 10 },
-  place_village: { minzoom: 12 },
+  // The area hierarchy is one level at a time (see app/layers.js): Malmö alone,
+  // then the ten stadsdelar, then the delområden. "Malmö" is the first level,
+  // so it holds the widest view by itself and stands down when the stadsdel
+  // names take over; the neighbouring towns are level-3 grain and wait for it.
+  place_city: { minzoom: 6, maxzoom: 12.8 },
+  place_town: { minzoom: 12.8 },
+  place_village: { minzoom: 12.8 },
   // The Sweden–Denmark line through the sound is real orientation; the rest of
   // the boundary work was dropped above.
   'boundary_2_z5-': { minzoom: 6 },

@@ -80,17 +80,48 @@ bullet lands here only when something non-obvious was actually decided.
   they are already there. The style's low-zoom rung was written for z6–9 and
   simply takes effect at z10–11 instead.
 
-- **District labels come from computed points, and collision does the rationing**
-  (2026-07-26). A district is one name but several polygons — Västra Hamnen is
-  cut into four by the docks — and MapLibre labels every part, so the name
-  appeared four times. Labels therefore render from a separate point layer, one
-  centroid-of-largest-part per district, computed in the app (display concern,
-  not data). The first attempt then rationed the 136 names into zoom buckets by
-  polygon area, which buried exactly the famous small central ones (Gamla
-  Staden, Möllevången) until z13.5. Replaced: all delområden compete from z11.5
-  and MapLibre's collision decides how many fit, with area only as the
-  `symbol-sort-key` tiebreak. Area names are what this map is read for, so the
-  bias is now toward showing them.
+- **One level of area at a time, at hard zoom boundaries** (2026-07-26). The
+  area hierarchy is the part of this map meant to teach the city's structure, so
+  zooming steps through it rather than blending it:
+
+  | zoom | what is named |
+  | --- | --- |
+  | < 11 | Malmö, and nothing else |
+  | 11 – 12.8 | the ten stadsdelar, all of them, whatever their size |
+  | ≥ 12.8 | the 136 delområden, all of them, and their boundaries |
+
+  Two earlier attempts failed this and are worth not repeating. Rationing the
+  136 names into zoom buckets by polygon area buried exactly the famous small
+  central ones (Gamla Staden, Möllevången) until z13.5. Letting both levels
+  compete on collision instead made *which level you were looking at* depend on
+  where you happened to be panned. The handover is now a cut, not a fade, and
+  the stadsdel labels are `text-allow-overlap` so all ten are unconditional.
+  Neighbouring towns (Arlöv, Oxie) are level-3 grain and wait for z12.8 too, so
+  the widest view really is one name.
+
+- **District labels come from computed points** (2026-07-26). A district is one
+  name but several polygons — Västra Hamnen is cut into four by the docks — and
+  MapLibre labels every part, so the name appeared four times. Labels therefore
+  render from a separate point layer, one centroid-of-largest-part per district,
+  computed in the app: a display concern, not data.
+
+- **The ten stadsdelar come from Malmö stad, reversing D "keep OSM only"**
+  (2026-07-26). Counted against `opendata-api.malmo.se`: the city publishes
+  **10 stadsdelar** (stadsdelsförvaltningarna, 1996–2013), **5 stadsområden**
+  (2013–2017) and **136 delområden**. Our OSM data matches the last two exactly
+  — admin_level 9 is those same five names, admin_level 10 those same 136 — but
+  OSM has **no stadsdel equivalent at all**: only 9 informal `place=suburb`
+  nodes and 37 suburb polygons, and the polygons are mostly small central areas
+  that duplicate delområden. So the names people actually use for large parts of
+  town (Limhamn, Rosengård, Kirseberg, Centrum) had no boundary anywhere in the
+  pipeline. The earlier decision not to depend on the city feed was about
+  delområden, where OSM already had the same data; here it is the only source,
+  it is CC0, and it is fetched once and cached. All 136 delområden fall inside
+  exactly one stadsdel, which is checked on every build.
+
+  The stadsområden are consequently no longer drawn: Norr/Söder/Väster/Öster was
+  an administrative division nobody said out loud, and the stadsdelar occupy the
+  same zooms better. They stay in the data and in search.
 
 - **Area names come from two sources, deduplicated in the app** (2026-07-26).
   The administrative division does not contain Slottsstaden, Limhamn, Kirseberg,

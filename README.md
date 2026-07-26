@@ -13,10 +13,11 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
 - **No external tile or API calls at runtime.** Everything served from my origin.
 - **Always north-up.** Rotation and pitch disabled — a fixed orientation builds a
   stable mental map.
-- **Offline PWA.** The whole payload is 17.6 MB (basemap 13.3 MB), so the service
+- **Offline PWA.** The whole payload is 17.8 MB (basemap 13.3 MB), so the service
   worker just caches all of it.
 - **Attribution, always visible:** `© OpenMapTiles © OpenStreetMap contributors`
-  (OSM part links to openstreetmap.org/copyright).
+  (OSM part links to openstreetmap.org/copyright), plus a credit for Malmö
+  stad's stadsdelar — CC0, so given because it is theirs, not because it is owed.
 
 ## The map
 
@@ -25,14 +26,19 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
   self-hosted). The archive is downloaded whole on first load and read from
   memory, so panning never touches the network.
 - **Zoom-dependent labelling** (the core): the widest view is coastline/Öresund
-  + "Malmö" + the five stadsområden; then delområde names + major roads + canal
-  ring; then streets, buildings and landmark icons; z15–16 everything. The
-  ladder lives in `scripts/build-style.mjs`, one entry per change with a reason.
-  Note the extract is only ~22 km wide, so the whole-city view is z10–11 — the
-  tileset's z6–9 exist but can't be reached without leaving Malmö behind.
-- **Districts** — 141 OSM admin polygons (5 stadsområden + 136 delområden), plus
-  the OSM `place=suburb` names the division lacks (Slottsstaden, Limhamn,
-  Kirseberg…), deduplicated against them.
+  and "Malmö"; then the canal ring and major roads; then streets, buildings and
+  landmark icons; z15–16 everything. The ladder lives in
+  `scripts/build-style.mjs`, one entry per change with a reason. Note the
+  extract is only ~22 km wide, so the whole-city view is z10–11 — the tileset's
+  z6–9 exist but can't be reached without leaving Malmö behind.
+- **Areas, one level at a time** — zooming steps through the hierarchy instead
+  of blending it: **Malmö** alone below z11, then **all ten stadsdelar**
+  (Malmö stad, CC0: Limhamn-Bunkeflo, Rosengård, Centrum…) to z12.8, then **all
+  136 delområden** with their boundaries. Level 3 also carries the OSM
+  `place=suburb` names neither division has (Slottsstaden, Västra Hamnen),
+  deduplicated against both. Each level says how it sits in the others: a
+  stadsdel lists the delområden it covers, a delområde says which stadsdel it is
+  in. The 5 stadsområden are kept in the data and in search but not drawn.
 - **Selection** — tapping anything named gives its name, what kind of thing it
   is, and its shape: a street lit end to end, an area outlined, an icon ringed.
   Basemap pictograms answer too, so an unfamiliar icon can be identified.
@@ -41,9 +47,10 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
 - **Landmarks** — hand-curated two-tier list (`landmarks/landmarks.json`, 63
   entries, 61 with coordinates), 12 hand-drawn SVG icons for Tier 1, sprite
   icons for Tier 2. Tapping one shows its name, district and one line of text.
-- **Search** — client-side fuzzy match over streets, POIs, districts, landmarks
-  (`search.json`, 4,168 entries / 496 KB), each tagged with its district.
-  Selecting pans + drops a pin, nothing more.
+- **Search** — client-side fuzzy match over streets, POIs, all three tiers of
+  area, and landmarks (`search.json`, 4,178 entries / 497 KB), each tagged with
+  its district. Selecting pans, drops a pin, and outlines the thing if it has a
+  shape — nothing more.
 - **Location** — locate button, accuracy circle, heading cone (map never rotates).
 
 **Bounding box** (`config/bbox.json`): W 12.80 / S 55.49 / E 13.16 / N 55.66 —
@@ -62,10 +69,11 @@ build/      generated artifacts: style.json, data/, site/ (gitignored)
 landmarks/  hand-curated landmark list + SVG icons
 ```
 
-The app is five files — `index.html`, `app.css`, `app.js` (map, chrome, boot),
-`layers.js` (districts, landmarks, overlays), `search.js` — plus `sw.js`. No
-framework, no bundler, no `node_modules`: the browser loads the ES modules as
-written.
+The app is seven files — `index.html`, `app.css`, `app.js` (map, chrome, boot),
+`layers.js` (areas, landmarks, overlays), `highlight.js` (what you tapped and
+its shape), `kinds.js` (what an icon means, in Swedish), `search.js` — plus
+`sw.js`. No framework, no bundler, no `node_modules`: the browser loads the ES
+modules as written.
 
 ## Building the data
 
@@ -76,6 +84,7 @@ Prereqs (macOS): `brew install osmium-tool openjdk@21`; Node ≥ 20.
 scripts/build-basemap.sh            # Sweden pbf → clip → data/cache/malmo.pmtiles (13.3 MB)
 node scripts/build-overlays.mjs     # Overpass → build/data/{food,culture,cycling,transit}.geojson
 node scripts/build-districts.mjs    # OSM boundaries → build/data/districts.geojson
+node scripts/build-areas.mjs        # Malmö stad CC0 → build/data/stadsdelar.geojson (+ what each covers)
 node scripts/build-streets.mjs      # pbf → data/cache/streets.json (search intermediate)
 node scripts/build-landmarks.mjs    # landmarks.json → build/data/landmarks.geojson (--resolve fills coords)
 node scripts/build-search.mjs       # everything above → build/data/search.json
@@ -102,7 +111,7 @@ console.
 ## Hosting
 
 ```
-node scripts/build-site.mjs         # → build/site (17.6 MB, 51 files) — upload as-is
+node scripts/build-site.mjs         # → build/site (17.8 MB, 54 files) — upload as-is
 ```
 
 Any static host over HTTPS (geolocation and service workers need it). The only

@@ -9,7 +9,7 @@
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
 const CODE = 'malmo-code-v2';
-const DATA = 'malmo-data-2026-07-26';
+const DATA = 'malmo-data-2026-07-26b';
 
 const CODE_FILES = [
   '/',
@@ -47,6 +47,7 @@ const CODE_FILES = [
 const DATA_FILES = [
   '/malmo.pmtiles',
   '/data/districts.geojson',
+  '/data/stadsdelar.geojson',
   '/data/landmarks.geojson',
   '/data/search.json',
   '/data/food.geojson',
