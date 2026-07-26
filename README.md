@@ -21,7 +21,8 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
 ## The map
 
 - **Basemap** — MapLibre GL JS + PMTiles, OpenMapTiles schema, z6–16, own style
-  JSON (carved from an open style, not written from scratch).
+  JSON (carved from OSM Liberty, not written from scratch; glyphs + sprite
+  self-hosted).
 - **Zoom-dependent labelling** (the core): low zoom is coastline/Öresund/bridge +
   "Malmö"; then district names + major roads + canal ring; then major streets +
   landmark icons; z15–16 everything. Thresholds tuned with the map visible.
