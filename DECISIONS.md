@@ -62,7 +62,7 @@ content hash so immutable `Cache-Control` is safe even for mid-cycle regeneratio
 `manifest.json` (no-cache) maps logical name → current file. Fixes the latent bug in
 the spec's month-only `malmo-2026-07.pmtiles` naming.
 
-### D7 — Malmö stad open data vs OSM (IN PROGRESS, not resolved)
+### D7 — Malmö stad open data vs OSM → keep OSM (RESOLVED 2026-07-26)
 Owner suspects Malmö stad's open-data archive may have better **parks, torg (squares),
 or area splits** than OSM. Investigation so far:
 - **Two portals.** `opendata.malmo.se` is a client-rendered Next.js "Dataplatform.se"
@@ -71,22 +71,107 @@ or area splits** than OSM. Investigation so far:
 - **Primärkarta (primary map) is open data** since 2024-03-28 (Geoforum) — the likely
   authoritative source for named parks/squares. EU aggregator entry:
   `https://data.europa.eu/data/datasets/5fcde58b-ca30-4b41-b6c2-9dcca67dd016`
-- **Stadsområden dataset** exists at `https://opendata.malmo.se/@malmo/stadsomraden`
-  but is the defunct 2013–2017 division; current split = delområden (which OSM already
-  has completely — see D4).
+- **Stadsområden dataset** at `https://opendata.malmo.se/@malmo/stadsomraden` is **current,
+  not defunct** (CKAN `stadsomraden`, updated 2026-07-01): 5 areas — SÖDER, VÄSTER, ÖSTER,
+  INNERSTADEN, NORR — the same 5 as OSM AL9. (Earlier note that it was the 2013–2017 split
+  was wrong.)
 
-**Next step:** fetch the data.europa.eu distribution links for the primärkarta to get
-real GeoJSON/WFS URLs, pull `parker` + `torg` layers, and diff against OSM
-(`leisure=park`, `place=square`/`leisure=common`). Hypothesis to test: Malmö stad has
-better-named/complete parks and squares; OSM's delområden are already good enough that
-Malmö-stad area splits add little. **No decision yet** — do not swap any layer until the
-diff is done.
+**How to fetch (working endpoints).** The CKAN host `ckan-malmo.dataplatform.se`
+(185.170.4.210) is firewalled — times out from here and via WebFetch. But the API is
+mirrored on **`opendata-api.malmo.se`** (reachable), so use that:
+- `GET https://opendata-api.malmo.se/api/3/action/package_show?id=delomraden` → resources:
+  GPKG (4326/3008) + **TopoJSON 4326** (`.../download/delomraden_epsg4326.json`, quantized).
+- `GET .../package_show?id=stadsomraden` → includes a plain **GeoJSON 4326**
+  (`.../download/stadsomraden_4326.geojson`). Both **CC0-1.0**.
 
-**Owner explicitly wants a VISUAL comparison of the area boundaries:** pull the official
-Malmö stad delområden/stadsområden polygons and show them overlaid against our OSM
-`districts.geojson` (AL9/AL10) so it's obvious whether the boundaries are identical or
-differ. Deliver this as a quick throwaway map/overlay (a scratch preview — NOT the
-Phase 3 app), since the two sources may share lineage (OSM delområden may have been
-imported from, or aligned to, Malmö stad's own split). Compare geometry, count, and
-names, not just counts.
+**Diff done (2026-07-26).** Converted the delområden TopoJSON→GeoJSON and compared to our
+OSM `districts.geojson` (centroid + planar area, equirectangular @55.6°N):
+- **Delområden: 136 ↔ 136.** 134/136 names match exactly; the other 2 are spelling
+  variants only (`SOFIELUNDS INDUSTRIOMR.`↔`…INDUSTRIOMRÅDE`, `MALMÖHUS`↔`MALMÖ HUS`).
+- **Geometry ~identical:** median centroid shift **0.7 m**, median area diff **0.11 %**.
+  Only real divergences are reclaimed harbour/industrial polygons (Oljehamnen 70 % area /
+  373 m, Norra Hamnen 44 % / 341 m, Västra Hamnen, Spillepengen, Limhamns hamnområde) —
+  different survey vintages of a changing shoreline, not a different division.
+- **Stadsområden: 5 ↔ 5**, identical names.
+
+**Decision: keep OSM `districts.geojson`; do NOT swap in Malmö-stad boundaries.** The two
+are the same division (shared lineage — OSM was aligned to the city's split), so swapping
+buys nothing and adds a fragile external dependency. Parks/torg were not separately
+diffed; revisit only if a concrete gap in `leisure=park`/`place=square` shows up in Phase 3.
+The throwaway visual overlay the owner asked for was built and reviewed, then dropped — the
+numeric result above is conclusive, so it isn't worth keeping.
+
+---
+
+## Phase 2 data numbers (2026-07-26)
+
+| Artifact | Value |
+|---|---|
+| `search.json` | **4,529 entries / 539 KB** (target was < 2 MB) |
+| — streets | 2,737 · food 1,015 · transit 378 · culture 196 · districts 141 · landmarks 61 · cycling 1 |
+| `streets.json` (intermediate) | 2,737 entries / 297 KB, from 8,830 named highway ways |
+| `landmarks.geojson` | 61 of 63 resolved / 16 KB (17 Tier-1, 44 Tier-2) |
+| Street extraction wall time | ~0.4 s (osmium over the local clip) |
+
+### D8 — The search index is clipped to Malmö kommun (owner's choice)
+`search.json` exists because vector tiles cannot answer "where is Bruksvägen" unless you
+are already looking at it — MapLibre only holds the tiles in the current viewport, so the
+names in `malmo.pmtiles` are unreachable for lookup. The index is the same data reshaped
+for search. Street names come from the local `.pbf` via osmium (~0.4 s), **not** Overpass,
+which would be a slow rate-limited remote query for data already on disk.
+
+**The bbox has margin beyond the municipality** (Arlöv, Åkarp, Alnarp, Burlöv, Västra
+Ingelstad), and those villages reuse common Swedish street names — 155 names spanned
+>2 km, e.g. `Bruksvägen` appearing in three separate places. Three options were put to the
+owner; **the owner chose to clip to the municipality.** Applied consistently:
+- **streets** — 1,070 of 8,830 named ways dropped as outside Malmö;
+- **POIs** — a further 89 search entries dropped (55 transit, 23 food, 10 culture), because
+  an index that knows half of Arlöv's bus stops but none of its streets is worse than one
+  that knows neither;
+- **landmarks are exempt** — they are hand-curated, and several legitimately sit offshore
+  in no delområde (Öresundsbron, Ribersborgs Kallbadhus on its pier).
+
+The clip is free: the 136 AL10 delområden tile the municipality exactly, so the same
+point-in-polygon that assigns a district also decides what is in Malmö. **Consequence the
+owner accepted:** those areas still *render* on the map but cannot be searched.
+
+Duplicates survive *within* the kommun (Oxie and Klagshamn are both Malmö), so names are
+still split into spatial clusters — >500 m gap means a distinct street — and disambiguated
+by district. That yielded 10 genuine splits, all verified as real (`Trelleborgsvägen` in
+Lindeborg vs Tygelsjö by, `Ängavägen` in Oxie Kyrkby vs Klagshamn, …).
+
+**Street rank is the dominant class by length, not the most prominent class.** The first
+implementation took the minimum rank across a name's ways, which made `Annetorpsvägen`
+(46 secondary ways + 13 primary + one motorway_link slip road) rank as a motorway, and
+left rank 2 empty because its primary ways were absorbed. Weighting by metres of road
+fixes it.
+
+### D9 — Landmarks: Nominatim resolves, a human verifies, nothing is faked
+`landmarks/landmarks.json` is the hand-edited source of truth; `build-landmarks.mjs
+--resolve` fills only *missing* coordinates and never rewrites an existing entry.
+Every resolved coordinate is written back as `"verified": false` and reported until a
+human confirms it. Unresolvable entries are emitted **without geometry** rather than with
+a plausible-looking wrong point, and `search.json` skips them.
+
+Nominatim is queried at 1 req/s with a descriptive User-Agent (policy) and `bounded=1`
+against the bbox — without it, `Stortorget` cheerfully matches Stockholm. Responses are
+cached to `data/cache/nominatim/`. **This is build-time only**; the spec forbids
+third-party requests at runtime.
+
+61 of 63 resolved. The 8 initial failures were fixed by correcting the *query* rather than
+the display name (`Malmö moské` → queries `Malmö Islamic Center`; `Caroli City` → renamed
+to its actual OSM name `Kv. Caroli`), determined by grepping the shipped extract for what
+OSM really calls them. **2 remain unresolved** — `Klagshamns udde` and `Toftanäs
+våtmarkspark` are real places that simply are not *named* features in OSM.
+
+Coordinates were cross-checked against the local extract by name: only 3 sit >200 m from
+their OSM namesake, all large-extent features (Ribersborgsstranden 292 m, Bulltofta 357 m,
+Malmö universitet 457 m) where a centroid and a chosen point differ legitimately.
+
+**Caveat for the owner:** this list was seeded from general Malmö knowledge, *not* from the
+~17+~50 the owner listed in an earlier chat — that context was lost. It needs review.
+
+### D10 — Phase 1c (atomic deploy + cache-busting) skipped
+**Owner's instruction, 2026-07-26.** The content-hash/manifest design in D6 stands if it is
+ever revived, but no deploy tooling, nginx config or crontab was written.
 
