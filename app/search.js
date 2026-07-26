@@ -10,6 +10,7 @@
 // Selecting a result pans and drops a pin. It does not route, and there is no
 // "directions" button hiding behind it.
 import { Marker } from './vendor/maplibre-gl.mjs';
+import { highlightSearchResult } from './highlight.js';
 
 const CAT_LABEL = {
   street: 'Gata', district: 'Område', landmark: 'Landmärke', poi: 'Plats',
@@ -122,6 +123,9 @@ export function initSearch(map) {
     // Zooming to a sensible level for each beats one flyTo for everything.
     const zoom = e.cat === 'district' ? 13.5 : e.cat === 'street' ? 15.5 : 16;
     map.flyTo({ center: e.point, zoom: Math.max(map.getZoom(), zoom), speed: 1.4, essential: true });
+    // The shape can only be collected once the tiles it lives in have arrived,
+    // which is after the flight, not before it.
+    map.once('idle', () => highlightSearchResult(map, e));
     list.hidden = true;
     input.blur();
   }

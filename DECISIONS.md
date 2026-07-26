@@ -80,14 +80,41 @@ bullet lands here only when something non-obvious was actually decided.
   they are already there. The style's low-zoom rung was written for z6–9 and
   simply takes effect at z10–11 instead.
 
-- **District labels come from computed points, and prominence is area for now**
+- **District labels come from computed points, and collision does the rationing**
   (2026-07-26). A district is one name but several polygons — Västra Hamnen is
   cut into four by the docks — and MapLibre labels every part, so the name
   appeared four times. Labels therefore render from a separate point layer, one
   centroid-of-largest-part per district, computed in the app (display concern,
-  not data). Which districts get labelled first is ranked by area: honest,
-  tunable, and wrong about Malmö (Hyllievång outranks Möllevången) until the
-  hand-picked list from STATUS's open question exists.
+  not data). The first attempt then rationed the 136 names into zoom buckets by
+  polygon area, which buried exactly the famous small central ones (Gamla
+  Staden, Möllevången) until z13.5. Replaced: all delområden compete from z11.5
+  and MapLibre's collision decides how many fit, with area only as the
+  `symbol-sort-key` tiebreak. Area names are what this map is read for, so the
+  bias is now toward showing them.
+
+- **Area names come from two sources, deduplicated in the app** (2026-07-26).
+  The administrative division does not contain Slottsstaden, Limhamn, Kirseberg,
+  Rosengård or Hyllie — those are `place=suburb` nodes in OSM, and they are
+  precisely how people say where something is. So the basemap's place labels are
+  dropped from the style and redrawn by the app instead, filtered against the
+  136 district names (case-insensitively: "Gamla staden" the node and "Gamla
+  Staden" the delområde are one place spelled twice). One styling for area
+  names, one place to tune them. **Erikslust is in neither source** — it is not
+  in OSM at all inside this bbox, in any form; showing it would need a
+  hand-curated area list.
+
+- **Everything named is tappable, and says its shape** (2026-07-26). Tapping
+  answers "what is that?" in two ways at once: a card with the name and what
+  kind of thing it is, and the shape drawn on the map — a street lit along its
+  whole length, an area outlined, an icon ringed. Three things this cost:
+  vector tiles cut features at tile borders, so a street is re-assembled from
+  all loaded tiles by name and then kept only if the pieces hang together
+  (otherwise the other two Kyrkogatan light up too); road geometry carries no
+  names, so streets are found by proximity to the parallel `transportation_name`
+  layer instead of by hit-testing the road; and only what is currently loaded
+  can be highlighted, so the far end of a long street may be missing until it
+  scrolls into view. The icon vocabulary (`app/kinds.js`) is deliberately
+  partial — an untranslated OSM tag is shown as-is rather than hidden.
 
 - **App icons are drawn in code** (2026-07-26). Installing to a home screen
   needs real PNGs (iOS ignores SVG icons), and rasterising one would mean a

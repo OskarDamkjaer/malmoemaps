@@ -10,6 +10,7 @@ import {
   Map, GeolocateControl, AttributionControl, ScaleControl, addProtocol,
 } from './vendor/maplibre-gl.mjs';
 import { addDataLayers, overlays, onFeatureClick } from './layers.js';
+import { clearHighlight } from './highlight.js';
 import { initSearch } from './search.js';
 
 const boot = document.getElementById('boot');
@@ -193,7 +194,12 @@ export function showCard({ name, meta, description }) {
   card.hidden = false;
 }
 
-export function hideCard() { card.hidden = true; }
+// The card and the shape on the map are one selection: they appear and go away
+// together, whichever way you dismiss them.
+export function hideCard() {
+  card.hidden = true;
+  clearHighlight(map);
+}
 
 document.getElementById('cardclose').addEventListener('click', hideCard);
 onFeatureClick(map, showCard);

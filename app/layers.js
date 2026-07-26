@@ -11,6 +11,10 @@
 // compare ["zoom"] against ["get", …] in a filter, so a landmark that should
 // appear at z12 lives in the z12 layer. Hence the small layer factories.
 
+import {
+  addHighlightLayers, clearHighlight, describeHit, highlight, pickFeature, setDistrictFeatures,
+} from './highlight.js';
+
 const DATA = '/data';
 
 // ---- landmark icons --------------------------------------------------------
@@ -60,16 +64,16 @@ function iconExpression() {
 }
 
 // ---- districts -------------------------------------------------------------
-// 136 delområden all at once is wallpaper; five stadsområden is not a map of
-// anywhere. So the big ones come first and the rest fill in as you zoom.
-// Polygon area stands in for prominence — a stopgap: it puts Hyllievång ahead
-// of Möllevången, which is wrong about Malmö but right about the geometry, and
-// it is a hand-picked list away from being right about both.
-const DISTRICT_STEPS = [
-  { zoom: 11, share: 0.15, size: 12 },
-  { zoom: 12.5, share: 0.45, size: 11.5 },
-  { zoom: 13.5, share: 1, size: 11 },
-];
+// The delområde names — Erikslust, Slottstaden, Gamla Staden — are how people
+// actually say where something is, so they are the labels this map is for.
+//
+// An earlier version rationed them into zoom buckets by polygon area, which
+// buried the small central ones (exactly the famous ones) until z13.5. Instead
+// all 136 compete from one zoom, and MapLibre's own collision does the
+// rationing: as many names as fit, and no overlap. Area only sets who wins a
+// collision, via symbol-sort-key — being big is a decent tiebreak and, unlike a
+// zoom bucket, it never hides a name that had room.
+const DISTRICT_LABEL_MINZOOM = 11.5;
 
 // Outer rings of a (Multi)Polygon, each with its shoelace area. Longitude is
 // scaled by latitude so the areas compare as ground area rather than degrees²;
@@ -115,14 +119,12 @@ function districtLabelPoints(features) {
 function districtLabels(geojson) {
   const al10 = geojson.features.filter((f) => f.properties.admin_level === 10);
   const al9 = geojson.features.filter((f) => f.properties.admin_level === 9);
-  const ranked = al10
+  // Rank 0 = largest. Used as the collision sort key, nothing else.
+  al10
     .map((f) => ({ f, area: outerRings(f).reduce((s, r) => s + r.area, 0) }))
-    .sort((a, b) => b.area - a.area);
-  ranked.forEach(({ f }, i) => {
-    const share = (i + 1) / ranked.length;
-    f.properties.labelz = DISTRICT_STEPS.find((s) => share <= s.share).zoom;
-  });
-  for (const f of al9) f.properties.labelz = 10;
+    .sort((a, b) => b.area - a.area)
+    .forEach(({ f }, i) => { f.properties.rank = i; });
+  for (const f of al9) f.properties.rank = 0;
   return { type: 'FeatureCollection', features: districtLabelPoints([...al9, ...al10]) };
 }
 
@@ -158,6 +160,9 @@ export async function addDataLayers(map) {
 
   // Boundaries and names are two sources on purpose — see districtLabels().
   map.addSource('district-labels', { type: 'geojson', data: districtLabels(districts) });
+  // Selecting a district draws its real outline, so the highlight needs the
+  // polygons as they came off disk, before the map cuts them into tiles.
+  setDistrictFeatures(districts.features);
   map.addSource('districts', { type: 'geojson', data: districts });
   map.addSource('landmarks', { type: 'geojson', data: landmarks });
 
@@ -176,9 +181,15 @@ export async function addDataLayers(map) {
     },
   });
 
-  // Stadsområde first, then delområden in three waves (see DISTRICT_STEPS).
+  // The selection wash goes here, above the roads it covers and below every
+  // label, so highlighting a street never hides the street's name.
+  addHighlightLayers(map);
+
+  // The five stadsområden hold the widest view alone, then hand over. They are
+  // added first, so they win any collision against the delområde names during
+  // the zoom where both are on screen.
   map.addLayer({
-    id: 'district-label-area',
+    id: 'district-label-stadsomrade',
     type: 'symbol',
     source: 'district-labels',
     filter: ['==', ['get', 'admin_level'], 9],
@@ -196,33 +207,38 @@ export async function addDataLayers(map) {
       'text-color': '#7c705f',
       'text-halo-color': 'rgba(248,244,240,0.9)',
       'text-halo-width': 1.4,
-      'text-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.9, 11.6, 0.9, 12, 0],
+      // Gone by the time the delområde names are dense enough to speak for
+      // themselves; fading rather than cutting keeps the handover quiet.
+      'text-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.9, 11.4, 0.9, 12, 0],
     },
   });
 
-  for (const step of DISTRICT_STEPS) {
-    map.addLayer({
-      id: `district-label-${step.zoom}`,
-      type: 'symbol',
-      source: 'district-labels',
-      filter: ['all', ['==', ['get', 'admin_level'], 10], ['==', ['get', 'labelz'], step.zoom]],
-      minzoom: step.zoom,
-      layout: {
-        'text-field': ['get', 'name'],
-        'text-font': ['Roboto Medium'],
-        'text-size': step.size,
-        'text-letter-spacing': 0.08,
-        'text-max-width': 9,
-        'text-padding': 6,
-      },
-      paint: {
-        'text-color': '#6b6153',
-        'text-halo-color': 'rgba(248,244,240,0.92)',
-        'text-halo-width': 1.4,
-      },
-    });
-  }
+  map.addLayer({
+    id: 'district-label',
+    type: 'symbol',
+    source: 'district-labels',
+    filter: ['==', ['get', 'admin_level'], 10],
+    minzoom: DISTRICT_LABEL_MINZOOM,
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-font': ['Roboto Medium'],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 11.5, 10.5, 14, 12, 17, 13.5],
+      'text-letter-spacing': 0.08,
+      'text-max-width': 9,
+      // Enough padding to keep names off each other, little enough that a
+      // small central district still fits between two large ones.
+      'text-padding': 7,
+      'symbol-sort-key': ['get', 'rank'],
+    },
+    paint: {
+      'text-color': '#5f574a',
+      'text-halo-color': 'rgba(248,244,240,0.92)',
+      'text-halo-width': 1.5,
+      'text-opacity': ['interpolate', ['linear'], ['zoom'], 11.5, 0, 12.2, 1],
+    },
+  });
 
+  addAreaNameLayers(map, districts);
   addOverlayLayers(map);
 
   // Landmarks sit above the overlays: they are the fixed points you navigate
@@ -256,6 +272,58 @@ export async function addDataLayers(map) {
       },
     });
   }
+}
+
+// The names people use that the administrative division doesn't have.
+//
+// Slottsstaden, Limhamn, Kirseberg, Hyllie, Rosengård — these are how the city
+// is talked about, and several of them are not delområden at all; they live in
+// OSM as place=suburb nodes, in the basemap tiles. They are drawn here rather
+// than in the style so that every area name on this map is styled in one place
+// and can be filtered against the districts, which is the whole difficulty:
+// "Gamla staden" the suburb node and "Gamla Staden" the delområde are the same
+// place written twice, and only one of them should be on screen.
+function addAreaNameLayers(map, districts) {
+  const known = [...new Set(districts.features.map((f) => f.properties.name.toLowerCase()))];
+  const notADistrict = ['!', ['in', ['downcase', ['get', 'name']], ['literal', known]]];
+
+  const style = (size) => ({
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-font': ['Roboto Medium'],
+      'text-size': size,
+      'text-letter-spacing': 0.08,
+      'text-max-width': 9,
+      'text-padding': 7,
+    },
+    paint: {
+      'text-color': '#5f574a',
+      'text-halo-color': 'rgba(248,244,240,0.92)',
+      'text-halo-width': 1.5,
+    },
+  });
+
+  // Suburbs are large and worth having early — Limhamn and Rosengård are how
+  // you orient before you know a single street.
+  map.addLayer({
+    id: 'area-label-suburb',
+    type: 'symbol',
+    source: 'openmaptiles',
+    'source-layer': 'place',
+    filter: ['all', ['==', ['get', 'class'], 'suburb'], notADistrict],
+    minzoom: 11,
+    ...style(['interpolate', ['linear'], ['zoom'], 11, 11.5, 14, 13, 17, 14]),
+  });
+
+  map.addLayer({
+    id: 'area-label-neighbourhood',
+    type: 'symbol',
+    source: 'openmaptiles',
+    'source-layer': 'place',
+    filter: ['all', ['in', ['get', 'class'], ['literal', ['neighbourhood', 'quarter', 'islet', 'island']]], notADistrict],
+    minzoom: 13,
+    ...style(['interpolate', ['linear'], ['zoom'], 13, 10.5, 17, 12.5]),
+  });
 }
 
 function addOverlayLayers(map) {
@@ -320,51 +388,27 @@ function addOverlayLayers(map) {
 }
 
 // ---- selection -------------------------------------------------------------
-const KIND_LABEL = {
-  restaurant: 'Restaurang', cafe: 'Café', bar: 'Bar', pub: 'Pub', fast_food: 'Snabbmat',
-  ice_cream: 'Glass', museum: 'Museum', gallery: 'Galleri', artwork: 'Konstverk',
-  theatre: 'Teater', arts_centre: 'Kulturhus', memorial: 'Minnesmärke', station: 'Station',
-  tram_stop: 'Spårvagn', cycleway: 'Cykelväg', path: 'Cykelstråk', footway: 'Cykelstråk',
-};
-
-function describe(feature) {
-  const p = feature.properties;
-  const layer = feature.layer.id;
-  if (layer.startsWith('landmark-')) {
-    return {
-      name: p.name,
-      meta: [p.tier === 1 ? 'Landmärke' : 'Sevärdhet', p.district].filter(Boolean).join(' · '),
-      description: p.description,
-    };
-  }
-  if (layer.startsWith('district-label')) {
-    return { name: p.name, meta: p.admin_level === 9 ? 'Stadsområde' : 'Delområde' };
-  }
-  const overlay = overlays.find((o) => layer.startsWith(`${o.id}-`));
-  const kind = p.kind ?? p.amenity;
-  return {
-    name: p.name || KIND_LABEL[kind] || overlay?.label || 'Plats',
-    meta: [overlay?.label, p.name ? KIND_LABEL[kind] ?? kind : null].filter(Boolean).join(' · '),
-  };
+// The app's own layers, which win any tie against the basemap beneath them.
+function appLayerIds(map) {
+  return map.getStyle().layers.map((l) => l.id).filter((id) => id.startsWith('landmark-')
+    || id.startsWith('district-label') || id.startsWith('area-label')
+    || overlays.some((o) => o.visible && (id === `${o.id}-dot` || id === `${o.id}-line`)));
 }
 
 export function onFeatureClick(map, show) {
   map.on('click', (e) => {
-    // Only our own layers are clickable — the basemap is scenery, and tapping a
-    // random building should do nothing at all.
-    const ids = [
-      ...map.getStyle().layers.map((l) => l.id).filter((id) => id.startsWith('landmark-')
-        || id.startsWith('district-label')
-        || overlays.some((o) => o.visible && (id === `${o.id}-dot` || id === `${o.id}-line`))),
-    ];
-    const hits = map.queryRenderedFeatures([[e.point.x - 6, e.point.y - 6], [e.point.x + 6, e.point.y + 6]], { layers: ids });
-    if (!hits.length) return;
+    const hit = pickFeature(map, e, appLayerIds(map));
+    if (!hit) { clearHighlight(map); return; }
     e._handled = true;
-    show(describe(hits[0]));
+    highlight(map, hit);
+    show(describeHit(hit, overlays));
   });
 
+  // Pointer feedback for the app's own icons only: working out whether the
+  // cursor is over a nameable basemap feature means querying the name layer,
+  // which is too much work to redo on every mouse move.
   map.on('mousemove', (e) => {
-    const hits = map.queryRenderedFeatures(e.point).filter((f) => f.layer.id.startsWith('landmark-'));
+    const hits = map.queryRenderedFeatures(e.point, { layers: appLayerIds(map) });
     map.getCanvas().style.cursor = hits.length ? 'pointer' : '';
   });
 }

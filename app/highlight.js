@@ -1,0 +1,312 @@
+// Selection: what you tapped, and the shape of it.
+//
+// A reference map's job is to answer "what is that?" — so everything with a
+// name is tappable, including the basemap's own pictograms, and the answer is
+// drawn as well as written: a street lights up along its whole length, a park
+// fills, an area outlines, an icon gets a ring around it.
+//
+// Two things make this less trivial than it sounds.
+//
+// Vector tiles cut features at tile borders, so "the whole street" is a dozen
+// separate pieces, each also present in the neighbouring tile. Pieces are
+// therefore collected by name across all loaded tiles and then kept only if
+// they hang together (see cluster) — otherwise clicking Kyrkogatan would light
+// up the other two Kyrkogatan in view. Only what is loaded can be highlighted:
+// pan far enough and the far end of a long street is simply not there yet.
+//
+// And the basemap's road geometry carries no names — names live in a parallel
+// `transportation_name` layer. So a street is found by proximity to that layer
+// rather than by hit-testing the road you can see.
+import { kindLabel } from './kinds.js';
+
+const SRC = 'highlight';
+const ACCENT = '#b8562b';
+const EMPTY = { type: 'FeatureCollection', features: [] };
+
+// Districts are kept unclipped here, straight from their GeoJSON: they are the
+// one thing being highlighted where tile seams would show as stray lines.
+let districtFeatures = [];
+export function setDistrictFeatures(features) { districtFeatures = features; }
+
+// Symbol layers whose icons and labels should answer for themselves. The app's
+// own layers are added to this at pick time.
+const BASEMAP_SYMBOLS = ['poi_z15', 'poi_z16', 'place_city', 'place_town', 'place_village',
+  'road_shield', 'water_name_point', 'water_name_line'];
+const BASEMAP_AREAS = ['park', 'landuse_cemetery', 'landuse_hospital', 'landuse_school'];
+
+// ---- geometry ---------------------------------------------------------------
+const flatten = (coords) => (typeof coords[0] === 'number' ? [coords] : coords.flatMap(flatten));
+
+function bboxOf(geometry) {
+  const pts = flatten(geometry.coordinates);
+  let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [x, y] of pts) {
+    if (x < w) w = x;
+    if (x > e) e = x;
+    if (y < s) s = y;
+    if (y > n) n = y;
+  }
+  return [w, s, e, n];
+}
+
+// Equirectangular metres. Everything here is within one city, where the error
+// is far below the tolerances being compared against.
+const M_PER_DEG_LAT = 110574;
+const mPerDegLon = (lat) => 111320 * Math.cos(lat * Math.PI / 180);
+
+function gapMeters(a, b, lat) {
+  const dx = Math.max(0, a[0] - b[2], b[0] - a[2]) * mPerDegLon(lat);
+  const dy = Math.max(0, a[1] - b[3], b[1] - a[3]) * M_PER_DEG_LAT;
+  return Math.hypot(dx, dy);
+}
+
+function distanceToSegment(p, a, b, kx) {
+  const px = (p[0] - a[0]) * kx;
+  const py = (p[1] - a[1]) * M_PER_DEG_LAT;
+  const bx = (b[0] - a[0]) * kx;
+  const by = (b[1] - a[1]) * M_PER_DEG_LAT;
+  const len2 = bx * bx + by * by;
+  const t = len2 ? Math.max(0, Math.min(1, (px * bx + py * by) / len2)) : 0;
+  return Math.hypot(px - t * bx, py - t * by);
+}
+
+function distanceToLine(point, geometry, lat) {
+  const kx = mPerDegLon(lat);
+  const lines = geometry.type === 'MultiLineString' ? geometry.coordinates : [geometry.coordinates];
+  let best = Infinity;
+  for (const line of lines) {
+    for (let i = 1; i < line.length; i++) {
+      best = Math.min(best, distanceToSegment(point, line[i - 1], line[i], kx));
+    }
+  }
+  return best;
+}
+
+// Keep the pieces that hang together with the clicked one. Tile borders leave
+// gaps of nearly nothing; a different street of the same name is hundreds of
+// metres away.
+function cluster(pieces, seed, linkMeters, lat) {
+  const boxes = pieces.map((f) => bboxOf(f.geometry));
+  const keep = new Set([seed]);
+  const queue = [seed];
+  while (queue.length) {
+    const i = queue.pop();
+    for (let j = 0; j < pieces.length; j++) {
+      if (keep.has(j) || gapMeters(boxes[i], boxes[j], lat) > linkMeters) continue;
+      keep.add(j);
+      queue.push(j);
+    }
+  }
+  return [...keep].map((i) => pieces[i]);
+}
+
+// ---- collecting the shape ---------------------------------------------------
+const piecesNamed = (map, sourceLayer, name) => map
+  .querySourceFeatures('openmaptiles', { sourceLayer, filter: ['==', 'name', name] })
+  .filter((f) => f.properties.name === name);
+
+function shapeOf(map, feature, sourceLayer, { outline = false } = {}) {
+  const lat = map.getCenter().lat;
+  const name = feature.properties?.name;
+  let features = [feature];
+
+  if (name) {
+    const pieces = piecesNamed(map, sourceLayer, name);
+    // The clicked piece is one of these, but identity is not preserved across
+    // the two query APIs, so it is found by proximity to what was clicked.
+    const box = bboxOf(feature.geometry);
+    let seed = -1;
+    let bestGap = Infinity;
+    pieces.forEach((f, i) => {
+      const gap = gapMeters(box, bboxOf(f.geometry), lat);
+      if (gap < bestGap) { bestGap = gap; seed = i; }
+    });
+    if (seed >= 0) features = cluster(pieces, seed, 220, lat);
+  }
+
+  return features.map((f) => ({
+    type: 'Feature',
+    geometry: f.geometry,
+    properties: { _outline: outline },
+  }));
+}
+
+// ---- layers -----------------------------------------------------------------
+export function addHighlightLayers(map) {
+  map.addSource(SRC, { type: 'geojson', data: EMPTY });
+
+  map.addLayer({
+    id: 'highlight-fill',
+    type: 'fill',
+    source: SRC,
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: { 'fill-color': ACCENT, 'fill-opacity': 0.16 },
+  });
+
+  // Lines get a highlighter-pen stroke: wide, soft, under the label rather than
+  // over it, so the street stays readable while it is lit.
+  map.addLayer({
+    id: 'highlight-line',
+    type: 'line',
+    source: SRC,
+    filter: ['any', ['==', ['geometry-type'], 'LineString'], ['get', '_outline']],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': ACCENT,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 11, 4, 14, 7, 17, 12],
+      'line-opacity': 0.45,
+    },
+  });
+
+  // A ring, not a dot: the icon underneath is the thing being pointed at.
+  map.addLayer({
+    id: 'highlight-point',
+    type: 'circle',
+    source: SRC,
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 11, 16, 18],
+      'circle-color': ACCENT,
+      'circle-opacity': 0.12,
+      'circle-stroke-color': ACCENT,
+      'circle-stroke-width': 2,
+      'circle-stroke-opacity': 0.85,
+    },
+  });
+}
+
+const setShape = (map, features) => map.getSource(SRC)
+  ?.setData({ type: 'FeatureCollection', features });
+
+export function clearHighlight(map) { setShape(map, []); }
+
+// ---- picking ----------------------------------------------------------------
+// Metres per screen pixel, so tolerances can be expressed in taps rather than
+// in degrees.
+function metersPerPixel(map, point) {
+  const a = map.unproject(point);
+  const b = map.unproject([point.x + 1, point.y]);
+  return Math.hypot((b.lng - a.lng) * mPerDegLon(a.lat), (b.lat - a.lat) * M_PER_DEG_LAT);
+}
+
+function nearestNamedStreet(map, lngLat, maxMeters) {
+  const point = [lngLat.lng, lngLat.lat];
+  let best = null;
+  for (const f of map.querySourceFeatures('openmaptiles', { sourceLayer: 'transportation_name' })) {
+    if (!f.properties.name || f.geometry.type === 'Point') continue;
+    const d = distanceToLine(point, f.geometry, lngLat.lat);
+    if (d <= maxMeters && (!best || d < best.d)) best = { d, f };
+  }
+  return best?.f ?? null;
+}
+
+// Everything tappable, in the order it wins ties. Curated layers first: they
+// are what this map is *for*, and they sit on top visually too.
+export function pickFeature(map, e, appLayerIds) {
+  const box = [[e.point.x - 8, e.point.y - 8], [e.point.x + 8, e.point.y + 8]];
+  const exists = (ids) => ids.filter((id) => map.getLayer(id));
+
+  const mine = map.queryRenderedFeatures(box, { layers: exists(appLayerIds) });
+  if (mine.length) return { feature: mine[0], origin: 'app' };
+
+  const symbols = map.queryRenderedFeatures(box, { layers: exists(BASEMAP_SYMBOLS) });
+  if (symbols.length) {
+    const f = symbols[0];
+    return { feature: f, origin: f.sourceLayer === 'transportation_name' ? 'street' : 'symbol' };
+  }
+
+  // Tapping the street itself, not its name: 14 px of slack, which is about a
+  // fingertip, and never crosses to the next street in a normal grid.
+  const street = nearestNamedStreet(map, e.lngLat, 14 * metersPerPixel(map, e.point));
+  if (street) return { feature: street, origin: 'street' };
+
+  const areas = map.queryRenderedFeatures(box, { layers: exists(BASEMAP_AREAS) });
+  if (areas.length) return { feature: areas[0], origin: 'area' };
+
+  return null;
+}
+
+// ---- highlighting -----------------------------------------------------------
+const ringAt = (coords) => [{
+  type: 'Feature', geometry: { type: 'Point', coordinates: coords }, properties: {},
+}];
+
+function districtShape(name) {
+  return districtFeatures
+    .filter((f) => f.properties.name === name)
+    .map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { _outline: true } }));
+}
+
+export function highlight(map, hit) {
+  const { feature, origin } = hit;
+  const { name } = feature.properties;
+
+  if (origin === 'street') {
+    setShape(map, shapeOf(map, feature, 'transportation_name'));
+    return;
+  }
+  if (origin === 'area') {
+    // Tile-clipped, so fill only — an outline would trace the tile grid.
+    setShape(map, shapeOf(map, feature, feature.sourceLayer));
+    return;
+  }
+  if (feature.layer?.id.startsWith('district-label') && name) {
+    setShape(map, districtShape(name));
+    return;
+  }
+  if (feature.geometry.type === 'Point') {
+    setShape(map, ringAt(feature.geometry.coordinates));
+    return;
+  }
+  setShape(map, [{ type: 'Feature', geometry: feature.geometry, properties: { _outline: true } }]);
+}
+
+// Search results arrive as a name and a point, with no feature behind them, so
+// the shape has to be found again once the map has flown there and loaded it.
+export function highlightSearchResult(map, entry) {
+  if (entry.cat === 'district') {
+    const shape = districtShape(entry.name);
+    if (shape.length) { setShape(map, shape); return; }
+  }
+  if (entry.cat === 'street') {
+    const near = nearestNamedStreet(map, { lng: entry.point[0], lat: entry.point[1] }, 60);
+    if (near?.properties.name === entry.name) {
+      setShape(map, shapeOf(map, near, 'transportation_name'));
+      return;
+    }
+  }
+  setShape(map, ringAt(entry.point));
+}
+
+// ---- what to say about it ---------------------------------------------------
+export function describeHit({ feature, origin }, overlays) {
+  const p = feature.properties ?? {};
+  const layer = feature.layer?.id ?? '';
+
+  if (layer.startsWith('landmark-')) {
+    return {
+      name: p.name,
+      meta: [p.tier === 1 ? 'Landmärke' : 'Sevärdhet', p.district].filter(Boolean).join(' · '),
+      description: p.description,
+    };
+  }
+  if (layer.startsWith('district-label')) {
+    return { name: p.name, meta: p.admin_level === 9 ? 'Stadsområde' : 'Delområde' };
+  }
+
+  const overlay = overlays.find((o) => layer.startsWith(`${o.id}-`));
+  if (overlay) {
+    return {
+      name: p.name || kindLabel(p) || overlay.label,
+      meta: [overlay.label, p.name ? kindLabel(p) : null].filter(Boolean).join(' · '),
+    };
+  }
+
+  if (origin === 'street') {
+    return { name: p.name, meta: [kindLabel(p), p.ref].filter(Boolean).join(' · ') };
+  }
+
+  // Basemap icon or area: the name if it has one, and always what it is.
+  const kind = kindLabel(p);
+  return { name: p.name || kind || 'Plats', meta: p.name ? kind : null };
+}

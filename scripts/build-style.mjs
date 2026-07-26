@@ -41,7 +41,11 @@ const DROP = {
   road_one_way_arrow_opposite: 'direction of travel is navigation, not orientation',
   poi_z14: 'prominence at z14 is the curated landmark list, not OSM POI rank',
   poi_transit: 'transit is a toggleable overlay, and rail only (see DECISIONS)',
-  place_other: 'suburb/neighbourhood labels duplicate the district layer',
+  // The names themselves are wanted — Slottsstaden and Limhamn are not
+  // delområden and exist nowhere else — but they are redrawn by the app
+  // (addAreaNameLayers), which can filter them against the district names so
+  // "Gamla staden" doesn't appear twice in two spellings.
+  place_other: 'redrawn by the app, deduplicated against the district labels',
   aeroway_fill: 'no airfield inside the bbox',
   aeroway_runway: 'no airfield inside the bbox',
   aeroway_taxiway: 'no airfield inside the bbox',

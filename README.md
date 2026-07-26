@@ -30,7 +30,12 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
   ladder lives in `scripts/build-style.mjs`, one entry per change with a reason.
   Note the extract is only ~22 km wide, so the whole-city view is z10–11 — the
   tileset's z6–9 exist but can't be reached without leaving Malmö behind.
-- **Districts** — 141 OSM admin polygons (5 stadsområden + 136 delområden).
+- **Districts** — 141 OSM admin polygons (5 stadsområden + 136 delområden), plus
+  the OSM `place=suburb` names the division lacks (Slottsstaden, Limhamn,
+  Kirseberg…), deduplicated against them.
+- **Selection** — tapping anything named gives its name, what kind of thing it
+  is, and its shape: a street lit end to end, an area outlined, an icon ringed.
+  Basemap pictograms answer too, so an unfamiliar icon can be identified.
 - **Overlays** — food, culture, cycling, transit (train stations only);
   toggleable, off by default.
 - **Landmarks** — hand-curated two-tier list (`landmarks/landmarks.json`, 63
