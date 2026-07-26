@@ -29,8 +29,10 @@ const EMPTY = { type: 'FeatureCollection', features: [] };
 // this in?" for everything that has a point but no boundary.
 let districtFeatures = [];
 let stadsdelFeatures = [];
+let neighbourhoodFeatures = [];
 export function setDistrictFeatures(features) { districtFeatures = features; }
 export function setStadsdelar(features) { stadsdelFeatures = features; }
+export function setNeighbourhoods(features) { neighbourhoodFeatures = features; }
 export const stadsdelNames = () => stadsdelFeatures.map((f) => f.properties.name);
 
 // Symbol layers whose icons and labels should answer for themselves. The app's
@@ -242,6 +244,17 @@ const asShape = (features) => features
 const districtShape = (name) => asShape(districtFeatures.filter((f) => f.properties.name === name));
 const stadsdelShape = (name) => asShape(stadsdelFeatures.filter((f) => f.properties.name === name));
 
+// A neighbourhood has no geometry of its own — it *is* its delområden. Drawn as
+// their polygons with the outline suppressed when there are several, because
+// the boundaries between them are exactly what the name papers over.
+function neighbourhoodShape(covers) {
+  const members = districtFeatures.filter((f) => covers.includes(f.properties.name));
+  const outline = covers.length === 1;
+  return members.map((f) => ({
+    type: 'Feature', geometry: f.geometry, properties: { _outline: outline },
+  }));
+}
+
 // Ray casting, the textbook version. Ten polygons, one point, on a tap.
 function pointInRing(ring, [x, y]) {
   let inside = false;
@@ -291,6 +304,13 @@ export function highlight(map, hit) {
     setShape(map, stadsdelShape(name));
     return;
   }
+  if (layer === 'area-label-neighbourhood' && name) {
+    // GeoJSON source properties arrive JSON-encoded through the tiler.
+    const covers = typeof feature.properties.covers === 'string'
+      ? JSON.parse(feature.properties.covers) : feature.properties.covers;
+    setShape(map, neighbourhoodShape(covers ?? [name]));
+    return;
+  }
   if (layer.startsWith('district-label') && name) {
     setShape(map, districtShape(name));
     return;
@@ -305,6 +325,10 @@ export function highlight(map, hit) {
 // Search results arrive as a name and a point, with no feature behind them, so
 // the shape has to be found again once the map has flown there and loaded it.
 export function highlightSearchResult(map, entry) {
+  if (entry.cat === 'neighbourhood') {
+    const covers = neighbourhoodFeatures.find((f) => f.properties.name === entry.name)?.properties.covers;
+    if (covers) { setShape(map, neighbourhoodShape(covers)); return; }
+  }
   if (entry.cat === 'stadsdel') {
     const shape = stadsdelShape(entry.name);
     if (shape.length) { setShape(map, shape); return; }
@@ -352,6 +376,20 @@ export function describeHit({ feature, origin }, overlays) {
     return {
       name: p.name,
       meta: ['Delområde', inside && `i ${inside}`].filter(Boolean).join(' · '),
+    };
+  }
+  if (layer === 'area-label-neighbourhood') {
+    const covers = (typeof p.covers === 'string' ? JSON.parse(p.covers) : p.covers) ?? [];
+    const partial = (typeof p.partial === 'string' ? JSON.parse(p.partial) : p.partial) ?? [];
+    return {
+      name: p.name,
+      meta: ['Område', p.stadsdel && `i ${p.stadsdel}`].filter(Boolean).join(' · '),
+      // Every name at this level stands for delområden below it — that is what
+      // makes it this level. The partials are named as partial rather than
+      // quietly drawn whole.
+      description: covers.length
+        ? `Omfattar ${covers.join(', ')}${partial.length ? ` (delvis ${partial.join(', ')})` : ''}.`
+        : null,
     };
   }
   if (layer.startsWith('area-label')) {

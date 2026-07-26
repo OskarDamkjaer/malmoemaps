@@ -18,6 +18,7 @@
 //
 // Usage: node scripts/build-style.mjs [--out DIR] [--refresh]
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { TIER } from '../app/area-levels.mjs';
 
 const args = process.argv.slice(2);
 const arg = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -66,13 +67,16 @@ const OVERRIDE = {
   // z6-9 — water, the strait, the bridge, the city name.
   water_name_point: { minzoom: 6 },
   water_name_line: { minzoom: 6 },
-  // The area hierarchy is one level at a time (see app/layers.js): Malmö alone,
-  // then the ten stadsdelar, then the delområden. "Malmö" is the first level,
-  // so it holds the widest view by itself and stands down when the stadsdel
-  // names take over; the neighbouring towns are level-3 grain and wait for it.
-  place_city: { minzoom: 6, maxzoom: 12.8 },
-  place_town: { minzoom: 12.8 },
-  place_village: { minzoom: 12.8 },
+  // The area hierarchy is one level at a time (app/area-levels.mjs owns it).
+  // "Malmö" is level 1, and it is the one name on that level that the app does
+  // not draw itself — the basemap already has it, well placed. So it holds the
+  // widest view alone and stands down at exactly the zoom the stadsdel names
+  // take over, which is why the bound is imported rather than typed twice.
+  place_city: { minzoom: 6, maxzoom: TIER.stadsdel },
+  // The neighbouring towns (Arlöv, Åkarp) are delområde grain: they wait for
+  // the bottom of the ladder rather than crowding the levels above it.
+  place_town: { minzoom: TIER.delomrade },
+  place_village: { minzoom: TIER.delomrade },
   // The Sweden–Denmark line through the sound is real orientation; the rest of
   // the boundary work was dropped above.
   'boundary_2_z5-': { minzoom: 6 },

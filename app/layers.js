@@ -11,9 +11,10 @@
 // compare ["zoom"] against ["get", …] in a filter, so a landmark that should
 // appear at z12 lives in the z12 layer. Hence the small layer factories.
 
+import { areaLayers } from './area-levels.mjs';
 import {
   addHighlightLayers, clearHighlight, describeHit, highlight, pickFeature,
-  setDistrictFeatures, setStadsdelar, stadsdelNames,
+  setDistrictFeatures, setNeighbourhoods, setStadsdelar, stadsdelNames,
 } from './highlight.js';
 
 const DATA = '/data';
@@ -65,23 +66,13 @@ function iconExpression() {
 }
 
 // ---- districts -------------------------------------------------------------
-// The delområde names — Erikslust, Slottstaden, Gamla Staden — are how people
+// The delområde names — Erikslust, Slottsstaden, Gamla Staden — are how people
 // actually say where something is, so they are the labels this map is for.
 //
-// The zoom ladder is a hierarchy, one level at a time — this is the part of the
-// map meant to teach you how Malmö is put together:
-//
-//   z < 11        Malmö. Just the city.
-//   z 11 – 12.8   the ten stadsdelar, all of them, whatever their size
-//   z ≥ 12.8      the 136 delområden, all of them, and their boundaries
-//
-// The handover is a hard cut at TIER_SWITCH rather than a fade or a
-// size-ranked dissolve: a level you can see half of is a level you can't learn.
-// Two earlier attempts failed this — zoom buckets by polygon area buried the
-// small central districts, and letting both levels compete on collision made
-// which level you were looking at a matter of where you happened to be.
-const TIER_SWITCH = 12.8;
-const STADSDEL_MINZOOM = 11;
+// The zoom ladder that decides which of them you see lives in area-levels.mjs,
+// on its own, because three files depend on it. Everything below is the data
+// side of it: loading the sources those layers name, and turning polygons into
+// the label points the symbol layers want.
 
 // Outer rings of a (Multi)Polygon, each with its shoelace area. Longitude is
 // scaled by latitude so the areas compare as ground area rather than degrees²;
@@ -160,10 +151,12 @@ const OVERLAY_MINZOOM = { food: 14, culture: 13, cycling: 12, transit: 11 };
 
 // ---- assembly --------------------------------------------------------------
 export async function addDataLayers(map) {
-  const [districts, landmarks, stadsdelar] = await Promise.all([
+  const [districts, landmarks, stadsdelar, neighbourhoods, kommun] = await Promise.all([
     fetch(`${DATA}/districts.geojson`).then((r) => r.json()),
     fetch(`${DATA}/landmarks.geojson`).then((r) => r.json()),
     fetch(`${DATA}/stadsdelar.geojson`).then((r) => r.json()),
+    fetch(`${DATA}/neighbourhoods.geojson`).then((r) => r.json()),
+    fetch(`${DATA}/kommun.geojson`).then((r) => r.json()),
     loadDrawnIcons(map),
   ]);
 
@@ -173,6 +166,7 @@ export async function addDataLayers(map) {
   // polygons as they came off disk, before the map cuts them into tiles.
   setDistrictFeatures(districts.features);
   setStadsdelar(stadsdelar.features);
+  setNeighbourhoods(neighbourhoods.features);
   map.addSource('stadsdelar', {
     type: 'geojson',
     data: stadsdelar,
@@ -184,94 +178,36 @@ export async function addDataLayers(map) {
     data: { type: 'FeatureCollection', features: districtLabelPoints(stadsdelar.features) },
   });
   map.addSource('districts', { type: 'geojson', data: districts });
+  map.addSource('kommun', { type: 'geojson', data: kommun });
+  map.addSource('neighbourhoods', { type: 'geojson', data: neighbourhoods });
+  // A grouping's geometry is its outline, so its name needs a point of its own —
+  // computed at build time (labelPointFor) and carried as a property, because
+  // labelling a MultiLineString would run the name along the boundary.
+  map.addSource('neighbourhood-labels', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: neighbourhoods.features.map((f) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: f.properties.label },
+        properties: f.properties,
+      })),
+    },
+  });
   map.addSource('landmarks', { type: 'geojson', data: landmarks });
 
-  // Level 3's boundaries, starting exactly where level 2's stop.
-  map.addLayer({
-    id: 'district-line',
-    type: 'line',
-    source: 'districts',
-    filter: ['==', ['get', 'admin_level'], 10],
-    minzoom: TIER_SWITCH,
-    paint: {
-      'line-color': '#a89880',
-      'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 1],
-      'line-opacity': 0.5,
-      'line-dasharray': [3, 2],
-    },
-  });
-
-  // The selection wash goes here, above the roads it covers and below every
-  // label, so highlighting a street never hides the street's name.
-  addHighlightLayers(map);
-
-  // (The five stadsområden in districts.geojson are not drawn at all:
+  // The whole ladder, in two passes, because the selection wash belongs between
+  // them: above the outlines and the roads it covers, below every label, so
+  // highlighting a street never hides the street's name.
+  //
+  // (The five stadsområden in districts.geojson are not drawn at any level:
   // Norr/Söder/Väster/Öster is a division nobody ever said out loud, and a
-  // fourth level would only blur the three that mean something.)
-  // Level 2: the stadsdelar, with their boundaries, and nothing finer.
-  map.addLayer({
-    id: 'stadsdel-line',
-    type: 'line',
-    source: 'stadsdelar',
-    minzoom: STADSDEL_MINZOOM,
-    maxzoom: TIER_SWITCH,
-    paint: {
-      'line-color': '#a89880',
-      'line-width': ['interpolate', ['linear'], ['zoom'], 11, 0.9, 12.8, 1.6],
-      'line-opacity': 0.55,
-    },
-  });
+  // fifth level would only blur the four that mean something.)
+  const ladder = areaLayers({ notADistrict: notADistrictFilter(districts, neighbourhoods) });
+  for (const layer of ladder) if (layer.metadata.role === 'outline') map.addLayer(layer);
+  addHighlightLayers(map);
+  for (const layer of ladder) if (layer.metadata.role === 'name') map.addLayer(layer);
 
-  map.addLayer({
-    id: 'area-label-stadsdel',
-    type: 'symbol',
-    source: 'stadsdel-labels',
-    minzoom: STADSDEL_MINZOOM,
-    maxzoom: TIER_SWITCH,
-    layout: {
-      'text-field': ['get', 'name'],
-      'text-font': ['Roboto Medium'],
-      'text-size': ['interpolate', ['linear'], ['zoom'], 11, 12, 12.8, 14],
-      'text-letter-spacing': 0.18,
-      'text-transform': 'uppercase',
-      'text-max-width': 8,
-      // All ten, always: at this zoom they are what the map is saying.
-      'text-allow-overlap': true,
-      'text-ignore-placement': true,
-    },
-    paint: {
-      'text-color': '#7c705f',
-      'text-halo-color': 'rgba(248,244,240,0.9)',
-      'text-halo-width': 1.6,
-    },
-  });
-
-  map.addLayer({
-    id: 'district-label',
-    type: 'symbol',
-    source: 'district-labels',
-    filter: ['==', ['get', 'admin_level'], 10],
-    minzoom: TIER_SWITCH,
-    layout: {
-      'text-field': ['get', 'name'],
-      'text-font': ['Roboto Medium'],
-      'text-size': ['interpolate', ['linear'], ['zoom'], 12.8, 11.5, 15, 12.5, 17, 13.5],
-      'text-letter-spacing': 0.08,
-      'text-max-width': 9,
-      // Small padding, and area only as a tiebreak: at this zoom perhaps a
-      // dozen districts are on screen, so nearly all of them get placed, and
-      // the ones that don't are genuinely on top of each other.
-      'text-padding': 3,
-      'symbol-sort-key': ['get', 'rank'],
-    },
-    paint: {
-      'text-color': '#5f574a',
-      'text-halo-color': 'rgba(248,244,240,0.92)',
-      'text-halo-width': 1.5,
-    },
-  });
-
-  addAreaNameLayers(map, districts);
   addOverlayLayers(map);
 
   // Landmarks sit above the overlays: they are the fixed points you navigate
@@ -307,62 +243,24 @@ export async function addDataLayers(map) {
   }
 }
 
-// The names people use that the administrative division doesn't have.
+// The one runtime input to the ladder: which OSM place names are *not* already
+// one of ours.
 //
-// Slottsstaden, Limhamn, Kirseberg, Hyllie, Rosengård — these are how the city
-// is talked about, and several of them are not delområden at all; they live in
-// OSM as place=suburb nodes, in the basemap tiles. They are drawn here rather
-// than in the style so that every area name on this map is styled in one place
-// and can be filtered against the districts, which is the whole difficulty:
-// "Gamla staden" the suburb node and "Gamla Staden" the delområde are the same
-// place written twice, and only one of them should be on screen.
-function addAreaNameLayers(map, districts) {
-  // Anything already drawn as an area: the 136 delområden, and the stadsdelar
-  // including their first part, so the "Limhamn" node doesn't sit next to the
-  // "Limhamn-Bunkeflo" boundary saying the same thing twice.
+// The basemap carries place=suburb nodes for names the administrative division
+// missed, and they are worth having — but "Gamla staden" the suburb node and
+// "Gamla Staden" the delområde are the same place written twice, and only one
+// of them should be on screen. So the level-4 suburb layer is filtered against
+// everything this map draws from its own data: the 136 delområden, the curated
+// grouping names, and the stadsdelar including their first part, so the OSM
+// "Limhamn" node doesn't sit next to the "Limhamn-Bunkeflo" boundary saying the
+// same thing twice.
+function notADistrictFilter(districts, neighbourhoods) {
   const known = [...new Set([
     ...districts.features.map((f) => f.properties.name),
+    ...neighbourhoods.features.map((f) => f.properties.name),
     ...stadsdelNames().flatMap((n) => [n, n.split('-')[0]]),
   ].map((n) => n.toLowerCase()))];
-  const notADistrict = ['!', ['in', ['downcase', ['get', 'name']], ['literal', known]]];
-
-  const style = (size) => ({
-    layout: {
-      'text-field': ['get', 'name'],
-      'text-font': ['Roboto Medium'],
-      'text-size': size,
-      'text-letter-spacing': 0.08,
-      'text-max-width': 9,
-      'text-padding': 7,
-    },
-    paint: {
-      'text-color': '#5f574a',
-      'text-halo-color': 'rgba(248,244,240,0.92)',
-      'text-halo-width': 1.5,
-    },
-  });
-
-  // These belong to level 3: they are the same grain as a delområde — a part of
-  // town you'd walk across — so they arrive with the delområden, not before.
-  map.addLayer({
-    id: 'area-label-suburb',
-    type: 'symbol',
-    source: 'openmaptiles',
-    'source-layer': 'place',
-    filter: ['all', ['==', ['get', 'class'], 'suburb'], notADistrict],
-    minzoom: TIER_SWITCH,
-    ...style(['interpolate', ['linear'], ['zoom'], 12.8, 11.5, 15, 12.5, 17, 13.5]),
-  });
-
-  map.addLayer({
-    id: 'area-label-neighbourhood',
-    type: 'symbol',
-    source: 'openmaptiles',
-    'source-layer': 'place',
-    filter: ['all', ['in', ['get', 'class'], ['literal', ['neighbourhood', 'quarter', 'islet', 'island']]], notADistrict],
-    minzoom: 13.5,
-    ...style(['interpolate', ['linear'], ['zoom'], 13.5, 10.5, 17, 12.5]),
-  });
+  return ['!', ['in', ['downcase', ['get', 'name']], ['literal', known]]];
 }
 
 function addOverlayLayers(map) {

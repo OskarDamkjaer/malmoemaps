@@ -1,0 +1,236 @@
+{
+  "_doc": {
+    "purpose": "The area names Malmö actually uses that no dataset has. Hand-edited; build-neighbourhoods.mjs only validates, places and resolves — it never invents an entry or rewrites your groupings.",
+    "why": [
+      "Two official divisions exist and neither says what people say. The ten stadsdelar are too coarse (Västra Innerstaden) and the 136 delområden too fine (Ribersborg, Rönneholm, Kronprinsen) — the name in between, Slottsstaden, is in no dataset at all. Same for Limhamn, Hamnen, Sofielund, and for the small named quarters like Fullriggaren.",
+      "So this file holds the two ends the official data misses: groupings of delområden, and parts of one."
+    ],
+    "kinds": {
+      "grouping": "Has `covers`: the delområden it is made of, by exact name. Drawn at the neighbourhood level, where it replaces its members. Its shape is those polygons, so it needs no geometry of its own.",
+      "part": "Has `within`: the delområde it sits inside, and a point. Drawn at the deepest zoom, below the delområde level. Smaller than any official area, so there is nothing to derive it from — the point is resolved once from Nominatim and then checked by hand."
+    },
+    "fields": {
+      "name": "As it is said and as it will be shown.",
+      "covers": "Grouping only. Exact delområde names; the build fails on a typo.",
+      "partial": "Members the area only takes a piece of. Listed in the card, and drawn whole — over-covering an edge is more honest than a hole in the middle.",
+      "within": "Part only. The delområde it is inside.",
+      "source": "Where the extent came from. Every grouping has one; that is the point.",
+      "note": "Anything the source left open — read these before trusting an extent.",
+      "lat/lon": "Parts only, filled by the resolver. Edit freely.",
+      "verified": "Set true once you have looked at it on the map and agree with the extent. Everything below is false: it was assembled from sources, not from living here."
+    },
+    "workflow": [
+      "1. Edit this list.",
+      "2. node scripts/build-neighbourhoods.mjs --resolve   (fills missing points for parts)",
+      "3. Look at each area on the map; fix `covers` where it is wrong; set \"verified\": true."
+    ]
+  },
+  "areas": [
+    {
+      "name": "Slottsstaden",
+      "covers": [
+        "Ribersborg",
+        "Ribersborgsstranden",
+        "Hästhagen",
+        "Kronprinsen",
+        "Malmö Hus",
+        "Fågelbacken",
+        "Rönneholm"
+      ],
+      "partial": [
+        "Malmö Hus",
+        "Fågelbacken",
+        "Rönneholm"
+      ],
+      "source": "https://sv.wikipedia.org/wiki/Slottsstaden",
+      "note": "Wikipedia: 'motsvarar ungefär delområdena Ribersborg, Malmöhus (sydvästra delen, Slottsparken), Hästhagen, Kronprinsen, Fågelbacken (norra delen) och Rönneholm (norra delen)'. The three partials are taken whole here.",
+      "verified": false
+    },
+    {
+      "name": "Limhamn",
+      "covers": [
+        "Gamla Limhamn",
+        "Limhamns Hamnområde",
+        "Elinelund",
+        "Sibbarp",
+        "Kalkbrottet"
+      ],
+      "source": "https://sv.wikipedia.org/wiki/Limhamn",
+      "note": "Deliberately conservative: the old town, the harbour and the quarry. Limhamn is half of the stadsdel Limhamn-Bunkeflo and its eastern edge (Annetorp, Djupadal, Rosenvång?) is a matter of local usage, not of any source I could find. Owner call.",
+      "verified": false
+    },
+    {
+      "name": "Hamnen",
+      "covers": [
+        "Inre Hamnen",
+        "Mellersta Hamnen",
+        "Norra Hamnen",
+        "Östra Hamnen",
+        "Frihamnen",
+        "Oljehamnen"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden.html",
+      "note": "Malmö stad lists 'Malmö hamn' as one area. Västra Hamnen is deliberately excluded — it is its own place now, and is named separately on the map.",
+      "verified": false
+    },
+    {
+      "name": "Sorgenfri",
+      "covers": [
+        "Norra Sorgenfri",
+        "Västra Sorgenfri",
+        "Östra Sorgenfri"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden.html",
+      "verified": false
+    },
+    {
+      "name": "Sofielund",
+      "covers": [
+        "Norra Sofielund",
+        "Södra Sofielund",
+        "Sofielunds Industriområde"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden.html",
+      "note": "Split into Norra and Södra by the Malmö–Ystad railway in 1874; still one name in speech.",
+      "verified": false
+    },
+    {
+      "name": "Söderkulla",
+      "covers": [
+        "Västra Söderkulla",
+        "Östra Söderkulla"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden.html",
+      "verified": false
+    },
+    {
+      "name": "Bellevue",
+      "covers": [
+        "Bellevue",
+        "Nya Bellevue",
+        "Bellevuegården"
+      ],
+      "source": "delområdesnamnen själva",
+      "verified": false
+    },
+    {
+      "name": "Sege",
+      "covers": [
+        "Segevång",
+        "Segemölla",
+        "Sege Industriområde"
+      ],
+      "source": "delområdesnamnen själva",
+      "verified": false
+    },
+    {
+      "name": "Jägersro",
+      "covers": [
+        "Jägersro",
+        "Jägersro Villastad"
+      ],
+      "source": "delområdesnamnen själva",
+      "verified": false
+    },
+    {
+      "name": "Tygelsjö",
+      "covers": [
+        "Tygelsjö by",
+        "Tygelsjö Vång"
+      ],
+      "source": "delområdesnamnen själva",
+      "verified": false
+    },
+    {
+      "name": "Kroksbäck",
+      "covers": [
+        "Kroksbäck",
+        "Kroksbäcksparken"
+      ],
+      "source": "delområdesnamnen själva",
+      "verified": false
+    },
+    {
+      "name": "Gullvik",
+      "covers": [
+        "Gullvik",
+        "Gullviksborg"
+      ],
+      "source": "delområdesnamnen själva",
+      "verified": false
+    },
+    {
+      "name": "Fosieby",
+      "covers": [
+        "Fosieby",
+        "Fosieby Industriområde"
+      ],
+      "source": "delområdesnamnen själva",
+      "verified": false
+    },
+    {
+      "name": "Stadionområdet",
+      "covers": [
+        "Stadion"
+      ],
+      "source": "vardagligt namn; delområdet heter bara Stadion",
+      "note": "One member — this is a renaming, not a grouping: the area is spoken of as Stadionområdet.",
+      "verified": false
+    },
+    {
+      "name": "Fullriggaren",
+      "within": "Västra Hamnen",
+      "lat": 55.61721,
+      "lon": 12.98148,
+      "source": "kvartersnamn i Västra Hamnen",
+      "verified": false,
+      "_resolved": {
+        "display_name": "Fullriggaren, Dockan, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "city_block",
+        "osm": "way/232581170"
+      }
+    },
+    {
+      "name": "Dockan",
+      "within": "Västra Hamnen",
+      "lat": 55.61581,
+      "lon": 12.98939,
+      "source": "place=neighbourhood i OSM",
+      "verified": false,
+      "_resolved": {
+        "display_name": "Dockan, Västra Hamnen, Norr, Malmö kommun, Skåne län, 211 74, Sverige",
+        "type": "neighbourhood",
+        "osm": "node/2699784299"
+      }
+    },
+    {
+      "name": "Gamla Väster",
+      "within": "Gamla Staden",
+      "source": "https://sv.wikipedia.org/wiki/Gamla_V%C3%A4ster",
+      "verified": false,
+      "lat": 55.60394,
+      "lon": 12.99794,
+      "query": "Gamla Väster, Gamla Staden, Malmö",
+      "_resolved": {
+        "display_name": "ICA Nära Gamla Väster, 15, Engelbrektsgatan, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 33, Sverige",
+        "type": "supermarket",
+        "osm": "way/680437999"
+      }
+    },
+    {
+      "name": "Seved",
+      "within": "Södra Sofielund",
+      "lat": 55.58271,
+      "lon": 13.01483,
+      "source": "vardagligt namn på del av Södra Sofielund",
+      "verified": false,
+      "query": "Sevedsplan, Malmö",
+      "note": "Anchored on Sevedsplan: Seved has no boundary anywhere, and the square is what the name is said about.",
+      "_resolved": {
+        "display_name": "Sevedsplan, Södra Sofielund, Innerstaden, Malmö, Malmö kommun, Skåne län, 214 46, Sverige",
+        "type": "pedestrian",
+        "osm": "way/288407573"
+      }
+    }
+  ]
+}

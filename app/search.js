@@ -13,7 +13,8 @@ import { Marker } from './vendor/maplibre-gl.mjs';
 import { highlightSearchResult } from './highlight.js';
 
 const CAT_LABEL = {
-  stadsdel: 'Stadsdel', street: 'Gata', district: 'Område', landmark: 'Landmärke', poi: 'Plats',
+  stadsdel: 'Stadsdel', neighbourhood: 'Område', district: 'Delområde', part: 'Kvarter',
+  street: 'Gata', landmark: 'Landmärke', poi: 'Plats',
   food: 'Mat', culture: 'Kultur', transit: 'Station', cycling: 'Cykel',
 };
 
@@ -35,7 +36,7 @@ function score(entry, needle) {
   let s = at === 0 ? 1000 : (hay[at - 1] === ' ' || hay[at - 1] === '-' ? 700 : 400);
   s -= Math.min(hay.length, 40);
   s -= (entry.rank ?? 5) * 8;
-  if (['landmark', 'district', 'stadsdel'].includes(entry.cat)) s += 60;
+  if (['landmark', 'district', 'stadsdel', 'neighbourhood', 'part'].includes(entry.cat)) s += 60;
   return s;
 }
 
@@ -121,8 +122,10 @@ export function initSearch(map) {
     pin = new Marker({ color: '#b8562b' }).setLngLat(e.point).addTo(map);
     // Areas and streets are extents, not points; a landmark is a point.
     // Zooming to a sensible level for each beats one flyTo for everything.
-    const zoom = e.cat === 'stadsdel' ? 12 : e.cat === 'district' ? 13.5
-      : e.cat === 'street' ? 15.5 : 16;
+    // Each area category is shown at the zoom where its own level is the one
+    // being named, so a search lands you on the level you searched for.
+    const zoom = { stadsdel: 11.5, neighbourhood: 12.8, district: 13.8, part: 15.5 }[e.cat]
+      ?? (e.cat === 'street' ? 15.5 : 16);
     map.flyTo({ center: e.point, zoom: Math.max(map.getZoom(), zoom), speed: 1.4, essential: true });
     // The shape can only be collected once the tiles it lives in have arrived,
     // which is after the flight, not before it.

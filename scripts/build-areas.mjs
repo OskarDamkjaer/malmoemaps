@@ -19,7 +19,7 @@
 //
 // Usage: node scripts/build-areas.mjs [--out DIR] [--refresh]
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
-import { PolygonIndex, interiorPoint } from './lib/geo.mjs';
+import { PolygonIndex, dissolveBoundary, distance, interiorPoint } from './lib/geo.mjs';
 
 const args = process.argv.slice(2);
 const arg = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -80,9 +80,39 @@ mkdirSync(outDir, { recursive: true });
 const file = `${outDir}/stadsdelar.geojson`;
 writeFileSync(file, JSON.stringify({ type: 'FeatureCollection', features: stadsdelar }));
 
+// The top of the ladder: Malmö, one shape. The city publishes no such polygon
+// and the kommun boundary in OSM runs out into the Öresund, so the honest
+// outline of "Malmö" is the ten stadsdelar with the lines between them taken
+// out — the extent of the city as the city itself divides it.
+//
+// Rings under 250 m are dropped: they are slivers where two stadsdelar fail to
+// share a vertex, not coastline. (One appears, 121 m, near Kalkbrottet.)
+const SLIVER_M = 250;
+const ringLength = (line) => line.reduce((s, c, i) => (i ? s + distance(line[i - 1], c) : 0), 0);
+const outline = dissolveBoundary(stadsdelar.map((f) => f.geometry))
+  .filter((line) => ringLength(line) >= SLIVER_M)
+  .map((line) => line.map((c) => c.map((v) => Number(v.toFixed(6)))));
+
+const kommunFile = `${outDir}/kommun.geojson`;
+writeFileSync(kommunFile, JSON.stringify({
+  type: 'FeatureCollection',
+  features: [{
+    type: 'Feature',
+    geometry: { type: 'MultiLineString', coordinates: outline },
+    // No label point: the name at this level is the basemap's own "Malmö",
+    // which build-style.mjs caps at TIER.stadsdel so it leaves when the
+    // stadsdelar arrive.
+    properties: { name: 'Malmö' },
+  }],
+}));
+
 const kb = (statSync(file).size / 1024).toFixed(0);
 console.log(`\n-> ${file}`);
 console.log(`   ${stadsdelar.length} stadsdelar, ${kb} KB`);
+console.log(`\n-> ${kommunFile}`);
+console.log(`   Malmö outline: ${outline.length} ring(s), `
+  + `${(outline.reduce((s, l) => s + ringLength(l), 0) / 1000).toFixed(0)} km, `
+  + `${(statSync(kommunFile).size / 1024).toFixed(0)} KB`);
 for (const s of stadsdelar.sort((a, b) => b.properties.covers.length - a.properties.covers.length)) {
   console.log(`   ${s.properties.name.padEnd(20)} ${String(s.properties.covers.length).padStart(3)} delområden`
     + `  ${s.properties.area_km2} km²`);

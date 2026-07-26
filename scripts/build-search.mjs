@@ -31,8 +31,8 @@ const RANK = {
   landmark1: 1, landmark2: 2,
   // Above everything: "Limhamn" and "Rosengård" are answers in themselves, and
   // used to lose the search box to a bus stop and a pizzeria of the same name.
-  stadsdel: 1,
-  stadsomrade: 2, delomrade: 3,
+  stadsdel: 1, neighbourhood: 2,
+  stadsomrade: 2, delomrade: 3, part: 4,
   station: 3,
   majorStreet: 4, street: 5, minorStreet: 7,
   stop: 5,
@@ -57,6 +57,22 @@ if (existsSync(`${dataDir}/stadsdelar.geojson`)) {
   for (const f of read(`${dataDir}/stadsdelar.geojson`).features) {
     push({ name: f.properties.name, cat: 'stadsdel', kind: 'stadsdel',
       point: roundPoint(interiorPoint(f.geometry)), district: null, rank: RANK.stadsdel });
+  }
+}
+
+// The curated neighbourhood level (areas/areas.json → build-neighbourhoods.mjs).
+// Only the groupings: the delområden that stand for themselves at that level
+// are already in the index below, and would otherwise be listed twice.
+if (existsSync(`${dataDir}/neighbourhoods.geojson`)) {
+  for (const f of read(`${dataDir}/neighbourhoods.geojson`).features.filter((x) => x.properties.curated)) {
+    push({ name: f.properties.name, cat: 'neighbourhood', kind: 'område',
+      point: roundPoint(f.geometry.coordinates), district: f.properties.stadsdel, rank: RANK.neighbourhood });
+  }
+}
+if (existsSync(`${dataDir}/parts.geojson`)) {
+  for (const f of read(`${dataDir}/parts.geojson`).features) {
+    push({ name: f.properties.name, cat: 'part', kind: 'kvarter',
+      point: roundPoint(f.geometry.coordinates), district: f.properties.within, rank: RANK.part });
   }
 }
 
@@ -200,6 +216,7 @@ if (existsSync(landmarksFile)) {
 const before = entries.length;
 const clipped = entries.filter((e) => e.district !== null
   || e.kind === 'stadsområde' || e.cat === 'stadsdel' || e.cat === 'landmark');
+
 const dropped = before - clipped.length;
 
 clipped.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, 'sv'));
