@@ -53,12 +53,17 @@ list with the snippet at the bottom.
 Grouped by stadsdel, largest first, because size is a rough proxy for how much
 of the map a missing name costs. km² is ground area.
 
+Every row has now been swept once against the outside sources — see *What the
+outside sources say* below for how. An empty row therefore means **case 3,
+nothing to do**: the delområde name is the one attested outside the register.
+The six rows with something in them are the six the sweep could not close.
+
 ### Centrum (9)
 
 | delområde | km² | what people say | source |
 |---|---|---|---|
 | Spillepengen | 1.22 | | |
-| Rådmansvången | 0.50 | *Triangeln?* | *the request that started this file — needs a source and an extent* |
+| Rådmansvången | 0.50 | Rådmansvången | MKB lets it under that name, with an extent; **Triangeln refused** — see below |
 | Rörsjöstaden | 0.44 | | |
 | Värnhem | 0.38 | | |
 | Östervärn | 0.30 | | |
@@ -94,7 +99,7 @@ of the map a missing name costs. km² is ground area.
 | Virentofta | 1.01 | | |
 | Toftanäs | 0.62 | | |
 | Stenkällan | 0.52 | | |
-| Höja | 0.41 | | |
+| Höja | 0.41 | *Vita Höja / Gula Höja* | both sold by name and already parts in `areas.json`; Höja itself only in the register — see below |
 | Almgården | 0.27 | | |
 
 ### Hyllie (8)
@@ -128,7 +133,7 @@ of the map a missing name costs. km² is ground area.
 | Naffentorp | 3.62 | | |
 | Vintrie | 2.70 | | |
 | Skumparp | 0.54 | | |
-| Hyllieby | 0.51 | | |
+| Hyllieby | 0.51 | ? | *no source outside the register found* |
 
 ### Oxie (5)
 
@@ -144,9 +149,9 @@ of the map a missing name costs. km² is ground area.
 
 | delområde | km² | what people say | source |
 |---|---|---|---|
-| Östra Kyrkogården | 0.60 | | |
+| Östra Kyrkogården | 0.60 | — | the cemetery; no name for where anyone lives, because nobody does |
 | Västra Kattarp | 0.47 | | |
-| Emilstorp | 0.34 | | |
+| Emilstorp | 0.34 | ? | *no source outside the register found* |
 | Persborg | 0.11 | | |
 
 ### Södra Innerstaden (5)
@@ -163,11 +168,82 @@ of the map a missing name costs. km² is ground area.
 
 | delområde | km² | what people say | source |
 |---|---|---|---|
-| Pildammsparken | 0.52 | | |
+| Pildammsparken | 0.52 | — | the park, same as above |
 | Solbacken | 0.34 | | |
 | Dammfri | 0.31 | | |
 | Kronborg | 0.15 | | |
 | Teatern | 0.10 | | |
+
+---
+
+## What the outside sources say, July 2026
+
+Swept once against every source the rules allow except the one that matters most,
+which is still yours. Two of the passes are offline and repeatable: every
+`place=*` settlement node and every Skånetrafiken stop in `data/cache/malmo.osm.pbf`,
+point-in-polygon against all 66. Then Hemnet and Bjurfors, Malmö stad's own
+pages, and Wikipedia for whatever was left over.
+
+**It found no groupings.** Not one of the 66 turned out to belong with its
+neighbours under a name a source would carry. That is the finding, not a failure
+to look — the valuable case is real but Malmö appears to have spent it already
+on the 31 in `areas.json`. What the sweep did do is turn the empty rows from
+"not yet asked" into "asked, and the delområde name won":
+
+- **28** carry their own OSM settlement node — `place=suburb` over Rörsjöstaden,
+  Lugnet, Värnhem, Södervärn, Ellstorp, Teatern, Kronborg, Dammfri…;
+  `place=village` or `hamlet` over Toarp, Vintrie, Skumparp, Västra Klagstorp,
+  Glostorp, Lockarp, Naffentorp, Södra Sallerup.
+- **25** more have no node but do have a Skånetrafiken stop under their own name:
+  Hindby, Nydala, Videdal, Riseberga, Svågertorp, Lindeborg, Almgården, Höja…
+- **13** have neither, and were checked one at a time. Heleneholm, Johanneslust,
+  Valdemarsro, Almhög, Ärtholmen, Västra Kattarp and Virentofta each have an
+  område page of their own on Hemnet — sold by the name, which is the test.
+  Fortuna Hemgården is a stadsutvecklingsområde at Malmö stad under exactly that
+  name. Spillepengen is Sysav's fritidsområde and a trafikplats. Pildammsparken
+  and Östra Kyrkogården are a park and a cemetery: no name for where anyone
+  lives, because nobody lives there, and elevation is still doing the honest
+  thing by saying what the ground is.
+
+That leaves **Emilstorp** and **Hyllieby** carried by nothing but the register.
+Both appear on alltimalmo's list of 122 områden, but that list is the register
+plus a handful of extras, so it cannot promote a name — only corroborate one.
+They are the two thinnest rows here and the two most likely to be hiding a name
+you know.
+
+**Höja** is the one row whose halves outrank it. Vita Höja and Gula Höja are both
+sold by name, both already parts in `areas.json`; Höja itself is on no list
+outside the register, and OSM has no object for either half. So the name that
+draws at z12.3 is the one nobody says, and the two that people do say wait until
+z13.4. An owner's call: promote one half, or leave it.
+
+### Triangeln: refused
+
+The row that started this file, and it fails on this file's own rule. Malmö stad
+files Triangeln under *Malmös torg* rather than under *stadsdelar och områden* —
+a knutpunkt that "har i mer än hundra år kallats Triangeln". Wikipedia: "en öppen
+plats i centrala Malmö, belägen där delområdena Davidshall, Rådmansvången och
+Lugnet möts." A name centred on the corner where three delområden meet has no
+extent to give to any one of them. That is *var ska vi ses?*, not *var bor du?*
+
+And the source that answers the second question answers it the other way. MKB,
+the city's own housing company, markets **Rådmansvången** as a bostadsområde with
+a boundary — "med Pildammsvägen i väst och Bergsgatan i öst och mellan
+Sjukhusområdet och Triangeln". Between the hospital and Triangeln: next to
+Triangeln, not inside it.
+
+So Rådmansvången is case 3, and better attested than most rows here. Hemnet does
+sell some flats under "Triangeln", which is the one source pointing the other
+way — but it sells under Rådmansvången too, so what it has is a second label for
+the same streets rather than a replacement. Recorded in `areas.json`
+`_doc.rejected` so it is not researched a third time.
+
+### One thing found that this file is not for
+
+`Dalaplan` — on alltimalmo's list, `place=square` in OSM, inside Södervärn, and a
+name people plainly say. Not an elevated delområde, so not a row here: it would
+be a **part**, anchored on the square, exactly as Seved is anchored on Sevedsplan.
+Left for you rather than added.
 
 ---
 
