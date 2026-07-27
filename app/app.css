@@ -11,8 +11,9 @@
   --shadow: 0 1px 2px rgb(32 29 25 / 12%), 0 6px 20px rgb(32 29 25 / 10%);
   --radius: 12px;
   --gap: 10px;
-  /* The chip row's footprint: what everything else along the bottom clears. */
-  --bar: 46px;
+  /* The layer button's footprint: what everything else along the bottom
+     clears. The open panel grows up over them, which is what a menu does. */
+  --bar: 44px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -130,64 +131,108 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 }
 
 /* ---- layer chips --------------------------------------------------------- */
-/* One row, along the bottom where a thumb is. It scrolls rather than wraps: a
-   menu that changes height as you use it moves the map out from under you. */
+/* One button in the corner, and behind it a column of chips. A column rather
+   than a row because fourteen categories in a row is a row you scroll, and a
+   menu you have to scroll to read is one you stop reading; stacked, the whole
+   list is one glance. It grows upward from the button so the button never
+   moves — the thumb goes back to the same place every time. */
 
-#chips {
+#layers {
   position: absolute;
-  left: 0; right: 0;
+  left: var(--gap);
   bottom: calc(var(--safe-bottom) + 4px);
   z-index: 3;
   display: flex;
+  flex-direction: column-reverse; /* button at the bottom, list above it */
+  align-items: flex-start;
   gap: 6px;
-  padding: 4px var(--gap);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
+}
+
+#layerstoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#layerstoggle svg { width: 16px; height: 16px; color: var(--ink-soft); }
+#layerstoggle[aria-expanded="true"] svg { color: var(--accent); }
+
+/* `display` from an id selector outranks the UA rule behind the `hidden`
+   attribute, so without this the closed panel is invisible but still tabbable —
+   which is the whole thing the panel is not allowed to be. */
+#chips[hidden] { display: none; }
+
+#chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  /* Taller than the screen has room for on a small phone, so it scrolls — but
+     only ever the menu, never the page under it. */
+  max-height: min(58vh, 440px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: none;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 #chips::-webkit-scrollbar { display: none; }
 
 .chip {
   flex: none;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
+  width: 100%;
   height: 34px;
-  padding: 0 13px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 17px;
-  background: var(--panel);
+  border-radius: 9px;
+  background: none;
   color: var(--ink-soft);
-  box-shadow: var(--shadow);
   font: inherit;
   font-size: 13px;
+  text-align: left;
   white-space: nowrap;
   cursor: pointer;
 }
 
-.chip .swatch {
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  background: var(--chip);
-  opacity: .4;
+/* The icon is the swatch now: same shape as the thing it draws, and in the
+   colour that thing is drawn in. */
+.chip svg {
+  width: 18px; height: 18px;
   flex: none;
+  color: var(--chip);
+  opacity: .45;
 }
 
 /* On is the colour of the thing it draws — the dots on the map are the same
    colour, which is the whole legend. */
 .chip[aria-pressed="true"] {
   color: var(--chip);
-  box-shadow: var(--shadow), inset 0 0 0 1.5px currentcolor;
+  background: color-mix(in srgb, var(--chip) 9%, transparent);
 }
 
-.chip[aria-pressed="true"] .swatch { opacity: 1; }
+.chip[aria-pressed="true"] svg { opacity: 1; }
 
 /* On, but nothing to show at this zoom: said quietly rather than left to look
    like a broken toggle. */
-.chip[data-waiting] { opacity: .6; }
 .chip[data-waiting]::after {
   content: "zooma in";
+  margin-left: auto;
+  padding-left: 8px;
   font-size: 11px;
   color: var(--ink-soft);
 }

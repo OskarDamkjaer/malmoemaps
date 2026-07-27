@@ -71,6 +71,10 @@ async function culture() {
 // Bus stops and PT platforms were cut (owner decision 2026-07-26): the two
 // tags largely duplicate the same physical stop, and ~2k bus-stop pins are
 // clutter on a reference map.
+//
+// Nothing on the map draws this any more (the Kollektivtrafik chip was cut,
+// 2026-07-27); it is built for the search index alone, where a station is
+// still a thing you look up by name.
 async function transit() {
   const ql = `[out:json][timeout:180];
     (

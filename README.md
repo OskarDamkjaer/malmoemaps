@@ -39,42 +39,62 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
   |---|---|---|---|
   | 1 | < 11 | **Malmö** | the ten stadsdelar, dissolved |
   | 2 | 11 – 12.3 | the ten **stadsdelar** — Västra Innerstaden, Limhamn-Bunkeflo, Rosengård… | Malmö stad, CC0 |
-  | 3 | 12.3 – 13.4 | the 19 names **in between** — Slottsstaden, Sorgenfri, Limhamn, Västra Hamnen… | their delområden, dissolved |
+  | 3 | 12.3 – 13.4 | the 31 names **in between** — Slottsstaden, Sorgenfri, Limhamn, Västra Hamnen… — and, where there is no such name, the delområde itself | their delområden, dissolved |
   | 4 | ≥ 13.4 | all 136 **delområden** — Västra Sorgenfri, Rönneholm, Ribersborg… | OSM admin boundaries |
 
   The ladder lives in `app/area-levels.mjs` and nowhere else; `app/layers.js`
   draws from it and `scripts/build-style.mjs` imports its top rung to cap the
   basemap's own "Malmö" label. `test/` holds it to all of the above.
 
-  **Level 3 has holes, on purpose.** Only 19 of these in-between names exist
-  (`areas/areas.json`, hand-written with a source each), and most of Malmö
-  simply has no word between "Västra Innerstaden" and "Rönneholm". An earlier
-  version filled the gaps with the delområden nobody had grouped, which put 93
-  names on two levels at once — the one thing the ladder exists to prevent.
+  **Level 3 covers the city, but only 31 of its names are its own.** That is how
+  many in-between names exist (`areas/areas.json`, hand-written with a source
+  each) — most of Malmö has no word between "Västra Innerstaden" and
+  "Rönneholm". Rather than leave that blank, the 66 delområden no name covers
+  are *elevated*: each stands in for itself, so the zoom that was empty over
+  Rörsjöstaden says Rörsjöstaden. Level 4 is then the same map with those 31
+  names broken into the 70 delområden they were hiding, which is what the cut at
+  13.4 is for. No name is ever invented to fill a gap; the alternative to a
+  curated name is always the real name of the smaller thing.
 
-  Six of the biggest holes are structural, not unfinished: in Hyllie, Rosengård,
+  Elevation is a floor, not an answer: the 66 are listed in
+  `areas/elevated.md`, which asks of each one whether people actually say it.
+  Nobody living in Rådmansvången says Rådmansvången — they say Triangeln, and
+  Triangeln is on no administrative map at all. Every row that gets an answer
+  becomes a grouping and leaves the list.
+
+  Six of the biggest gaps closed differently: in Hyllie, Rosengård,
   Oxie, Fosie, Husie and Kirseberg the in-between name people use is the
-  stadsdel's own name over a smaller area, and one word for two extents at two
-  zooms is worse than blank. `areas/areas.json` keeps the rejected candidates —
+  stadsdel's own name over a smaller area. Five are curated names that declare
+  the repeat (`narrowerThanStadsdel`); Fosie is the one that could not be, its
+  core already spoken for. `areas/areas.json` keeps the rejected candidates —
   including Malmö's historic in-between division (Västra Förstaden, Mellersta
   Förstaden, Pildammsstaden…), which is the right grain but which nobody says.
 
   Each level says how it sits in the others: a stadsdel lists the delområden it
   covers, a delområde says which stadsdel it is in, a level-3 name lists what it
   is made of. The 5 stadsområden are kept in the data and in search but not
-  drawn, and the parts below level 4 (Fullriggaren, Dockan, Seved) are built and
-  searchable but not drawn either — names finer than a delområde, with no
-  boundary to sit in.
+  drawn: Norr/Söder/Väster/Öster is a division nobody said out loud.
+
+  **The parts ride inside level 4.** Gamla Väster, Erikslust, Seved,
+  Fullriggaren — 14 names finer than a delområde, with no boundary anywhere in
+  Malmö. They cannot be a level of their own (an outline is what makes a level a
+  division rather than a scatter of words), so they are drawn *with* the
+  delområden from z13.4, italic and a size smaller so the two grains never read
+  as one. They have a chip of their own, **Kvarter**, which starts on: turn it
+  off and the ladder is exactly the four levels again.
 - **No pins, until you ask** — the map opens with nothing point-shaped on it:
   no cafés, no shops, not even the landmarks. Everything of that kind is a
-  **category**, tacked on from the chip row along the bottom, and the choice is
-  remembered like the view is.
+  **category**, tacked on from the **Lager** panel in the bottom corner — one
+  chip each, stacked, with the icon and colour the map draws them in — and the
+  choice is remembered like the view is. The panel opens closed every time: the
+  map is the app. Two chips start on, and neither is a pin: the street network,
+  and the kvarter names above. Turning a chip on that has nothing to show at
+  this zoom takes you down to where it has, rather than greying out.
 
   | | drawn from |
   |---|---|
   | Mat · Barer · Kultur · Parker · Sport & bad · Butiker · Vård · Samhälle · Hotell · Bil & parkering | the basemap's own POIs, by OpenMapTiles `class`, z14+ |
   | Landmärken | the curated list (below) |
-  | Kollektivtrafik | `transit.geojson` — rail only, from z11 |
   | Cykel | `cycling.geojson` lines + lånecyklar from the tiles |
   | **Bilvägar** | the basemap's road layers — **the one category that starts on** |
 

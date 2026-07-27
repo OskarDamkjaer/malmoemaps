@@ -41,7 +41,7 @@ const DROP = {
   road_one_way_arrow: 'direction of travel is navigation, not orientation',
   road_one_way_arrow_opposite: 'direction of travel is navigation, not orientation',
   poi_z14: 'prominence at z14 is the curated landmark list, not OSM POI rank',
-  poi_transit: 'transit is a toggleable category, and rail only (see DECISIONS)',
+  poi_transit: 'no chip draws stops or stations; the rail lines already say where they are',
   // The same POIs are still drawn — by app/categories.mjs, one layer per
   // category, and only when a chip asks for them. Drawing them here as well
   // would mean every café appearing twice the moment you tapped "Mat", and

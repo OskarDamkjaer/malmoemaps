@@ -144,6 +144,10 @@ function districtLabels(geojson) {
 // so the chip row does not have to know which is which.
 const categoryLayerIds = new Map(CATEGORIES.map((c) => [c.id, []]));
 const on = new Set(DEFAULT_ON);
+// The ladder's own name layers, the ones no chip owns: always drawn, so always
+// tappable. Collected as the ladder is added rather than listed here, because a
+// list would be area-levels.mjs written down twice.
+const ladderLabels = [];
 
 const register = (catId, ...ids) => categoryLayerIds.get(catId).push(...ids);
 
@@ -226,10 +230,22 @@ export async function addDataLayers(map) {
   // (The five stadsområden in districts.geojson are not drawn at any level:
   // Norr/Söder/Väster/Öster is a division nobody ever said out loud, and a
   // fifth level would only blur the four that mean something.)
-  const ladder = areaLayers({ notADistrict: notADistrictFilter(districts, neighbourhoods) });
+  const ladder = areaLayers({
+    notADistrict: notADistrictFilter(districts, neighbourhoods),
+    notGrouped: notGroupedFilter(neighbourhoods),
+  });
   for (const layer of ladder) if (layer.metadata.role === 'outline') map.addLayer(layer);
   addHighlightLayers(map);
-  for (const layer of ladder) if (layer.metadata.role === 'name') map.addLayer(layer);
+  // A ladder layer may answer to a chip — the parts do. It is still the ladder
+  // that draws it, so it goes in here in draw order rather than with the
+  // categories; all the registry needs is the id and the initial visibility.
+  for (const layer of ladder) {
+    if (layer.metadata.role !== 'name') continue;
+    const cat = layer.metadata.category;
+    if (!cat) { map.addLayer(layer); ladderLabels.push(layer.id); continue; }
+    register(cat, layer.id);
+    map.addLayer({ ...layer, layout: { ...layer.layout, visibility: on.has(cat) ? 'visible' : 'none' } });
+  }
 
   addCategoryLayers(map);
 
@@ -282,6 +298,18 @@ export async function addDataLayers(map) {
 // grouping names, and the stadsdelar including their first part, so the OSM
 // "Limhamn" node doesn't sit next to the "Limhamn-Bunkeflo" boundary saying the
 // same thing twice.
+// The other runtime input: which delområden have no name above them, and so are
+// elevated to level 3 under their own.
+//
+// Read off the curated features rather than kept as a second list, because
+// `covers` is already the answer — a delområde is grouped exactly when some
+// grouping names it, partial members included. They are drawn whole into their
+// grouping, so they must not also be drawn beside it.
+function notGroupedFilter(neighbourhoods) {
+  const grouped = [...new Set(neighbourhoods.features.flatMap((f) => f.properties.covers ?? []))];
+  return ['!', ['in', ['get', 'name'], ['literal', grouped]]];
+}
+
 function notADistrictFilter(districts, neighbourhoods) {
   const known = [...new Set([
     ...districts.features.map((f) => f.properties.name),
@@ -316,17 +344,28 @@ function addCategoryLayers(map) {
 // a hidden answer waiting to be found. The names count as well as the dots —
 // a café's label is a bigger target than its 5 px circle, and both answer with
 // the same card.
+//
+// The list comes from the registry rather than from the shape of a layer id, so
+// "is this drawn?" has one answer and the chips are it. A category's basemap
+// layers (the roads) are left out on purpose: they are picked further down in
+// pickFeature, as streets, not as pins.
 function appLayerIds(map) {
-  const drawn = [...on].flatMap((id) => categoryLayerIds.get(id) ?? [])
-    .filter((id) => id.startsWith('landmark-') || /-(dot|line|label)$/.test(id));
-  return map.getStyle().layers.map((l) => l.id)
-    .filter((id) => drawn.includes(id)
-      || id.startsWith('district-label') || id.startsWith('area-label'));
+  const drawn = new Set([
+    ...[...on].flatMap((id) => categoryLayerIds.get(id) ?? [])
+      .filter((id) => id.startsWith('landmark-') || id.startsWith('cat-') || id.startsWith('area-label-')),
+    ...ladderLabels,
+  ]);
+  return map.getStyle().layers.map((l) => l.id).filter((id) => drawn.has(id));
 }
+
+// Streets are picked from the source rather than from the screen (see
+// pickFeature), which is the one kind of hit that visibility cannot hide — so
+// the chip that draws them has to be asked directly.
+const pickOptions = () => ({ streets: on.has('roads') });
 
 export function onFeatureClick(map, show) {
   map.on('click', (e) => {
-    const hit = pickFeature(map, e, appLayerIds(map));
+    const hit = pickFeature(map, e, appLayerIds(map), pickOptions());
     if (!hit) { clearHighlight(map); return; }
     e._handled = true;
     highlight(map, hit);

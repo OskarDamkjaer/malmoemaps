@@ -214,7 +214,7 @@ function nearestNamedStreet(map, lngLat, maxMeters) {
 
 // Everything tappable, in the order it wins ties. Curated layers first: they
 // are what this map is *for*, and they sit on top visually too.
-export function pickFeature(map, e, appLayerIds) {
+export function pickFeature(map, e, appLayerIds, { streets = true } = {}) {
   const box = [[e.point.x - 8, e.point.y - 8], [e.point.x + 8, e.point.y + 8]];
   const exists = (ids) => ids.filter((id) => map.getLayer(id));
 
@@ -229,8 +229,15 @@ export function pickFeature(map, e, appLayerIds) {
 
   // Tapping the street itself, not its name: 14 px of slack, which is about a
   // fingertip, and never crosses to the next street in a normal grid.
-  const street = nearestNamedStreet(map, e.lngLat, 14 * metersPerPixel(map, e.point));
-  if (street) return { feature: street, origin: 'street' };
+  //
+  // This one reads the *source*, not the screen, so it is the only hit that
+  // survives its layers being hidden — hence `streets`, which is off when the
+  // "Bilvägar" chip is. A road you cannot see is not an answer you can be
+  // holding your finger on.
+  if (streets) {
+    const street = nearestNamedStreet(map, e.lngLat, 14 * metersPerPixel(map, e.point));
+    if (street) return { feature: street, origin: 'street' };
+  }
 
   const areas = map.queryRenderedFeatures(box, { layers: exists(BASEMAP_AREAS) });
   if (areas.length) return { feature: areas[0], origin: 'area' };

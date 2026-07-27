@@ -169,15 +169,70 @@ bullet lands here only when something non-obvious was actually decided.
   tested: anything about how it looks. Collision, halo, letter-spacing and
   whether Slottsstaden's label sits in the water are eye questions.
 
-- **Level 3 is 19 names with gaps between them** (2026-07-27). The in-between
-  level was first built complete — the curated groupings plus every delområde no
-  grouping claimed — on the theory that a level with holes teaches nothing. That
-  was wrong in a way that took a test to see: 93 of the 136 delområden then
-  appeared at level 3 *and* level 4, so zooming past 13.4 changed the type size
-  and nothing else. A level that repeats the level below is not a level. So
-  level 3 is now only the names that actually exist between "Västra
-  Innerstaden" and "Rönneholm", and most of the map is blank at that zoom —
-  which is the honest answer, because most of Malmö has no such name.
+- **Level 3 is 19 names with gaps between them** (2026-07-27, reversed the same
+  day — see below). The in-between level was first built complete — the curated
+  groupings plus every delområde no grouping claimed — on the theory that a
+  level with holes teaches nothing. That was wrong in a way that took a test to
+  see: 93 of the 136 delområden then appeared at level 3 *and* level 4, so
+  zooming past 13.4 changed the type size and nothing else. A level that repeats
+  the level below is not a level. So level 3 is now only the names that actually
+  exist between "Västra Innerstaden" and "Rönneholm", and most of the map is
+  blank at that zoom — which is the honest answer, because most of Malmö has no
+  such name.
+
+- **…and then it isn't: a delområde with no name above it is elevated**
+  (2026-07-27). The decision above was right about the mechanism and wrong about
+  which half was the lie. Standing at z12.8 over Rörsjöstaden, the map said
+  nothing at all — and "nothing" is not what that place is called. Rörsjöstaden
+  is. So the 66 delområden no curated name covers are drawn at level 3 under
+  their own names and their own outlines, and level 3 tiles the city.
+
+  What that costs is the thing the earlier entry measured: those 66 names are on
+  two rungs. What it buys is that the 13.4 cut now *means* something everywhere
+  instead of only over the 31 curated names — it is the zoom at which those 31
+  break into the 70 delområden they were hiding. Where nothing breaks, nothing
+  changes, because in that part of the city there is nothing to break: the
+  in-between name does not exist. A repeat that says "this place has one name"
+  is honest; a blank that says "there is nothing here" is not. The old test
+  ("level 3 is allowed to have holes, and does") asserted the wrong invariant
+  and is now the partition test — grouped or elevated, never both, never
+  neither.
+
+  Elevated names are set in the same face, size and ink as the curated ones: at
+  that zoom "Rörsjöstaden" and "Slottsstaden" answer the same question, and
+  typing one smaller would be the map hedging about which it means. Only
+  collision differs — the 31 curated names always draw (they are the level's
+  spine) and now block rather than overprint, the 66 elevated ones take their
+  turn around them, largest first. No name was invented to make this work, which
+  was the whole reason for refusing to fill the gaps in the first place.
+
+  It also paid for a fix that had been too expensive to make: **Bellevue no
+  longer covers Bellevuegården** (2026-07-27). The grouping's only source was
+  `"delområdesnamnen själva"` — three delområden sharing a word — and both
+  independent checks disliked it: Bellevuegården is in the stadsdel Hyllie next
+  to Lorensborg while Bellevue and Nya Bellevue are adjacent in
+  Limhamn-Bunkeflo 1.2 km away, and Malmö stad counts it to a different
+  statistikområde. A sixties estate that borrowed a villa district's name.
+  Removing it used to mean punching a hole in level 3; now it means
+  Bellevuegården says its own name there, so the honest reading costs nothing.
+  Exactly three groupings cross a stadsdel, and the other two are Slottsstaden
+  and Sorgenfri — the same two the statistics test already forgives by name,
+  which is the strongest evidence that the two divisions agree and Bellevue was
+  the outlier. That check is now its own test rather than a thing someone
+  noticed once.
+
+- **The parts are drawn inside level 4, behind a chip** (2026-07-27). Gamla
+  Väster was in the data from the start and had never once appeared on the map:
+  parts.geojson was built and searchable but not drawn, because a fifth level of
+  names with no boundaries was noise. Both halves of that were right — the names
+  are worth having, a fifth rung is not — so they are drawn *within* level 4
+  from z13.4, in italic condensed at a size under the delområde names, with
+  `text-optional` so the delområde's own name wins when only one can fit. The
+  ladder is still four levels and `area-levels.test.mjs` still asserts it.
+  Because 14 boundary-less names may yet turn out to be clutter, the layer
+  answers to a chip of its own ("Kvarter") in the layer menu — the first chip
+  that is neither a pin nor basemap, and the second that starts on. Turning it
+  off restores the four levels exactly.
 
 - **A one-member grouping is allowed, as a promotion** (2026-07-27). The level
   had a hole where the city's most-named places are: Västra Hamnen, Gamla
@@ -191,17 +246,30 @@ bullet lands here only when something non-obvious was actually decided.
   Ribersborg, Hyllievång, Lönngården and the rest of the 136 did not. The
   precedent was already there: Stadionområdet covers only Stadion.
 
-- **Six holes in level 3 are structural and stay open** (2026-07-27). Searching
-  Wikipedia, Malmö stad, Skånetrafiken's stop names and the estate agents' own
-  område pages for the missing middle turned up the same answer six times: in
-  Hyllie, Rosengård, Oxie, Fosie, Husie and Kirseberg the in-between name people
-  say *is* the stadsdel's name, over a smaller area — vernacular Rosengård is the
-  estate, while the stadsdel also takes Persborg and Östra Kyrkogården; vernacular
-  Hyllie is the station district, which is the delområde Hyllievång. Putting the
-  same word at two zooms over two extents teaches the city wrong, so those stay
-  blank. Malmö's historic in-between division (Västra Förstaden = Fridhem +
-  Mellanheden + Västervång, Mellersta Förstaden, Södra Förstaden, Östra
-  Förstaden, Pildammsstaden) is the right grain and would fill much of the rest,
+- **Five level-3 names repeat the stadsdel above them, over less ground**
+  (2026-07-27). Searching Wikipedia, Malmö stad, Skånetrafiken's stop names and
+  the estate agents' own område pages for the missing middle turned up the same
+  answer six times: in Hyllie, Rosengård, Oxie, Fosie, Husie and Kirseberg the
+  in-between name people say *is* the stadsdel's name, over a smaller area.
+  Refused at first — one word for two extents at two zooms teaches the city
+  wrong — and then allowed, because the alternative was leaving the six largest
+  holes in the level over exactly the parts of Malmö people name most
+  confidently. No extent is guessed: each is where OSM's own `place=suburb` node
+  for the name falls plus every stop carrying it, by point-in-polygon, and where
+  those disagree with the stadsdel they disagree usefully — eleven stops called
+  Hyllie all land in Hyllievång and none anywhere else in the stadsdel Hyllie,
+  while vernacular Rosengård is the estate and the stadsdel also takes Persborg
+  and Östra Kyrkogården. The repeat has to be declared per entry
+  (`narrowerThanStadsdel`), and the test allows those five by name and still
+  fails on a sixth.
+
+  **Fosie is the one that could not be done**: its core is already spoken for.
+  The OSM Fosie node lands in Gullviksborg, which `Gullvik` holds, and the stops
+  named for it scatter across Fosieby, Lindängen, Holma and Lindeborg — Fosieby,
+  the village and church the name comes from, is a grouping already. Malmö's
+  historic in-between division (Västra Förstaden = Fridhem + Mellanheden +
+  Västervång, Mellersta Förstaden, Södra Förstaden, Östra Förstaden,
+  Pildammsstaden) is the right grain and would fill much of what is still blank,
   but Wikipedia has all five in the past tense, nobody says them, and they
   predate the stadsdelar so they cross them. Rejected candidates and their
   reasons live in `areas/areas.json` under `_doc.rejected`, so the next person
@@ -238,19 +306,18 @@ bullet lands here only when something non-obvious was actually decided.
   the landmark icons — and a chip row along the bottom tacks categories on. Two
   choices inside that are worth writing down.
 
-  *Where the pins come from.* The four Overpass overlays became fourteen
+  *Where the pins come from.* The four Overpass overlays became thirteen
   categories without a single new fetch, because the POIs were already on disk:
   the pmtiles archive holds 4,227 of them with an OpenMapTiles `class` each, so
   a category is a filter over `source-layer: poi`. The basemap's own `poi_z15`
   and `poi_z16` are consequently dropped from the style — drawn as well, they
   would double every café the moment you tapped "Mat", and their rank filters
   had a hole in them anyway (`poi_z14` was dropped long ago, so ranks 1–6 were
-  never drawn at all — the most prominent POIs in each tile, invisible). Two
-  overlays stay GeoJSON because the tiles do them worse: rail stations, wanted
-  from z11 where the tiles have no POIs, and the cycle network, which is lines
-  and includes named routes the tiles don't carry. `food.geojson` and
-  `culture.geojson` are still built for the search index but no longer drawn or
-  precached.
+  never drawn at all — the most prominent POIs in each tile, invisible). One
+  overlay stays GeoJSON because the tiles do it worse: the cycle network, which
+  is lines and includes named routes the tiles don't carry. `food.geojson`,
+  `culture.geojson` and `transit.geojson` are still built for the search index
+  but no longer drawn or precached.
 
   *The table is checked against the archive, not against the schema.* Writing
   the class → category table from the OpenMapTiles documentation would have
@@ -267,6 +334,49 @@ bullet lands here only when something non-obvious was actually decided.
   (`road_`/`bridge_`/`tunnel_`, minus rail, footways and pedestrian areas)
   rather than by listing 45 layer ids that Liberty would rot the first time it
   added a casing — so turning the cars off leaves you the city you can walk.
+
+- **The layer menu is a closed panel, and a chip keeps its promise**
+  (2026-07-27). Four changes to the chips, one week after they were built, all
+  from the same complaint: a row of fourteen categories along the bottom is
+  something you read past every time you look at the map.
+
+  *A column behind one button, closed by default.* Fourteen chips in a row is a
+  row you have to scroll to read, and a menu you scroll is a menu you stop
+  reading; stacked in a panel, the whole list is one glance. It opens closed
+  every time — not remembered — because the map is the app and the menu is a
+  detour. Closed means `hidden`, not scrolled away or faded out: the chips leave
+  the tab order with the pixels, which is the same rule the map obeys.
+
+  *Kollektivtrafik is cut.* Rail stations at z11 were the argument for a chip of
+  their own, but the rail lines are drawn at those zooms anyway, and a station
+  pin on top of the line it sits on says nothing the map wasn't already saying.
+  The stations stay in the search index, which is where you actually reach for
+  one by name — so `transit.geojson` is still built, just no longer drawn or
+  precached. Bus stops were cut a day earlier for a different reason (427 of
+  them is texture, not detail).
+
+  *An icon per chip.* Path data in `categories.mjs` beside the colour, not
+  thirteen files: the chip row is the only thing that draws them, they are ~200
+  bytes each, and a category cannot be added without one because the test says
+  so. Drawn in the category's own colour, so the chip is still the legend.
+
+  *A chip that is on shows its pins.* POIs exist in the tiles from z14 and
+  nowhere earlier, so turning on "Mat" at z12 used to grey the chip out and wait
+  for you to work out why nothing happened. Now the map goes to where the data
+  is — and the names arrive with the dots instead of a zoom and a half later.
+  The greyed-out state survives for one case only: a category restored from last
+  time, where the saved view outranks the chip. The alternative — extracting the
+  4,227 POIs to GeoJSON so they have no floor at all — buys a genuinely
+  floorless category at the price of a new build step, another precached file,
+  and every café in Malmö as one mass of dots at z11 with no rank to thin it by.
+  Not worth it yet.
+
+  *And what is hidden is not tappable.* Selection reads the layer registry
+  rather than the shape of a layer id, so a category you turned off cannot be a
+  hidden answer waiting to be found. The one hit that could survive its layers
+  being hidden was the street fallback, which searches the *source* (a tap
+  within 14 px of a named way, not of its label) and so ignores visibility
+  entirely: it is now off when "Bilvägar" is.
 
 - **Toolchain: Homebrew + Node, no Docker** (2026-07-17). `osmium-tool`, keg-only
   `openjdk@21`, `tools/planetiler.jar`; all scripts in Node so the search-index

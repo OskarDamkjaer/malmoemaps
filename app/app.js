@@ -175,11 +175,31 @@ map.on('load', async () => {
 });
 
 // ---- layer chips -----------------------------------------------------------
-// One chip per category, in the order categories.mjs lists them. The chip is
-// the whole menu: no panel to open, one tap to tack a layer on.
+// One chip per category, in the order categories.mjs lists them, stacked in a
+// panel behind one button. Closed by default: the map is the app, and a menu of
+// fourteen things along the bottom of a phone is a menu you read past every
+// time you look at the city.
+//
+// Closed is `hidden`, not "scrolled away" or "0 % opacity" — the chips leave
+// the tab order and the accessibility tree with the pixels, which is the same
+// rule the map obeys about what you can tap.
 const chipRow = document.getElementById('chips');
+const layerToggle = document.getElementById('layerstoggle');
 // A list, not a Map: `Map` in this file is MapLibre's.
 const chips = [];
+
+// The category's own icon, drawn from the path data it carries. Inline SVG
+// rather than an <img>: it inherits the chip's colour, and there is no
+// thirteenth request to make offline.
+function chipIcon(cat) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', cat.icon);
+  svg.append(path);
+  return svg;
+}
 
 function buildChips() {
   for (const cat of CATEGORIES) {
@@ -188,14 +208,18 @@ function buildChips() {
     chip.className = 'chip';
     chip.style.setProperty('--chip', cat.color);
     chip.setAttribute('aria-pressed', String(isCategoryOn(cat.id)));
-    const swatch = document.createElement('span');
-    swatch.className = 'swatch';
-    chip.append(swatch, document.createTextNode(cat.label));
+    chip.append(chipIcon(cat), document.createTextNode(cat.label));
     chip.addEventListener('click', () => {
       const now = !isCategoryOn(cat.id);
       setCategoryVisible(map, cat.id, now);
       chip.setAttribute('aria-pressed', String(now));
       rememberCategories();
+      // A chip that is on shows what it stands for. Where its data only exists
+      // deeper in — POIs are in the tiles from z14 and nowhere earlier — the
+      // map goes there rather than the chip greying out and waiting for you to
+      // work out why nothing happened.
+      const floor = categoryMinzoom(cat);
+      if (now && map.getZoom() < floor) map.easeTo({ zoom: floor, duration: 700 });
       updateChips();
     });
     chips.push({ cat, chip });
@@ -205,14 +229,22 @@ function buildChips() {
   map.on('zoomend', updateChips);
 }
 
-// A category can be on and still draw nothing: POIs are only in the tiles from
-// z14, and a chip that looks broken is worse than one that says why.
+// Opening a chip zooms to where it can draw, so this is now only for the
+// categories restored from last time: the view comes back as you left it, and
+// a chip that was on at z11 still has to admit it is holding nothing.
 function updateChips() {
   const zoom = map.getZoom();
   for (const { cat, chip } of chips) {
     chip.toggleAttribute('data-waiting', isCategoryOn(cat.id) && zoom < categoryMinzoom(cat));
   }
 }
+
+function showLayers(open) {
+  chipRow.hidden = !open;
+  layerToggle.setAttribute('aria-expanded', String(open));
+}
+
+layerToggle.addEventListener('click', () => showLayers(chipRow.hidden));
 
 // ---- selected feature card -------------------------------------------------
 const card = document.getElementById('card');
@@ -241,7 +273,14 @@ onFeatureClick(map, showCard);
 map.on('click', (e) => { if (!e._handled) hideCard(); });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') hideCard();
+  if (e.key !== 'Escape') return;
+  hideCard();
+  // Escape out of the layer panel lands back on the button that opened it,
+  // rather than at the top of the page.
+  if (!chipRow.hidden) {
+    showLayers(false);
+    layerToggle.focus();
+  }
 });
 
 // ---- offline ---------------------------------------------------------------

@@ -8,8 +8,8 @@
 //
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
-const CODE = 'malmo-code-v4';
-const DATA = 'malmo-data-2026-07-26d';
+const CODE = 'malmo-code-v5';
+const DATA = 'malmo-data-2026-07-27a';
 
 const CODE_FILES = [
   '/',
@@ -52,14 +52,15 @@ const DATA_FILES = [
   '/data/kommun.geojson',
   '/data/stadsdelar.geojson',
   '/data/neighbourhoods.geojson',
+  // Drawn from the start (the "Kvarter" chip), so it is not optional offline.
+  '/data/parts.geojson',
   '/data/landmarks.geojson',
   '/data/search.json',
-  // The two categories that are not in the tiles. food.geojson and
-  // culture.geojson are still built — the search index is made from them — but
-  // the map draws those categories from the basemap's own POIs now, so there is
-  // nothing to precache.
+  // The one category that is not in the tiles. food, culture and transit are
+  // still built — the search index is made from them, and a station is worth
+  // finding by name — but nothing on the map draws them any more, so there is
+  // nothing of theirs to precache.
   '/data/cycling.geojson',
-  '/data/transit.geojson',
 ];
 
 // A missing file is a build mistake worth seeing in the console, but it must not

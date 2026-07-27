@@ -29,9 +29,13 @@ const style = () => JSON.parse(readFileSync(STYLE, 'utf8'));
 const layersOf = (cat) => categoryLayers({ ...cat, on: DEFAULT_ON.includes(cat.id) });
 
 // ---- the map opens clean ----------------------------------------------------
-test('only the roads start on', () => {
-  assert.deepEqual(DEFAULT_ON, ['roads'],
-    'every pin is off until asked for; the street network is the one exception');
+test('only the two that are not pins start on', () => {
+  // The rule is about pins: nothing you could call a place is drawn until a chip
+  // asks for it. Both exceptions are things the map says in its own voice — the
+  // street network, and the area names finer than a delområde (Gamla Väster,
+  // Erikslust), which the ladder draws and this row only switches off.
+  assert.deepEqual(DEFAULT_ON, ['parts', 'roads'],
+    'every pin is off until asked for; the streets and the kvarter names are not pins');
 });
 
 test('every category layer is added hidden', () => {
@@ -64,10 +68,11 @@ test('each category names layers of its own, and no two share one', () => {
   }
 });
 
-test('the two categories with no layers of their own are the two that borrow', () => {
+test('the categories with no layers of their own are the ones that borrow', () => {
   const empty = CATEGORIES.filter((c) => layersOf(c).length === 0).map((c) => c.id);
-  assert.deepEqual(empty.sort(), ['landmarks', 'roads'],
-    'landmarks keep their icon layers and roads are the basemap; anything else here is a category that draws nothing');
+  assert.deepEqual(empty.sort(), ['landmarks', 'parts', 'roads'],
+    'landmarks keep their icon layers, parts belong to the ladder and roads are the basemap; '
+    + 'anything else here is a category that draws nothing');
 });
 
 // ---- the roads category -----------------------------------------------------
@@ -136,6 +141,18 @@ test('every chip is legible: an id, a Swedish label, a colour of its own', () =>
     assert.match(cat.color, /^#[0-9a-f]{6}$/, `${cat.id}: colour must be a plain hex the chip can inherit`);
     assert.ok(!colors.has(cat.color), `${cat.id} and ${colors.get(cat.color)} are the same colour — the legend stops working`);
     colors.set(cat.color, cat.id);
+  }
+});
+
+test('every chip carries its own icon', () => {
+  // The icon is part of the chip, not decoration added later: a category with
+  // no picture is a row of text in a menu of pictures. Path data only — the
+  // chip draws it inline and colours it, so anything else (a <svg> wrapper, a
+  // file name, a fill) would either not render or not take the colour.
+  for (const cat of CATEGORIES) {
+    assert.ok(cat.icon?.length, `${cat.id} has no icon`);
+    assert.match(cat.icon, /^M[-\d.]/, `${cat.id}: icon must be bare path data, drawn in a 24×24 box`);
+    assert.ok(!/[<>]/.test(cat.icon), `${cat.id}: icon is markup, not path data`);
   }
 });
 
