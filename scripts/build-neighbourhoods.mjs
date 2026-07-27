@@ -11,7 +11,7 @@
 //
 //   neighbourhoods.geojson  the curated groupings, and only those: the names
 //                           that exist between a stadsdel and a delområde.
-//                           There are 14, so this level has holes — most of
+//                           There are 19, so this level has holes — most of
 //                           Malmö has no in-between name, and inventing one
 //                           to fill the map would be the only dishonest thing
 //                           this level could do. (An earlier version filled
@@ -176,6 +176,9 @@ for (const a of groupings) {
       verified: a.verified === true,
       source: a.source ?? null,
       note: a.note ?? null,
+      // The five names that repeat the stadsdel above them over less ground.
+      // Carried through so the test can tell a declared repeat from an accident.
+      narrowerThanStadsdel: a.narrowerThanStadsdel ?? null,
     },
   });
 }

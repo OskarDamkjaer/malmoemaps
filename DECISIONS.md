@@ -169,7 +169,7 @@ bullet lands here only when something non-obvious was actually decided.
   tested: anything about how it looks. Collision, halo, letter-spacing and
   whether Slottsstaden's label sits in the water are eye questions.
 
-- **Level 3 is 14 names with gaps between them** (2026-07-26). The in-between
+- **Level 3 is 19 names with gaps between them** (2026-07-27). The in-between
   level was first built complete — the curated groupings plus every delområde no
   grouping claimed — on the theory that a level with holes teaches nothing. That
   was wrong in a way that took a test to see: 93 of the 136 delområden then
@@ -178,6 +178,45 @@ bullet lands here only when something non-obvious was actually decided.
   level 3 is now only the names that actually exist between "Västra
   Innerstaden" and "Rönneholm", and most of the map is blank at that zoom —
   which is the honest answer, because most of Malmö has no such name.
+
+- **A one-member grouping is allowed, as a promotion** (2026-07-27). The level
+  had a hole where the city's most-named places are: Västra Hamnen, Gamla
+  Staden, Möllevången, Bunkeflostrand, Klagshamn are all single delområden, so
+  the old rule ("a grouping is made of several") left the medium zoom blank over
+  the old town and the harbour. But "promote a delområde" is one step from
+  promoting all 136, which is the mistake above. So the bar is a source *outside*
+  the delområde register — Malmö stad's own områden pages, `place=suburb` in OSM,
+  a Skånetrafiken stop, a tätort of its own, estate agents selling by the name —
+  and the question "would you answer *var bor du?* with it". Five passed;
+  Ribersborg, Hyllievång, Lönngården and the rest of the 136 did not. The
+  precedent was already there: Stadionområdet covers only Stadion.
+
+- **Six holes in level 3 are structural and stay open** (2026-07-27). Searching
+  Wikipedia, Malmö stad, Skånetrafiken's stop names and the estate agents' own
+  område pages for the missing middle turned up the same answer six times: in
+  Hyllie, Rosengård, Oxie, Fosie, Husie and Kirseberg the in-between name people
+  say *is* the stadsdel's name, over a smaller area — vernacular Rosengård is the
+  estate, while the stadsdel also takes Persborg and Östra Kyrkogården; vernacular
+  Hyllie is the station district, which is the delområde Hyllievång. Putting the
+  same word at two zooms over two extents teaches the city wrong, so those stay
+  blank. Malmö's historic in-between division (Västra Förstaden = Fridhem +
+  Mellanheden + Västervång, Mellersta Förstaden, Södra Förstaden, Östra
+  Förstaden, Pildammsstaden) is the right grain and would fill much of the rest,
+  but Wikipedia has all five in the past tense, nobody says them, and they
+  predate the stadsdelar so they cross them. Rejected candidates and their
+  reasons live in `areas/areas.json` under `_doc.rejected`, so the next person
+  does not research them again.
+
+- **Skånetrafiken's stop names are a source for area names** (2026-07-27). A stop
+  is named after the place it serves, which makes the network an index of what
+  Malmö calls things — and unlike a geocoder it comes with a coordinate that is
+  in the place rather than merely matching its name. 437 stop names in the bbox
+  produced Erikslust, Högaholm, Blekingsborg, Toftängen and Potatisåkern, none of
+  which is in any boundary dataset. Each part's parent delområde is then decided
+  by point-in-polygon on that coordinate rather than by hand, which is how
+  Erikslust turned out to sit in Rönneholm and not in Fridhem, where the
+  Wikipedia article that names it lives. Same rule as everywhere else: a machine
+  may place it, only a human may call it verified.
 
 - **The hand-written groupings are checked against the city's statistics**
   (2026-07-26). `areas/areas.json` is hand-written because no dataset contains
@@ -193,6 +232,41 @@ bullet lands here only when something non-obvious was actually decided.
   groups Bellevue and Nya Bellevue (villa areas by Ribersborg) with
   Bellevuegården, 1.8 km away, which shares no boundary with either and which
   the city counts to Lorensborg. Left red on purpose — it is a data decision.
+
+- **Every pin is opt-in, and the pins come from the tiles** (2026-07-27). The
+  map now opens with nothing point-shaped on it — no cafés, no shops, not even
+  the landmark icons — and a chip row along the bottom tacks categories on. Two
+  choices inside that are worth writing down.
+
+  *Where the pins come from.* The four Overpass overlays became fourteen
+  categories without a single new fetch, because the POIs were already on disk:
+  the pmtiles archive holds 4,227 of them with an OpenMapTiles `class` each, so
+  a category is a filter over `source-layer: poi`. The basemap's own `poi_z15`
+  and `poi_z16` are consequently dropped from the style — drawn as well, they
+  would double every café the moment you tapped "Mat", and their rank filters
+  had a hole in them anyway (`poi_z14` was dropped long ago, so ranks 1–6 were
+  never drawn at all — the most prominent POIs in each tile, invisible). Two
+  overlays stay GeoJSON because the tiles do them worse: rail stations, wanted
+  from z11 where the tiles have no POIs, and the cycle network, which is lines
+  and includes named routes the tiles don't carry. `food.geojson` and
+  `culture.geojson` are still built for the search index but no longer drawn or
+  precached.
+
+  *The table is checked against the archive, not against the schema.* Writing
+  the class → category table from the OpenMapTiles documentation would have
+  given "bakery" a chip of its own and missed that plain `shop` is 536 places,
+  an eighth of every POI in Malmö. So `scripts/lib/pmtiles.mjs` reads the
+  archive back (PMTiles directory + just enough MVT to get feature properties;
+  ~120 lines, no dependency), `scripts/poi-inventory.mjs` prints what is in
+  there, and the test fails on a class that no category claims and no written
+  reason excuses — and on an excuse for a class the extract no longer has. 103
+  classes, all accounted for.
+
+  The one category that starts on is **Bilvägar**, the drivable network: a
+  reference map you cannot find a street on is not one. It is found by rule
+  (`road_`/`bridge_`/`tunnel_`, minus rail, footways and pedestrian areas)
+  rather than by listing 45 layer ids that Liberty would rot the first time it
+  added a casing — so turning the cars off leaves you the city you can walk.
 
 - **Toolchain: Homebrew + Node, no Docker** (2026-07-17). `osmium-tool`, keg-only
   `openjdk@21`, `tools/planetiler.jar`; all scripts in Node so the search-index

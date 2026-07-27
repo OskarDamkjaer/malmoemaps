@@ -8,7 +8,7 @@
 //
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
-const CODE = 'malmo-code-v3';
+const CODE = 'malmo-code-v4';
 const DATA = 'malmo-data-2026-07-26d';
 
 const CODE_FILES = [
@@ -17,6 +17,7 @@ const CODE_FILES = [
   '/app.css',
   '/app.js',
   '/area-levels.mjs',
+  '/categories.mjs',
   '/layers.js',
   '/highlight.js',
   '/kinds.js',
@@ -53,8 +54,10 @@ const DATA_FILES = [
   '/data/neighbourhoods.geojson',
   '/data/landmarks.geojson',
   '/data/search.json',
-  '/data/food.geojson',
-  '/data/culture.geojson',
+  // The two categories that are not in the tiles. food.geojson and
+  // culture.geojson are still built — the search index is made from them — but
+  // the map draws those categories from the basemap's own POIs now, so there is
+  // nothing to precache.
   '/data/cycling.geojson',
   '/data/transit.geojson',
 ];

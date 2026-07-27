@@ -39,18 +39,25 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
   |---|---|---|---|
   | 1 | < 11 | **Malmö** | the ten stadsdelar, dissolved |
   | 2 | 11 – 12.3 | the ten **stadsdelar** — Västra Innerstaden, Limhamn-Bunkeflo, Rosengård… | Malmö stad, CC0 |
-  | 3 | 12.3 – 13.4 | the 14 names **in between** — Slottsstaden, Sorgenfri, Limhamn, Hamnen… | their delområden, dissolved |
+  | 3 | 12.3 – 13.4 | the 19 names **in between** — Slottsstaden, Sorgenfri, Limhamn, Västra Hamnen… | their delområden, dissolved |
   | 4 | ≥ 13.4 | all 136 **delområden** — Västra Sorgenfri, Rönneholm, Ribersborg… | OSM admin boundaries |
 
   The ladder lives in `app/area-levels.mjs` and nowhere else; `app/layers.js`
   draws from it and `scripts/build-style.mjs` imports its top rung to cap the
   basemap's own "Malmö" label. `test/` holds it to all of the above.
 
-  **Level 3 has holes, on purpose.** Only 14 of these in-between names exist
+  **Level 3 has holes, on purpose.** Only 19 of these in-between names exist
   (`areas/areas.json`, hand-written with a source each), and most of Malmö
   simply has no word between "Västra Innerstaden" and "Rönneholm". An earlier
   version filled the gaps with the delområden nobody had grouped, which put 93
   names on two levels at once — the one thing the ladder exists to prevent.
+
+  Six of the biggest holes are structural, not unfinished: in Hyllie, Rosengård,
+  Oxie, Fosie, Husie and Kirseberg the in-between name people use is the
+  stadsdel's own name over a smaller area, and one word for two extents at two
+  zooms is worse than blank. `areas/areas.json` keeps the rejected candidates —
+  including Malmö's historic in-between division (Västra Förstaden, Mellersta
+  Förstaden, Pildammsstaden…), which is the right grain but which nobody says.
 
   Each level says how it sits in the others: a stadsdel lists the delområden it
   covers, a delområde says which stadsdel it is in, a level-3 name lists what it
@@ -58,11 +65,29 @@ An orientation tool, **not** navigation: no routing, no directions, ever.
   drawn, and the parts below level 4 (Fullriggaren, Dockan, Seved) are built and
   searchable but not drawn either — names finer than a delområde, with no
   boundary to sit in.
+- **No pins, until you ask** — the map opens with nothing point-shaped on it:
+  no cafés, no shops, not even the landmarks. Everything of that kind is a
+  **category**, tacked on from the chip row along the bottom, and the choice is
+  remembered like the view is.
+
+  | | drawn from |
+  |---|---|
+  | Mat · Barer · Kultur · Parker · Sport & bad · Butiker · Vård · Samhälle · Hotell · Bil & parkering | the basemap's own POIs, by OpenMapTiles `class`, z14+ |
+  | Landmärken | the curated list (below) |
+  | Kollektivtrafik | `transit.geojson` — rail only, from z11 |
+  | Cykel | `cycling.geojson` lines + lånecyklar from the tiles |
+  | **Bilvägar** | the basemap's road layers — **the one category that starts on** |
+
+  The table lives in `app/area-levels.mjs`'s neighbour, `app/categories.mjs`,
+  and nowhere else: the chips, the layers, the colours and the card all read it.
+  4,227 POIs are already inside the pmtiles archive, so a category costs a
+  filter rather than a download — and `scripts/poi-inventory.mjs` reads the
+  archive back to say what is in it, which is how the table was written and how
+  `test/categories.test.mjs` checks that no class is left undrawable.
 - **Selection** — tapping anything named gives its name, what kind of thing it
   is, and its shape: a street lit end to end, an area outlined, an icon ringed.
-  Basemap pictograms answer too, so an unfamiliar icon can be identified.
-- **Overlays** — food, culture, cycling, transit (train stations only);
-  toggleable, off by default.
+  What is turned off is not tappable: a pin you cannot see is not a hidden
+  answer.
 - **Landmarks** — hand-curated two-tier list (`landmarks/landmarks.json`, 63
   entries, 61 with coordinates), 12 hand-drawn SVG icons for Tier 1, sprite
   icons for Tier 2. Tapping one shows its name, district and one line of text.
@@ -88,11 +113,12 @@ build/      generated artifacts: style.json, data/, site/ (gitignored)
 landmarks/  hand-curated landmark list + SVG icons
 ```
 
-The app is seven files — `index.html`, `app.css`, `app.js` (map, chrome, boot),
-`layers.js` (areas, landmarks, overlays), `highlight.js` (what you tapped and
-its shape), `kinds.js` (what an icon means, in Swedish), `search.js` — plus
-`sw.js`. No framework, no bundler, no `node_modules`: the browser loads the ES
-modules as written.
+The app is eight files — `index.html`, `app.css`, `app.js` (map, chrome, chips,
+boot), `layers.js` (areas, landmarks, category plumbing), `categories.mjs` (the
+layer menu: what each chip stands for), `area-levels.mjs` (the zoom ladder),
+`highlight.js` (what you tapped and its shape), `kinds.js` (what an icon means,
+in Swedish), `search.js` — plus `sw.js`. No framework, no bundler, no
+`node_modules`: the browser loads the ES modules as written.
 
 ## Building the data
 
@@ -108,7 +134,12 @@ node scripts/build-neighbourhoods.mjs  # areas/areas.json → build/data/{neighb
 node scripts/build-streets.mjs      # pbf → data/cache/streets.json (search intermediate)
 node scripts/build-landmarks.mjs    # landmarks.json → build/data/landmarks.geojson (--resolve fills coords)
 node scripts/build-search.mjs       # everything above → build/data/search.json
+node scripts/poi-inventory.mjs      # reads the tileset back: which POI classes it holds
 ```
+
+`food.geojson` and `culture.geojson` are still built and still feed the search
+index, but the map no longer draws them: those categories come from the POIs
+already in the tiles, which are more complete and cost no download.
 
 Downloads are cached under `data/` (Sweden extract reused < 30 days, Planetiler
 sources, raw Overpass/Nominatim responses), so re-runs are fast and offline.
@@ -134,8 +165,10 @@ console.
 node --test 'test/*.test.mjs'       # no deps, no runner, no config
 ```
 
-There is one thing here worth testing and it is the area ladder, because it is
-the only part of the map whose bugs are invisible: two levels overlapping for
+Two things here are worth testing, and both for the same reason: their bugs are
+invisible.
+
+The first is the area ladder — two levels overlapping for
 half a zoom step reads as clutter, not as a fault, and you only find it by
 being at exactly the wrong zoom. So the tests ask the four questions you would
 otherwise ask by squinting — is each level alone at its zoom, does each have an
@@ -145,8 +178,16 @@ whether the hand-written groupings still agree with Malmö stad's own
 statistics (`areas/statistikomraden.json`, derived once from the CC0 dataset so
 the check runs offline).
 
-`test/areas.test.mjs` and `test/style.test.mjs` read `build/`, which is
-gitignored; they skip with a note rather than fail if you haven't built yet.
+The second is the layer menu. "Everything off by default" is one line of intent
+with six places to leak, so the test asserts the map opens clean — and, because
+the set of POI classes is a property of the extract rather than of this repo, it
+opens the pmtiles archive and reads it: a class that no chip draws and no
+written reason excuses is a POI the map could never show, and it fails here
+instead of being invisible forever.
+
+`test/areas.test.mjs`, `test/style.test.mjs` and `test/categories.test.mjs` read
+`build/` and `data/`, which are gitignored; they skip with a note rather than
+fail if you haven't built yet.
 
 ## Hosting
 

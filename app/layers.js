@@ -1,10 +1,13 @@
-// Everything drawn on top of the basemap: districts, landmarks, overlays.
+// Everything drawn on top of the basemap: districts, landmarks, categories.
 //
-// These four files are the parts of the map that are mine rather than
+// These files are the parts of the map that are mine rather than
 // OpenStreetMap's rendering conventions — a hand-curated landmark list, the
-// city's own administrative division, and four subject overlays that are off
-// until asked for. They are GeoJSON rather than tiles because all four together
-// are under 2 MB, which is cheaper to ship whole than to tile.
+// city's own administrative division, and the cycle network. They are GeoJSON
+// rather than tiles because together they are under 2 MB, which is cheaper to
+// ship whole than to tile.
+//
+// The other thing here is the category machinery: no pin is drawn until a chip
+// asks for it, and which pins a chip stands for is decided in categories.mjs.
 //
 // One rule shows up repeatedly below: *zoom is compared to a per-feature
 // property by splitting into buckets, not by an expression.* MapLibre will not
@@ -12,6 +15,9 @@
 // appear at z12 lives in the z12 layer. Hence the small layer factories.
 
 import { areaLayers } from './area-levels.mjs';
+import {
+  CATEGORIES, DEFAULT_ON, categoryLayers, isCarRoadLayer,
+} from './categories.mjs';
 import {
   addHighlightLayers, clearHighlight, describeHit, highlight, pickFeature,
   setDistrictFeatures, setNeighbourhoods, setStadsdelar, stadsdelNames,
@@ -127,27 +133,39 @@ function districtLabels(geojson) {
   return { type: 'FeatureCollection', features: districtLabelPoints([...al9, ...al10]) };
 }
 
-// ---- overlays --------------------------------------------------------------
-// Off by default, one colour each, and no attempt to be a directory: the point
-// is "where are the cafés, roughly", not which one is open.
-export const overlays = [
-  { id: 'food', label: 'Mat & dryck', color: '#b8562b', kind: 'point' },
-  { id: 'culture', label: 'Kultur', color: '#7a4f9c', kind: 'point' },
-  { id: 'cycling', label: 'Cykelvägar', color: '#1f6f5c', kind: 'line' },
-  { id: 'transit', label: 'Tågstationer', color: '#1d5f8a', kind: 'point' },
-].map((o) => ({
-  ...o,
-  visible: false,
-  layers: o.kind === 'point' ? [`${o.id}-dot`, `${o.id}-label`] : [`${o.id}-line`],
-  setVisible(map, on) {
-    this.visible = on;
-    for (const id of this.layers) {
-      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    }
-  },
-}));
+// ---- categories --------------------------------------------------------------
+// Every pin on this map belongs to a category, and every category is off until
+// asked for — the table, the colours and the reasons live in categories.mjs.
+// What lives here is the plumbing: which layer ids belong to which category,
+// and flipping them.
+//
+// The three shapes a category can take (basemap POIs by class, a GeoJSON file
+// of our own, layers style.json already draws) all end up in the same registry,
+// so the chip row does not have to know which is which.
+const categoryLayerIds = new Map(CATEGORIES.map((c) => [c.id, []]));
+const on = new Set(DEFAULT_ON);
 
-const OVERLAY_MINZOOM = { food: 14, culture: 13, cycling: 12, transit: 11 };
+const register = (catId, ...ids) => categoryLayerIds.get(catId).push(...ids);
+
+/** Turn a category on or off. The one thing the chip row does. */
+export function setCategoryVisible(map, catId, visible) {
+  if (visible) on.add(catId); else on.delete(catId);
+  for (const id of categoryLayerIds.get(catId) ?? []) {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+  }
+}
+
+export const isCategoryOn = (catId) => on.has(catId);
+
+/**
+ * Put back what was on last time, before any layer exists — so a restored
+ * category is drawn visible rather than added hidden and then flipped, which
+ * would show as a flash of the wrong map on every load.
+ */
+export function restoreCategories(ids) {
+  on.clear();
+  for (const cat of CATEGORIES) if (ids.includes(cat.id)) on.add(cat.id);
+}
 
 // ---- assembly --------------------------------------------------------------
 export async function addDataLayers(map) {
@@ -195,6 +213,11 @@ export async function addDataLayers(map) {
     },
   });
   map.addSource('landmarks', { type: 'geojson', data: landmarks });
+  for (const cat of CATEGORIES) {
+    if (cat.geojson && cat.geojson !== 'landmarks') {
+      map.addSource(cat.geojson, { type: 'geojson', data: `${DATA}/${cat.geojson}.geojson` });
+    }
+  }
 
   // The whole ladder, in two passes, because the selection wash belongs between
   // them: above the outlines and the roads it covers, below every label, so
@@ -208,19 +231,24 @@ export async function addDataLayers(map) {
   addHighlightLayers(map);
   for (const layer of ladder) if (layer.metadata.role === 'name') map.addLayer(layer);
 
-  addOverlayLayers(map);
+  addCategoryLayers(map);
 
-  // Landmarks sit above the overlays: they are the fixed points you navigate
-  // your mental map by, and they should never be hidden by a café dot.
+  // Landmarks sit above every other category: they are the fixed points you
+  // navigate your mental map by, and they should never be hidden by a café dot.
+  const landmarksOn = on.has('landmarks');
   const icon = iconExpression();
   for (const zoom of [...new Set(landmarks.features.map((f) => f.properties.min_zoom))].sort((a, b) => a - b)) {
+    const id = `landmark-${zoom}`;
+    register('landmarks', id);
     map.addLayer({
-      id: `landmark-${zoom}`,
+      id,
       type: 'symbol',
       source: 'landmarks',
       filter: ['==', ['get', 'min_zoom'], zoom],
       minzoom: zoom,
+      metadata: { category: 'landmarks' },
       layout: {
+        visibility: landmarksOn ? 'visible' : 'none',
         'icon-image': icon,
         'icon-size': ['interpolate', ['linear'], ['zoom'], zoom, 0.8, zoom + 3, 1],
         'icon-allow-overlap': false,
@@ -263,73 +291,37 @@ function notADistrictFilter(districts, neighbourhoods) {
   return ['!', ['in', ['downcase', ['get', 'name']], ['literal', known]]];
 }
 
-function addOverlayLayers(map) {
-  for (const o of overlays) {
-    map.addSource(o.id, { type: 'geojson', data: `${DATA}/${o.id}.geojson` });
-    const minzoom = OVERLAY_MINZOOM[o.id];
-    const hidden = { visibility: 'none' };
-
-    if (o.kind === 'line') {
-      map.addLayer({
-        id: `${o.id}-line`,
-        type: 'line',
-        source: o.id,
-        minzoom,
-        layout: { ...hidden, 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-color': o.color,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.8, 16, 2.6],
-          'line-opacity': 0.75,
-        },
-      });
+// Every category's own layers, plus the one category that has none of its own:
+// "Bilvägar" is the basemap's road layers, found by rule rather than listed, so
+// the registry can flip them like anything else.
+function addCategoryLayers(map) {
+  for (const cat of CATEGORIES) {
+    if (cat.basemap) {
+      const ids = map.getStyle().layers.map((l) => l.id).filter(isCarRoadLayer);
+      register(cat.id, ...ids);
+      // The style ships them visible, so only the unusual case needs applying.
+      if (!on.has(cat.id)) setCategoryVisible(map, cat.id, false);
       continue;
     }
-
-    map.addLayer({
-      id: `${o.id}-dot`,
-      type: 'circle',
-      source: o.id,
-      minzoom,
-      layout: hidden,
-      paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], minzoom, 2.6, 17, 5.5],
-        'circle-color': o.color,
-        'circle-opacity': 0.85,
-        'circle-stroke-color': '#fffefc',
-        'circle-stroke-width': 1,
-      },
-    });
-    map.addLayer({
-      id: `${o.id}-label`,
-      type: 'symbol',
-      source: o.id,
-      minzoom: o.id === 'transit' ? minzoom : 16,
-      filter: ['has', 'name'],
-      layout: {
-        ...hidden,
-        'text-field': ['get', 'name'],
-        'text-font': ['Roboto Regular'],
-        'text-size': 11,
-        'text-anchor': 'left',
-        'text-offset': [0.7, 0],
-        'text-max-width': 10,
-        'text-optional': true,
-      },
-      paint: {
-        'text-color': o.color,
-        'text-halo-color': 'rgba(255,255,255,0.95)',
-        'text-halo-width': 1.5,
-      },
-    });
+    for (const layer of categoryLayers({ ...cat, on: on.has(cat.id) })) {
+      register(cat.id, layer.id);
+      map.addLayer(layer);
+    }
   }
 }
 
 // ---- selection -------------------------------------------------------------
 // The app's own layers, which win any tie against the basemap beneath them.
+// Only what is actually on screen is tappable: a category you turned off is not
+// a hidden answer waiting to be found. The names count as well as the dots —
+// a café's label is a bigger target than its 5 px circle, and both answer with
+// the same card.
 function appLayerIds(map) {
-  return map.getStyle().layers.map((l) => l.id).filter((id) => id.startsWith('landmark-')
-    || id.startsWith('district-label') || id.startsWith('area-label')
-    || overlays.some((o) => o.visible && (id === `${o.id}-dot` || id === `${o.id}-line`)));
+  const drawn = [...on].flatMap((id) => categoryLayerIds.get(id) ?? [])
+    .filter((id) => id.startsWith('landmark-') || /-(dot|line|label)$/.test(id));
+  return map.getStyle().layers.map((l) => l.id)
+    .filter((id) => drawn.includes(id)
+      || id.startsWith('district-label') || id.startsWith('area-label'));
 }
 
 export function onFeatureClick(map, show) {
@@ -338,7 +330,7 @@ export function onFeatureClick(map, show) {
     if (!hit) { clearHighlight(map); return; }
     e._handled = true;
     highlight(map, hit);
-    show(describeHit(hit, overlays));
+    show(describeHit(hit));
   });
 
   // Pointer feedback for the app's own icons only: working out whether the

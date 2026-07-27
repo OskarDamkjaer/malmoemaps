@@ -17,11 +17,16 @@
 // words. Levels 1 and 3 have no polygons of their own, so their outlines are
 // dissolved at build time from the level below (scripts/lib/geo.mjs).
 //
-// Level 3 has holes, on purpose: only 14 of these in-between names exist, and
+// Level 3 has holes, on purpose: only 19 of these in-between names exist, and
 // most of Malmö simply has no word between "Västra Innerstaden" and
 // "Rönneholm". Filling the gaps with delområden — an earlier version did — put
 // 93 names on two levels at once, which is the one thing this ladder is for
 // avoiding.
+//
+// Six of the largest holes are structural rather than unresearched: in Hyllie,
+// Rosengård, Oxie, Fosie, Husie and Kirseberg the in-between name people say is
+// the stadsdel's own name at a smaller extent, and one word for two extents at
+// two zooms teaches the city wrong. areas.json's _doc.rejected keeps the list.
 //
 // Below level 4 there is nothing. parts.geojson (Fullriggaren, Dockan, Seved)
 // is still built and still searchable, but a fifth level of names with no
@@ -138,7 +143,7 @@ export function areaLayers({ notADistrict = true } = {}) {
     },
 
     // ---- level 3: the names in between -------------------------------------
-    // 14 shapes with blank between them, so the outline carries this level
+    // 19 shapes with blank between them, so the outline carries this level
     // more than at any other — it is the only thing saying where the name
     // stops.
     {

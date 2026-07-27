@@ -65,8 +65,10 @@ if (existsSync(`${dataDir}/stadsdelar.geojson`)) {
 // are already in the index below, and would otherwise be listed twice.
 if (existsSync(`${dataDir}/neighbourhoods.geojson`)) {
   for (const f of read(`${dataDir}/neighbourhoods.geojson`).features.filter((x) => x.properties.curated)) {
+    // The geometry is the dissolved outline (MultiLineString), so the point to
+    // fly to is the label point the build already chose — not the geometry.
     push({ name: f.properties.name, cat: 'neighbourhood', kind: 'område',
-      point: roundPoint(f.geometry.coordinates), district: f.properties.stadsdel, rank: RANK.neighbourhood });
+      point: roundPoint(f.properties.label), district: f.properties.stadsdel, rank: RANK.neighbourhood });
   }
 }
 if (existsSync(`${dataDir}/parts.geojson`)) {

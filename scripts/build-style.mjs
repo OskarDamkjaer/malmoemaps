@@ -41,7 +41,13 @@ const DROP = {
   road_one_way_arrow: 'direction of travel is navigation, not orientation',
   road_one_way_arrow_opposite: 'direction of travel is navigation, not orientation',
   poi_z14: 'prominence at z14 is the curated landmark list, not OSM POI rank',
-  poi_transit: 'transit is a toggleable overlay, and rail only (see DECISIONS)',
+  poi_transit: 'transit is a toggleable category, and rail only (see DECISIONS)',
+  // The same POIs are still drawn — by app/categories.mjs, one layer per
+  // category, and only when a chip asks for them. Drawing them here as well
+  // would mean every café appearing twice the moment you tapped "Mat", and
+  // rank 1–6 (which poi_z14 held) never appearing at all.
+  poi_z15: 'POIs are categories now: off by default, drawn by the app when asked for',
+  poi_z16: 'POIs are categories now: off by default, drawn by the app when asked for',
   // The names themselves are wanted — Slottsstaden and Limhamn are not
   // delområden and exist nowhere else — but they are redrawn by the app
   // (addAreaNameLayers), which can filter them against the district names so
@@ -98,17 +104,8 @@ const OVERRIDE = {
   road_minor_casing: { minzoom: 13 },
   building: { minzoom: 14, maxzoom: 17 },
 
-  // z15-16 — the last details. Transit POIs are excluded for the same reason
-  // the transit overlay is rail only: a bus stop every 300 m is not detail,
-  // it is texture, and it arrives exactly where the map gets busiest.
-  poi_z15: {
-    filter: ['all', ['==', '$type', 'Point'], ['>=', 'rank', 7], ['<', 'rank', 20],
-      ['!in', 'class', 'bus', 'rail', 'railway', 'airport']],
-  },
-  poi_z16: {
-    filter: ['all', ['==', '$type', 'Point'], ['>=', 'rank', 20],
-      ['!in', 'class', 'bus', 'rail', 'railway', 'airport']],
-  },
+  // z15-16 — the last details. (The POI layers used to be retuned here; they
+  // are dropped instead, and the app draws POIs per category — see DROP.)
   road_service_track: { minzoom: 15 },
   road_service_track_casing: { minzoom: 15 },
   road_area_pattern: { minzoom: 15 },

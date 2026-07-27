@@ -44,24 +44,33 @@ test('each level is the size it should be', { skip }, () => {
   assert.equal(level.delomrade.length, 136, '136 delområden');
   // Level 3 is the curated file and nothing else, so its size is a decision,
   // not a fact about a dataset — if this number moves, areas.json moved.
-  assert.equal(level.neighbourhood.length, 14, 'fourteen curated in-between names');
+  assert.equal(level.neighbourhood.length, 19, 'nineteen curated in-between names');
 });
 
 test('level 3 is allowed to have holes, and does', { skip }, () => {
   // The point of the level is the names that exist, not covering the map. An
   // earlier version filled the gaps with delområden and put 93 names on two
   // rungs at once; this asserts we did not quietly go back to that.
+  //
+  // The gaps that remain are mostly not for want of research. In six of the ten
+  // stadsdelar — Hyllie, Rosengård, Oxie, Fosie, Husie, Kirseberg — the
+  // everyday in-between name *is* the stadsdel's name, with a different extent,
+  // and one word for two extents is worse than a hole. See areas.json's
+  // _doc.rejected.
   const covered = new Set(read(`${DATA}/neighbourhoods.geojson`)
     .features.flatMap((f) => f.properties.covers));
   assert.ok(covered.size < level.delomrade.length,
     'level 3 does not claim every delområde — if it did, it would be level 4 again');
-  assert.equal(covered.size, 43, '43 of the 136 delområden have an in-between name');
+  assert.equal(covered.size, 48, '48 of the 136 delområden have an in-between name');
 });
 
 test('no name appears on two levels, except a grouping named for its own centre', { skip }, () => {
   // Kroksbäck the area contains Kroksbäck the delområde, and that nesting is
-  // how the city really is. What must not happen is the same name on two
-  // levels for two *different* places.
+  // how the city really is — as does a promotion, a one-member grouping saying
+  // the name belongs to the place and not just to the statistical unit (Västra
+  // Hamnen, Gamla Staden). What must not happen is the same name on two levels
+  // for two *different* places, which is what keeps a level-3 "Hyllie" out
+  // while the stadsdel Hyllie covers five times as much ground.
   const groupings = new Map(read(`${DATA}/neighbourhoods.geojson`)
     .features.map((f) => [f.properties.name, f.properties.covers]));
   const rungs = [

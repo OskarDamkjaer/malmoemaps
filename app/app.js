@@ -9,13 +9,17 @@
 import {
   Map, GeolocateControl, AttributionControl, ScaleControl, addProtocol,
 } from './vendor/maplibre-gl.mjs';
-import { addDataLayers, overlays, onFeatureClick } from './layers.js';
+import { CATEGORIES, DEFAULT_ON, categoryMinzoom } from './categories.mjs';
+import {
+  addDataLayers, isCategoryOn, onFeatureClick, restoreCategories, setCategoryVisible,
+} from './layers.js';
 import { clearHighlight } from './highlight.js';
 import { initSearch } from './search.js';
 
 const boot = document.getElementById('boot');
 const bootmsg = document.getElementById('bootmsg');
 const VIEW_KEY = 'malmo:view';
+const LAYERS_KEY = 'malmo:layers';
 
 function fail(what, err) {
   console.error(what, err);
@@ -57,6 +61,22 @@ function savedView() {
     if (v && Number.isFinite(v.lng) && Number.isFinite(v.lat) && Number.isFinite(v.zoom)) return v;
   } catch { /* corrupt or blocked storage is not worth a failure */ }
   return null;
+}
+
+// Which chips were on, same bargain: the map you left is the map you come back
+// to. An unreadable value means the default set, never a crash on boot.
+function savedCategories() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(LAYERS_KEY));
+    if (Array.isArray(ids)) return ids.filter((id) => CATEGORIES.some((c) => c.id === id));
+  } catch { /* corrupt or blocked storage is not worth a failure */ }
+  return DEFAULT_ON;
+}
+
+function rememberCategories() {
+  try {
+    localStorage.setItem(LAYERS_KEY, JSON.stringify(CATEGORIES.filter((c) => isCategoryOn(c.id)).map((c) => c.id)));
+  } catch { /* private mode; forgetting is fine */ }
 }
 
 function rememberView(map) {
@@ -140,44 +160,59 @@ map.on('error', (e) => console.warn('map:', e.error?.message ?? e.error ?? e));
 map.on('moveend', () => rememberView(map));
 
 map.on('load', async () => {
+  // Before the layers exist, so a restored category is added visible rather
+  // than added hidden and flipped a frame later.
+  restoreCategories(savedCategories());
   try {
     await addDataLayers(map);
   } catch (err) {
-    // The basemap is the map; overlays failing should not blank the screen.
-    console.error('overlays', err);
+    // The basemap is the map; the layers on top failing should not blank it.
+    console.error('layers', err);
   }
   boot.classList.add('done');
   initSearch(map);
-  buildLayerPanel();
+  buildChips();
 });
 
-// ---- layer panel -----------------------------------------------------------
-const layersBtn = document.getElementById('layersbtn');
-const layersPanel = document.getElementById('layers');
-const overlayList = document.getElementById('overlaylist');
+// ---- layer chips -----------------------------------------------------------
+// One chip per category, in the order categories.mjs lists them. The chip is
+// the whole menu: no panel to open, one tap to tack a layer on.
+const chipRow = document.getElementById('chips');
+// A list, not a Map: `Map` in this file is MapLibre's.
+const chips = [];
 
-function buildLayerPanel() {
-  for (const o of overlays) {
-    const li = document.createElement('li');
-    const label = document.createElement('label');
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = o.visible;
-    input.addEventListener('change', () => o.setVisible(map, input.checked));
+function buildChips() {
+  for (const cat of CATEGORIES) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.style.setProperty('--chip', cat.color);
+    chip.setAttribute('aria-pressed', String(isCategoryOn(cat.id)));
     const swatch = document.createElement('span');
     swatch.className = 'swatch';
-    swatch.style.background = o.color;
-    label.append(input, swatch, document.createTextNode(o.label));
-    li.append(label);
-    overlayList.append(li);
+    chip.append(swatch, document.createTextNode(cat.label));
+    chip.addEventListener('click', () => {
+      const now = !isCategoryOn(cat.id);
+      setCategoryVisible(map, cat.id, now);
+      chip.setAttribute('aria-pressed', String(now));
+      rememberCategories();
+      updateChips();
+    });
+    chips.push({ cat, chip });
+    chipRow.append(chip);
   }
+  updateChips();
+  map.on('zoomend', updateChips);
 }
 
-layersBtn.addEventListener('click', () => {
-  const open = layersPanel.hidden;
-  layersPanel.hidden = !open;
-  layersBtn.setAttribute('aria-expanded', String(open));
-});
+// A category can be on and still draw nothing: POIs are only in the tiles from
+// z14, and a chip that looks broken is worse than one that says why.
+function updateChips() {
+  const zoom = map.getZoom();
+  for (const { cat, chip } of chips) {
+    chip.toggleAttribute('data-waiting', isCategoryOn(cat.id) && zoom < categoryMinzoom(cat));
+  }
+}
 
 // ---- selected feature card -------------------------------------------------
 const card = document.getElementById('card');
@@ -206,10 +241,7 @@ onFeatureClick(map, showCard);
 map.on('click', (e) => { if (!e._handled) hideCard(); });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
-  hideCard();
-  layersPanel.hidden = true;
-  layersBtn.setAttribute('aria-expanded', 'false');
+  if (e.key === 'Escape') hideCard();
 });
 
 // ---- offline ---------------------------------------------------------------

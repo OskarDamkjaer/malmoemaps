@@ -11,6 +11,8 @@
   --shadow: 0 1px 2px rgb(32 29 25 / 12%), 0 6px 20px rgb(32 29 25 / 10%);
   --radius: 12px;
   --gap: 10px;
+  /* The chip row's footprint: what everything else along the bottom clears. */
+  --bar: 46px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -39,7 +41,7 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
   position: absolute;
   top: calc(var(--safe-top) + var(--gap));
   left: var(--gap);
-  width: min(420px, calc(100% - 2 * var(--gap) - 52px));
+  width: min(420px, calc(100% - 2 * var(--gap)));
   z-index: 3;
 }
 
@@ -114,29 +116,8 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 
 /* ---- controls ----------------------------------------------------------- */
 
-#controls {
-  position: absolute;
-  top: calc(var(--safe-top) + var(--gap));
-  right: var(--gap);
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ctl {
-  width: 44px; height: 44px;
-  padding: 11px;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--ink);
-  box-shadow: var(--shadow);
-}
-
-.ctl[aria-expanded="true"] { color: var(--accent); }
-
-/* MapLibre's own controls (geolocate) get the same shape as ours. */
+/* MapLibre's own controls (geolocate, scale, attribution) get the same shape as
+   ours, and sit above the chip row rather than under it. */
 .maplibregl-ctrl-group {
   border-radius: var(--radius) !important;
   box-shadow: var(--shadow) !important;
@@ -144,25 +125,72 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 }
 .maplibregl-ctrl-group button { width: 44px !important; height: 44px !important; }
 .maplibregl-ctrl-bottom-right { z-index: 2; }
-
-#layers {
-  position: absolute;
-  top: calc(var(--safe-top) + var(--gap) + 52px);
-  right: var(--gap);
-  z-index: 3;
-  width: min(260px, calc(100% - 2 * var(--gap)));
-  padding: 12px 14px 14px;
-  background: var(--panel);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right {
+  bottom: calc(var(--safe-bottom) + var(--bar));
 }
 
-#layers h2 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
-#overlaylist { margin: 0; padding: 0; list-style: none; }
-#overlaylist li + li { margin-top: 2px; }
-#overlaylist label { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
-#overlaylist input { accent-color: var(--accent); width: 18px; height: 18px; }
-#overlaylist .swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+/* ---- layer chips --------------------------------------------------------- */
+/* One row, along the bottom where a thumb is. It scrolls rather than wraps: a
+   menu that changes height as you use it moves the map out from under you. */
+
+#chips {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(var(--safe-bottom) + 4px);
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  padding: 4px var(--gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+#chips::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 17px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  box-shadow: var(--shadow);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip .swatch {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--chip);
+  opacity: .4;
+  flex: none;
+}
+
+/* On is the colour of the thing it draws — the dots on the map are the same
+   colour, which is the whole legend. */
+.chip[aria-pressed="true"] {
+  color: var(--chip);
+  box-shadow: var(--shadow), inset 0 0 0 1.5px currentcolor;
+}
+
+.chip[aria-pressed="true"] .swatch { opacity: 1; }
+
+/* On, but nothing to show at this zoom: said quietly rather than left to look
+   like a broken toggle. */
+.chip[data-waiting] { opacity: .6; }
+.chip[data-waiting]::after {
+  content: "zooma in";
+  font-size: 11px;
+  color: var(--ink-soft);
+}
 
 /* ---- selected feature --------------------------------------------------- */
 
@@ -170,7 +198,7 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
   position: absolute;
   left: var(--gap);
   right: var(--gap);
-  bottom: calc(var(--safe-bottom) + 34px);
+  bottom: calc(var(--safe-bottom) + var(--bar) + 34px);
   z-index: 3;
   max-width: 420px;
   padding: 14px 40px 16px 16px;
