@@ -11,12 +11,16 @@
 //
 //   neighbourhoods.geojson  the curated groupings, and only those: the names
 //                           that exist between a stadsdel and a delområde.
-//                           There are 19, so this level has holes — most of
+//                           There are 31, so this file has holes — most of
 //                           Malmö has no in-between name, and inventing one
 //                           to fill the map would be the only dishonest thing
-//                           this level could do. (An earlier version filled
-//                           the holes with the unclaimed delområden, which
-//                           made 93 names appear at two levels at once.)
+//                           this level could do. The holes are closed at draw
+//                           time instead, without inventing anything: a
+//                           delområde no grouping claims is elevated to level 3
+//                           under its own name (app/area-levels.mjs). So this
+//                           file stays exactly as long as the evidence is, and
+//                           `covers` is what tells the app which 66 delområden
+//                           are still unspoken for.
 //   parts.geojson           the small named quarters (Fullriggaren, Seved),
 //                           below the delområde level, points only. Built, but
 //                           not currently drawn — see app/area-levels.mjs.

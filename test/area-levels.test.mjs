@@ -60,17 +60,71 @@ test('no zoom shows two levels at once', () => {
   }
 });
 
-test('the ladder ends at the delområden — there is no fifth level', () => {
-  // Fullriggaren, Dockan, Seved are built and searchable but deliberately not
-  // drawn: names finer than a delområde, with no boundary of their own.
+test('level 3 says something everywhere: the delområden with no name above them', () => {
+  // The rule that keeps this from being level 4 drawn twice is the filter: a
+  // delområde appears at level 3 only where no curated name covers it, so
+  // "Rörsjöstaden" is elevated and "Rönneholm" — which Slottsstaden covers —
+  // is not. Both of the level-3 delområde layers must carry it; without the
+  // filter the level really would be the level below in a bigger size.
+  const notGrouped = ['!', ['in', ['get', 'name'], ['literal', ['Rönneholm']]]];
+  const at3 = areaLayersAt(12.8, { notGrouped });
+  const elevated = at3.filter((l) => l.id.endsWith('-elevated'));
+
+  assert.equal(elevated.length, 2, 'the elevated delområden are drawn at level 3');
+  for (const layer of elevated) {
+    assert.equal(layer.metadata.level, 'neighbourhood', `${layer.id} belongs to level 3, not a level of its own`);
+    assert.ok(layer.filter.includes(notGrouped), `${layer.id} draws only what no curated name covers`);
+  }
+  assert.deepEqual(elevated.map((l) => l.metadata.role).sort(), ['name', 'outline'],
+    'an elevated name gets a boundary too — that is what makes level 3 a division of the city');
+
+  // And they are only there at level 3: at level 4 the same delområden are
+  // drawn by the unfiltered layers, alongside the ones a name was hiding.
+  assert.equal(areaLayersAt(14, { notGrouped }).filter((l) => l.id.endsWith('-elevated')).length, 0,
+    'nothing is "elevated" once every delområde is drawn anyway');
+});
+
+test('an elevated name is in the same voice as a curated one', () => {
+  // "Rörsjöstaden" and "Slottsstaden" are the same kind of answer to the same
+  // question at this zoom, so the map must not type one of them as a lesser
+  // thing. Only the collision rules differ, and deliberately: the 31 curated
+  // names always draw, the 65 elevated ones take their turn around them.
+  const layers = areaLayers();
+  const curated = layers.find((l) => l.id === 'area-label-neighbourhood');
+  const elevated = layers.find((l) => l.id === 'district-label-elevated');
+
+  for (const key of ['text-size', 'text-transform', 'text-letter-spacing', 'text-font']) {
+    assert.deepEqual(elevated.layout[key], curated.layout[key], `same ${key}`);
+  }
+  assert.deepEqual(elevated.paint, curated.paint, 'same ink and halo');
+
+  assert.equal(curated.layout['text-allow-overlap'], true, 'a curated name is always drawn');
+  assert.equal(curated.layout['text-ignore-placement'], false,
+    'but it blocks the elevated names around it, rather than being overprinted by them');
+  assert.ok(!elevated.layout['text-allow-overlap'], 'an elevated name yields where there is no room');
+  assert.deepEqual(elevated.layout['symbol-sort-key'], ['get', 'rank'], 'largest first when it does');
+});
+
+test('the ladder ends at the delområden — the parts ride inside level 4', () => {
+  // Gamla Väster, Erikslust, Seved have no boundary anywhere in Malmö, so they
+  // cannot be a level: an outline is what makes a level a division of the city
+  // rather than a scatter of words. They are drawn *with* the delområden
+  // instead, which keeps the promise ("one level at a time") while still
+  // putting the names on the map.
   for (const zoom of [14, 15, 16, 17, 18]) {
     assert.deepEqual(levelsAt(zoom), ['delomrade'], `z${zoom} still shows delområden and nothing finer`);
   }
   assert.equal(LEVELS.at(-1).to, Infinity, 'the last level runs to the end of the zoom range');
-  const ids = areaLayers().map((l) => l.id);
-  for (const gone of ['area-label-part', 'area-label-osm-part']) {
-    assert.ok(!ids.includes(gone), `${gone} is not in the ladder`);
-  }
+  assert.equal(LEVELS.length, 4, 'four levels, not five');
+
+  const part = areaLayers().find((l) => l.id === 'area-label-part');
+  assert.ok(part, 'the parts are drawn');
+  assert.equal(part.metadata.level, 'delomrade', 'as part of level 4, not as a level of their own');
+  assert.equal(part.metadata.category, 'parts',
+    'and answering to a chip, so the whole experiment can be turned off');
+  // The one thing that must not come back: a rung of its own.
+  assert.ok(!areaLayers().some((l) => l.metadata.level === 'part'),
+    'no layer claims a "part" level');
 });
 
 test('the levels tile the zoom axis with no seam and no gap', () => {

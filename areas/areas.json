@@ -9,7 +9,7 @@
       "grouping": "Has `covers`: the delområden it is made of, by exact name. Drawn at the neighbourhood level, where it replaces its members. Its shape is those polygons, so it needs no geometry of its own.",
       "part": "Has `within`: the delområde it sits inside, and a point. Drawn at the deepest zoom, below the delområde level. Smaller than any official area, so there is nothing to derive it from — the point is resolved once from Nominatim and then checked by hand."
     },
-    "oneMember": "A grouping may cover a single delområde. That is not a grouping but a promotion: a claim that the name is used for the *place* and not merely for the statistical unit, so it belongs on the in-between level too. The bar is deliberately high, because promoting all 136 is the mistake this level exists to avoid — the name must be one you would answer \"var bor du?\" with, and it must be carried by a source outside the delområde register: Malmö stad's own områden pages, place=suburb in OSM, a Skånetrafiken stop, a tätort in its own right, or estate agents selling by that name. Västra Hamnen and Gamla Staden pass; Ribersborg and Hyllievång do not.",
+    "oneMember": "A grouping may cover a single delområde. That is not a grouping but a promotion: a claim that the name is used for the *place* and not merely for the statistical unit, so it belongs on the in-between level too. The bar is deliberately high, because promoting all 136 is the mistake this level exists to avoid — the name must be one you would answer \"var bor du?\" with, and it must be carried by a source outside the delområde register: Malmö stad's own områden pages, place=suburb in OSM, a Skånetrafiken stop, a tätort in its own right, or estate agents selling by that name. Västra Hamnen and Gamla Staden pass; Ribersborg and Hyllievång do not. Malmö stad's own områden list is the strongest of those sources and has now been mined to the end: every name on it is either a grouping here or a promotion, except the three village sites (Bulltofta by, Käglinge bytomt, Skvalperup) whose names are not the delområde's.",
     "narrowerThanTheStadsdel": "Five level-3 names repeat the stadsdel above them over a smaller area: Hyllie, Rosengård, Oxie, Kirseberg, Husie. This was refused at first — one word for two extents at two zooms — and then allowed, because the alternative was leaving the six largest holes in the level over exactly the parts of Malmö people name most confidently. The extent is not guessed in any of them: it is where OSM's own place=suburb node for the name falls, plus every Skånetrafiken stop carrying the name, by point-in-polygon. Where those disagree with the stadsdel they disagree sharply and usefully — eleven stops called Hyllie all land in Hyllievång, none anywhere else in the stadsdel Hyllie. test/areas.test.mjs allows exactly these five by name and still fails on a sixth.",
     "rejected": {
       "why": "Kept so the same candidates are not re-researched. See DECISIONS.md for the long version.",
@@ -120,10 +120,10 @@
       "name": "Bellevue",
       "covers": [
         "Bellevue",
-        "Nya Bellevue",
-        "Bellevuegården"
+        "Nya Bellevue"
       ],
       "source": "delområdesnamnen själva",
+      "note": "Bellevuegården was in this at first, on the strength of the shared word alone, and is now out: it is in the stadsdel Hyllie next to Lorensborg while these two are in Limhamn-Bunkeflo, 1.2 km away, and Malmö stad counts it to a different statistikområde (8, not 7). A sixties estate that borrowed the villa district's name. It stands on its own at level 3 now. The two that are left are adjacent, in one stadsdel and one statistikområde — but the source here is still only the names, so this extent wants a real one before \"verified\".",
       "verified": false
     },
     {
@@ -233,6 +233,69 @@
       ],
       "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden/Klagshamn.html",
       "note": "A promotion: Malmö stad gives it its own områdespage — 'växte fram kring kalkbrytning och cementindustri … från industrisamhälle till ett populärt bostads- och rekreationsområde'. A place on the coast with six stops named after it, not a statistical unit. Skumparp is left out; no source puts it in Klagshamn.",
+      "verified": false
+    },
+    {
+      "name": "Lorensborg",
+      "covers": [
+        "Lorensborg"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden/Lorensborg.html",
+      "note": "A promotion, and the city's own word for it: 'Lorensborg ligger i Malmös västra del.' One of the four names still left on Malmö stad's områden list once the groupings had taken theirs — the same list Hamnen, Sorgenfri, Sofielund and Söderkulla come from.",
+      "verified": false
+    },
+    {
+      "name": "Kulladal",
+      "covers": [
+        "Kulladal"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden/Kulladal.html",
+      "note": "A promotion, from Malmö stad's områden list: 'utvecklats från åkermark och bymiljö till ett tätbebyggt bostadsområde' with ties to Per Albin Hansson, whose home stands here — the Per Albins hem stop is in Kulladal.",
+      "verified": false
+    },
+    {
+      "name": "Augustenborg",
+      "covers": [
+        "Augustenborg"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden/Augustenborg.html",
+      "note": "A promotion, from Malmö stad's områden list: 'Augustenborg är ett bostadsområde i Malmö.'",
+      "verified": false
+    },
+    {
+      "name": "Davidshall",
+      "covers": [
+        "Davidshall"
+      ],
+      "source": "https://malmo.se/Uppleva-och-gora/Arkitektur-och-kulturarv/Malmos-historia/Platser-och-byggnader/Stadsdelar-och-omraden/Davidshall.html",
+      "note": "A promotion, from Malmö stad's områden list: 'Davidshall är en stadsdel i Malmös innerstad med bostäder, affärer, restauranger, busslinjer, torg och gator.' Also place=suburb in OSM, with a torg of its own.",
+      "verified": false
+    },
+    {
+      "name": "Fridhem",
+      "covers": [
+        "Fridhem"
+      ],
+      "source": "https://sv.wikipedia.org/wiki/Fridhem,_Malm%C3%B6",
+      "note": "A promotion, and the first of the three names between Slottsstaden and Bellevue. Wikipedia: 'ett delområde inom stadsdelen Västra Innerstaden … var tidigare en egen stadsdel', 43 ha 'innanför Ribersborgsstranden, mellan Köpenhamnsvägen och Ribersborgsvägen'. A former stadsdel, place=suburb in OSM, and a torg named after it. Erikslust sits on its eastern edge and is kept as a part, not folded in.",
+      "verified": false
+    },
+    {
+      "name": "Mellanheden",
+      "covers": [
+        "Mellanheden"
+      ],
+      "source": "https://sv.wikipedia.org/wiki/Mellanheden",
+      "note": "A promotion, the second of the three. Wikipedia describes it as a bostadsområde 'mellan Erikslustvägen och Bellevuevägen, norr om Mellanhedsgatan' — villas from the 1920s and flats from the 1950s to Gunnar Lindman's plan. place=suburb in OSM, four stops carrying the name.",
+      "verified": false
+    },
+    {
+      "name": "Västervång",
+      "covers": [
+        "Västervång"
+      ],
+      "source": "place=suburb i OSM (node inside the delområde); Skånetrafiken 'Västervång'",
+      "note": "A promotion, the third of the three — and the thinnest source of any of them: no Wikipedia article of its own and no page from the city, just OSM's suburb node and two stops. Kept because leaving it out would put a hole between Mellanheden and Bellevue for no reason a source gives. First one to cut if the level starts feeling crowded.",
       "verified": false
     },
     {
@@ -348,6 +411,15 @@
         "type": "pedestrian",
         "osm": "way/288407573"
       }
+    },
+    {
+      "name": "Carolikvarteren",
+      "within": "Gamla Staden",
+      "lat": 55.60773,
+      "lon": 13.00649,
+      "source": "https://sv.wikipedia.org/wiki/Carolikvarteren; Skånetrafiken stop 'Caroli'",
+      "note": "'Carolikvarteren, eller tidigare ofta kvarteren kring Caroli kyrka, är en mindre del av Gamla staden i Malmö' — bounded by Mäster Nilsgatan, Rundelsgatan, Stora Kvarngatan, Norregatan and Östergatan. The eastern half of the old town, as Gamla Väster is the western: the two parts of Gamla Staden that have names of their own. Anchored on the Caroli stop.",
+      "verified": false
     },
     {
       "name": "Erikslust",

@@ -44,35 +44,50 @@ test('each level is the size it should be', { skip }, () => {
   assert.equal(level.delomrade.length, 136, '136 delområden');
   // Level 3 is the curated file and nothing else, so its size is a decision,
   // not a fact about a dataset — if this number moves, areas.json moved.
-  assert.equal(level.neighbourhood.length, 19, 'nineteen curated in-between names');
+  assert.equal(level.neighbourhood.length, 31, 'thirty-one curated in-between names');
 });
 
-test('level 3 is allowed to have holes, and does', { skip }, () => {
-  // The point of the level is the names that exist, not covering the map. An
-  // earlier version filled the gaps with delområden and put 93 names on two
-  // rungs at once; this asserts we did not quietly go back to that.
-  //
-  // The gaps that remain are mostly not for want of research. In six of the ten
-  // stadsdelar — Hyllie, Rosengård, Oxie, Fosie, Husie, Kirseberg — the
-  // everyday in-between name *is* the stadsdel's name, with a different extent,
-  // and one word for two extents is worse than a hole. See areas.json's
-  // _doc.rejected.
+test('level 3 covers the city: a curated name, or the delområde standing in', { skip }, () => {
+  // The curated file has holes and always will — most of Malmö has no word
+  // between "Västra Innerstaden" and "Rörsjöstaden", and inventing one would be
+  // the only dishonest thing this level could do. What fills the holes on
+  // *screen* is the delområde itself, elevated (area-levels.mjs). So the level
+  // is complete without a single invented name, and every delområde is on
+  // exactly one side of the line.
   const covered = new Set(read(`${DATA}/neighbourhoods.geojson`)
     .features.flatMap((f) => f.properties.covers));
+  const elevated = level.delomrade.filter((n) => !covered.has(n));
+
   assert.ok(covered.size < level.delomrade.length,
-    'level 3 does not claim every delområde — if it did, it would be level 4 again');
-  assert.equal(covered.size, 48, '48 of the 136 delområden have an in-between name');
+    'the curated names do not claim every delområde — if they did, level 3 would be level 4 again');
+  assert.equal(covered.size, 70, '70 of the 136 delområden have an in-between name');
+  assert.equal(elevated.length, 66, 'the other 66 are elevated under their own name');
+  assert.equal(covered.size + elevated.length, 136, 'grouped or elevated, never both, never neither');
+
+  // The example from the request: the zoom that used to be blank here says
+  // Rörsjöstaden, because Rörsjöstaden is what it is called.
+  assert.ok(elevated.includes('Rörsjöstaden'), 'Rörsjöstaden is elevated');
+  assert.ok(!elevated.includes('Rönneholm'), 'Rönneholm is not — Slottsstaden covers it');
 });
 
-test('no name appears on two levels, except a grouping named for its own centre', { skip }, () => {
-  // Kroksbäck the area contains Kroksbäck the delområde, and that nesting is
-  // how the city really is — as does a promotion, a one-member grouping saying
-  // the name belongs to the place and not just to the statistical unit (Västra
-  // Hamnen, Gamla Staden). What must not happen is the same name on two levels
-  // for two *different* places, which is what keeps a level-3 "Hyllie" out
-  // while the stadsdel Hyllie covers five times as much ground.
-  const groupings = new Map(read(`${DATA}/neighbourhoods.geojson`)
-    .features.map((f) => [f.properties.name, f.properties.covers]));
+test('no name appears on two levels, except where the file says why', { skip }, () => {
+  // Two repeats are legitimate, and both have to be declared rather than
+  // tolerated:
+  //
+  //   · a grouping named for a delområde it covers — Kroksbäck the area
+  //     contains Kroksbäck the delområde, and that nesting is how the city
+  //     really is. A one-member promotion (Västra Hamnen, Gamla Staden) is the
+  //     same shape: the name belongs to the place, not just to the statistical
+  //     unit.
+  //   · a grouping narrower than the stadsdel it is named after, which must say
+  //     so in `narrowerThanStadsdel`. Five do: eleven stops called Hyllie all
+  //     land in Hyllievång while the stadsdel Hyllie reaches Kulladal, so the
+  //     word genuinely means two extents and the map says the smaller one at
+  //     the closer zoom. See areas.json's _doc.narrowerThanTheStadsdel.
+  //
+  // Anything else on two rungs is an accident and fails here.
+  const features = read(`${DATA}/neighbourhoods.geojson`).features;
+  const groupings = new Map(features.map((f) => [f.properties.name, f.properties]));
   const rungs = [
     ['kommun', level.kommun], ['stadsdel', level.stadsdel],
     ['neighbourhood', [...groupings.keys()]], ['delomrade', level.delomrade],
@@ -81,12 +96,32 @@ test('no name appears on two levels, except a grouping named for its own centre'
     for (let j = i + 1; j < rungs.length; j++) {
       for (const name of rungs[i][1]) {
         if (!rungs[j][1].includes(name)) continue;
-        // The only legitimate repeat: a level-3 grouping that takes its name
-        // from one of the delområden it covers.
-        assert.ok(groupings.get(name)?.includes(name),
-          `"${name}" is on both ${rungs[i][0]} and ${rungs[j][0]} without being a grouping named for its own member`);
+        const p = groupings.get(name);
+        const namedForItsOwnMember = p?.covers.includes(name);
+        // Declared repeats are licensed against the stadsdel rung and nothing
+        // else: Hyllie may repeat the stadsdel Hyllie, but not a delområde.
+        const declared = p?.narrowerThanStadsdel === name
+          && (rungs[i][0] === 'stadsdel' || rungs[j][0] === 'stadsdel');
+        assert.ok(namedForItsOwnMember || declared,
+          `"${name}" is on both ${rungs[i][0]} and ${rungs[j][0]} without being a grouping `
+          + 'named for its own member or declaring narrowerThanStadsdel');
       }
     }
+  }
+
+  // The licence is not a blanket one: it only covers the five, and only for the
+  // stadsdel each actually sits in.
+  const narrowed = features.filter((f) => f.properties.narrowerThanStadsdel);
+  assert.deepEqual(narrowed.map((f) => f.properties.name).sort(),
+    ['Husie', 'Hyllie', 'Kirseberg', 'Oxie', 'Rosengård'],
+    'exactly five names are allowed to be narrower than their stadsdel');
+  for (const f of narrowed) {
+    assert.equal(f.properties.narrowerThanStadsdel, f.properties.name,
+      `${f.properties.name}: the declaration names a different stadsdel than the grouping`);
+    assert.ok(level.stadsdel.includes(f.properties.narrowerThanStadsdel),
+      `${f.properties.name} declares a stadsdel that does not exist`);
+    assert.equal(f.properties.stadsdel, f.properties.name,
+      `${f.properties.name}'s label falls outside the stadsdel it is named after`);
   }
 });
 
@@ -148,6 +183,36 @@ test('the curated groupings agree with Malmö stad’s own statistics', { skip }
     }
   }
   assert.deepEqual(straddles, [], `unreviewed grouping(s) crossing an official boundary:\n  ${straddles.join('\n  ')}`);
+});
+
+test('a level-3 name stays inside one stadsdel', { skip }, () => {
+  // The second check on the same hand-written file, and the sharper one: the
+  // ladder nests, so a name at level 3 is a piece of one stadsdel. A grouping
+  // reaching into two is either a real vernacular name the administrative
+  // division cuts through — Slottsstaden and Sorgenfri, the same two the
+  // statistics forgive, which is itself the reassuring part — or two different
+  // places that happen to share a word.
+  //
+  // Bellevue was the latter and is why this test exists: it had swept in
+  // Bellevuegården, a sixties estate in Hyllie 1.2 km from the villa district
+  // in Limhamn-Bunkeflo, on the strength of the shared word alone. Since the
+  // delområden with no name above them are elevated to level 3 anyway,
+  // dropping it cost nothing — Bellevuegården says its own name at that zoom.
+  const ACCEPTED = {
+    Slottsstaden: 'Malmö Hus is administratively Centrum; Slottsparken is Slottsstaden to anyone standing in it. Already marked partial.',
+    Sorgenfri: 'Norra Sorgenfri is in Centrum, the other two in Södra Innerstaden; the name crosses the boundary on the ground.',
+  };
+  const stadsdelOf = new Map(read(`${DATA}/stadsdelar.geojson`).features
+    .flatMap((f) => f.properties.covers.map((n) => [n, f.properties.name])));
+
+  const crossings = [];
+  for (const f of read(`${DATA}/neighbourhoods.geojson`).features) {
+    const { name, covers } = f.properties;
+    if ([...new Set(covers.map((n) => stadsdelOf.get(n)))].length > 1 && !ACCEPTED[name]) {
+      crossings.push(`${name} spans two stadsdelar: ${covers.map((n) => `${n}=${stadsdelOf.get(n)}`).join(', ')}`);
+    }
+  }
+  assert.deepEqual(crossings, [], `grouping(s) crossing a stadsdel with no reason given:\n  ${crossings.join('\n  ')}`);
 });
 
 test('the official cross-check table still describes the delområden we have', { skip }, () => {
