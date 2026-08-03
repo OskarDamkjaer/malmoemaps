@@ -14,6 +14,12 @@ export const MOUNTS = [
   // Hand-drawn tier-1 icons: source assets, versioned with the landmark list
   // they belong to rather than copied into the app.
   { url: '/landmark-icons/', dir: 'landmarks/icons' },
+  // Photographs for the fact card. Fetched by scripts/build-images.mjs but kept
+  // here rather than under build/, for the same reason as the icons: they are
+  // the material the app is made of, a clone should be complete without a
+  // network round trip, and re-downloading them from Wikimedia on every build
+  // would be rude to someone else's servers.
+  { url: '/images/', dir: 'learn/images' },
   { url: '/malmo.pmtiles', file: 'data/cache/malmo.pmtiles' },
 ];
 
@@ -28,6 +34,9 @@ export const MIME = {
   '.pbf': 'application/x-protobuf',
   '.pmtiles': 'application/octet-stream',
   '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
 };

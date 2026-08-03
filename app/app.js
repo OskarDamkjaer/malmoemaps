@@ -1,4 +1,18 @@
-// The app: one map, locked north-up, plus the small amount of chrome around it.
+// The app: one map, locked north-up, and two things to do with it.
+//
+// This used to be a reference map and is now a way to learn the city, which is
+// a smaller change than it sounds: the map is the same map. What changed is
+// which of its two modes you land in.
+//
+//   Öva      — the front door. Rounds of names to place on a map with every
+//              label taken off it (learn.js, blind.js, rounds.mjs).
+//   Utforska — the old reference map, unchanged: search, layer chips, tap
+//              anything to find out what it is. It is where you go to learn the
+//              names before being asked for them, so it is a study aid rather
+//              than a leftover.
+//
+// Everything the two modes disagree about is in `setMode` below, and it is
+// mostly about what the map is allowed to tell you.
 //
 // Boot order matters and is the only clever thing here. The basemap is a single
 // 13 MB pmtiles archive, so instead of letting the map issue HTTP Range reads
@@ -15,6 +29,9 @@ import {
 } from './layers.js';
 import { clearHighlight } from './highlight.js';
 import { initSearch } from './search.js';
+import {
+  escapeLearn, hidePicker, initLearn, isPlaying, showPicker,
+} from './learn.js';
 
 const boot = document.getElementById('boot');
 const bootmsg = document.getElementById('bootmsg');
@@ -172,7 +189,38 @@ map.on('load', async () => {
   boot.classList.add('done');
   initSearch(map);
   buildChips();
+  try {
+    await initLearn(map, { onExplore: () => setMode('explore') });
+  } catch (err) {
+    // No quiz is a broken learning app, so unlike the layers this is worth
+    // saying out loud rather than falling back to a map with nothing to do.
+    fail('Övningarna kunde inte laddas', err);
+    return;
+  }
+  setMode('learn');
 });
+
+// ---- the two modes ---------------------------------------------------------
+// Study chrome and learning chrome are never both on screen. The search bar is
+// the reason this is a hard switch rather than a soft one: a text box that
+// answers "var ligger Sofielund?" is not a feature you leave within reach of
+// someone being asked exactly that.
+//
+// Every panel either mode owns is named here, including the picker itself —
+// splitting "which mode are we in" across two files is how the two of them
+// eventually end up both on screen.
+function setMode(mode) {
+  const learning = mode === 'learn';
+  document.getElementById('searchbar').hidden = learning;
+  document.getElementById('layers').hidden = learning;
+  document.getElementById('tolearn').hidden = learning;
+  if (!learning) { hidePicker(); return; }
+  hideCard();
+  showLayers(false);
+  showPicker();
+}
+
+document.getElementById('tolearn').addEventListener('click', () => setMode('learn'));
 
 // ---- layer chips -----------------------------------------------------------
 // One chip per category, in the order categories.mjs lists them, stacked in a
@@ -269,11 +317,18 @@ export function hideCard() {
 }
 
 document.getElementById('cardclose').addEventListener('click', hideCard);
-onFeatureClick(map, showCard);
-map.on('click', (e) => { if (!e._handled) hideCard(); });
+// Identifying what you tapped is the study mode's whole trick, and it is the
+// one thing a round must never do: during a round the same tap is an answer,
+// and the map is not allowed to grade it by naming it.
+onFeatureClick(map, showCard, isPlaying);
+map.on('click', (e) => { if (!e._handled && !isPlaying()) hideCard(); });
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
+  // A round in progress owns Escape outright: it has its own stack of things to
+  // back out of, and dismissing the explore card underneath it would be
+  // dismissing something that is not on screen.
+  if (escapeLearn()) return;
   hideCard();
   // Escape out of the layer panel lands back on the button that opened it,
   // rather than at the top of the page.

@@ -2,9 +2,9 @@
 <html lang="sv">
 <head>
 <meta charset="utf-8">
-<title>Malmö</title>
+<title>Lär dig Malmö</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
-<meta name="description" content="En stillsam referenskarta över Malmö. Fungerar offline.">
+<meta name="description" content="Lär dig var Malmös namn ligger. Fungerar offline.">
 <meta name="theme-color" content="#f8f4f0">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -16,8 +16,77 @@
 <body>
 <div id="map"></div>
 
-<!-- Search: the one place the app accepts text. Results are the whole UI. -->
-<div id="searchbar">
+<!-- The front door: the city in one list, a row per part of town, with a bar
+     saying how much of it you can already place. Everything else on this page
+     is either a round in progress or the map you go and study on. -->
+<div id="learn" hidden>
+  <header id="learnhead">
+    <div>
+      <h1>Lär dig Malmö</h1>
+      <p>Placera namnen på kartan. Kartan är avskalad från text medan du gissar —
+         annars vore det ett lästest.</p>
+      <p id="learnsub"></p>
+    </div>
+    <button id="toexplore" type="button">Utforska kartan</button>
+  </header>
+  <div id="roundlist"></div>
+  <footer id="learnfoot">
+    <button id="forget" type="button">Glöm allt jag lärt mig</button>
+  </footer>
+</div>
+
+<!-- A round in progress. The map underneath is blind: no labels anywhere, only
+     the outlines of whatever is being asked about. -->
+<div id="play" hidden>
+  <div id="playbar">
+    <button id="quit" type="button" aria-label="Avsluta rundan">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <p id="prompt"></p>
+    <span id="tally"></span>
+  </div>
+
+  <!-- Tray mode: one name, dragged out onto the map — or placed by tapping the
+       map, since the name is in hand as soon as it appears. -->
+  <div id="tray" hidden></div>
+
+  <p id="verdict" role="status" hidden></p>
+
+  <!-- The point of the app: the name has just become a place, so say something
+       about the place, and show it. A panel down the right on anything wide
+       enough to spare the room, a sheet along the bottom on a phone — the map
+       is the thing being learned, so the card takes an edge rather than the
+       middle. -->
+  <div id="factcard" hidden>
+    <p id="factverdict"></p>
+    <h2 id="factname"></h2>
+    <p id="factmeta"></p>
+    <!-- Hidden unless the item actually has a picture, which most do not; an
+         empty frame says "missing" where nothing should be said at all. -->
+    <figure id="factfigure" hidden>
+      <img id="factimage" alt="">
+      <figcaption id="factcredit"></figcaption>
+    </figure>
+    <p id="facttext"></p>
+    <a id="factsource" target="_blank" rel="noopener" hidden>Källa</a>
+    <button id="next" type="button">Nästa</button>
+  </div>
+
+  <div id="summary" hidden>
+    <h2 id="summaryhead"></h2>
+    <p id="summarysub"></p>
+    <ul id="summarylist"></ul>
+    <div class="summaryactions">
+      <button id="summaryagain" type="button">En gång till</button>
+      <button id="summarydone" type="button">Klart</button>
+    </div>
+  </div>
+</div>
+
+<!-- Search: the one place the app accepts text. Results are the whole UI.
+     It belongs to the explore map only — inside a round it would be the answer
+     key, so app.js hides this bar with the rest of the study chrome. -->
+<div id="searchbar" hidden>
   <form id="searchform" autocomplete="off" role="search">
     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
     <input id="q" type="search" placeholder="Sök gata, plats, område" aria-label="Sök"
@@ -45,13 +114,19 @@
      not merely off screen, so a chip you cannot see cannot be tabbed to.
      Last of the panels, so an open menu covers the card rather than the card
      covering the menu. -->
-<nav id="layers" aria-label="Lager">
+<nav id="layers" aria-label="Lager" hidden>
   <button id="layerstoggle" type="button" aria-expanded="false" aria-controls="chips">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 3 8.5l9 5 9-5zM3 15.5l9 5 9-5"/></svg>
     <span>Lager</span>
   </button>
   <div id="chips" hidden></div>
 </nav>
+
+<!-- The way back from studying to being asked. -->
+<button id="tolearn" type="button" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h6a2 2 0 0 1 2 2v11a2 2 0 0 0-2-2H4zM20 5.5h-6a2 2 0 0 0-2 2v11a2 2 0 0 1 2-2h6z"/></svg>
+  <span>Öva</span>
+</button>
 
 <div id="boot"><p id="bootmsg">Laddar kartan…</p></div>
 

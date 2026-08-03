@@ -125,6 +125,12 @@ for (const [name, ways] of byName) {
     streets.push({
       name,
       point: roundPoint(point),
+      // How far the street actually reaches. The label point says where to
+      // write the name; this says what a map has to show to have the whole
+      // street on it, which is what the learning app frames a round by — a
+      // chunk holding Amiralsgatan is not much use zoomed to the block its
+      // midpoint falls in.
+      bbox: bboxOf(group.flatMap((w) => w.coords)).map((v) => Math.round(v * 1e5) / 1e5),
       district,
       highway,
       rank: rankOf(highway),

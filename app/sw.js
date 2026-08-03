@@ -8,8 +8,8 @@
 //
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
-const CODE = 'malmo-code-v5';
-const DATA = 'malmo-data-2026-07-27a';
+const CODE = 'malmo-code-v8';
+const DATA = 'malmo-data-2026-08-03c';
 
 const CODE_FILES = [
   '/',
@@ -22,6 +22,10 @@ const CODE_FILES = [
   '/highlight.js',
   '/kinds.js',
   '/search.js',
+  '/learn.js',
+  '/rounds.mjs',
+  '/progress.mjs',
+  '/blind.js',
   '/manifest.webmanifest',
   '/style.json',
   '/vendor/maplibre-gl.css',
@@ -55,6 +59,10 @@ const DATA_FILES = [
   // Drawn from the start (the "Kvarter" chip), so it is not optional offline.
   '/data/parts.geojson',
   '/data/landmarks.geojson',
+  // Every name the app can ask about, and everything it says once you have
+  // placed it. Without this the front door is empty, so it is the least
+  // optional file here after the tiles themselves.
+  '/data/learn.json',
   '/data/search.json',
   // The one category that is not in the tiles. food, culture and transit are
   // still built — the search index is made from them, and a station is worth
@@ -77,9 +85,24 @@ async function fillCache(name, urls) {
   if (failed.length) console.warn(`sw: ${failed.length} of ${urls.length} failed`, failed.map((f) => f.reason?.message));
 }
 
+// The photographs on the fact cards. Not in DATA_FILES because there are a
+// hundred-odd of them and the list is a build output, not something to keep in
+// sync by hand — so it is read from the one place that already knows, which is
+// the quiz itself. A picture that fails here is not worth failing the install
+// over: the card hides its frame and says the same words it always did.
+async function pictureFiles() {
+  try {
+    const items = await fetch('/data/learn.json').then((r) => r.json()).then((d) => d.items);
+    return [...new Set(items.map((it) => it.image).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     await Promise.all([fillCache(CODE, CODE_FILES), fillCache(DATA, DATA_FILES)]);
+    await fillCache(DATA, await pictureFiles());
     await self.skipWaiting();
   })());
 });
@@ -99,7 +122,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== location.origin) return; // nothing here is cross-origin anyway
 
-  const isData = url.pathname.startsWith('/data/') || url.pathname.endsWith('.pmtiles');
+  // Photographs are data: they change when the pipeline re-runs, not when I
+  // edit a stylesheet, and they have no business invalidating the code cache.
+  const isData = url.pathname.startsWith('/data/')
+    || url.pathname.startsWith('/images/')
+    || url.pathname.endsWith('.pmtiles');
 
   event.respondWith((async () => {
     const cacheName = isData ? DATA : CODE;

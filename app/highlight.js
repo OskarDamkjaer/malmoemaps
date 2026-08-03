@@ -21,7 +21,13 @@ import { categoryOfLayer } from './categories.mjs';
 import { kindLabel } from './kinds.js';
 
 const SRC = 'highlight';
+const BOARD = 'board';
 const ACCENT = '#b8562b';
+// The two states of a slot on the tray board. Green is the app's own accent,
+// which everywhere else means "this is the answer" — here it means "this one is
+// answered", which is the same claim.
+const SLOT = '#6d665e';
+const FILLED = '#1f6f5c';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
 // Districts and stadsdelar are kept unclipped here, straight from their
@@ -145,6 +151,10 @@ function shapeOf(map, feature, sourceLayer, { outline = false } = {}) {
 
 // ---- layers -----------------------------------------------------------------
 export function addHighlightLayers(map) {
+  // The tray board goes on first, so the highlight — which is the *answer*,
+  // drawn the moment a name is settled — always sits on top of the slots.
+  addBoardLayers(map);
+
   map.addSource(SRC, { type: 'geojson', data: EMPTY });
 
   map.addLayer({
@@ -191,6 +201,118 @@ const setShape = (map, features) => map.getSource(SRC)
   ?.setData({ type: 'FeatureCollection', features });
 
 export function clearHighlight(map) { setShape(map, []); }
+
+// ---- the tray board ----------------------------------------------------------
+// Tray mode drags names onto a blinded map, and a blinded map does not say
+// where anything *goes*. The delområde boundaries are forced on, but all 136 of
+// them are, so a chunk of eleven names is dragged onto a mesh of identical
+// cells with no way to tell a candidate from a bystander. For a bridge it is
+// worse: nothing is drawn at all, and "drag this name onto the city" is not a
+// question with a visible answer set.
+//
+// So picking a name up lights the slots it could go in — every delområde in the
+// chunk when the name is an area, every bridge when it is a bridge — and a slot
+// turns green once something has landed in it. That is what makes the last few
+// answerable by elimination, which is the whole point of the easy direction:
+// tray mode is recognition, and recognition needs something to recognise
+// *among*. Point mode, which is recall, gets no board at all.
+//
+// The cost is real and accepted: with the drop zones drawn, tray mode is closer
+// to matching names against slots than to placing them from memory. That is
+// what the easy direction is for, and it is why the same chunk is also playable
+// the other way.
+function addBoardLayers(map) {
+  map.addSource(BOARD, { type: 'geojson', data: EMPTY });
+
+  map.addLayer({
+    id: 'board-fill',
+    type: 'fill',
+    source: BOARD,
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    // Deliberately faint. An area slot can be half the screen, and at the
+    // opacity a small shape wants it becomes a wash that everything else — the
+    // rings, the streets, the map underneath — has to be read through. The
+    // outline below is what says where the slot is; the fill only has to say
+    // which side of the line you are on.
+    paint: {
+      'fill-color': ['case', ['get', 'placed'], FILLED, SLOT],
+      'fill-opacity': ['case', ['get', 'placed'], 0.13, 0.05],
+    },
+  });
+
+  // Both the outline of an area slot and the whole length of a street slot. A
+  // street has to read as a stroke along the road rather than as a hairline, so
+  // it is drawn several times wider than a boundary.
+  map.addLayer({
+    id: 'board-line',
+    type: 'line',
+    source: BOARD,
+    filter: ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'LineString']],
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: {
+      'line-color': ['case', ['get', 'placed'], FILLED, SLOT],
+      'line-width': ['case',
+        ['==', ['geometry-type'], 'LineString'], ['case', ['get', 'placed'], 8, 6],
+        ['case', ['get', 'placed'], 2.5, 1.6]],
+      'line-opacity': ['case', ['get', 'placed'], 0.95, 0.6],
+    },
+  });
+
+  // A landmark or a bridge has no shape to tint, so its slot is a ring at the
+  // spot. Deliberately not drawn at the grading tolerance: a 250 m disc is a
+  // dinner plate at close zoom, and the ring is there to say "one of these",
+  // not to promise exactly where the edge of right is.
+  map.addLayer({
+    id: 'board-point',
+    type: 'circle',
+    source: BOARD,
+    filter: ['==', ['geometry-type'], 'Point'],
+    // A ring has to survive being drawn on top of an area slot, so it carries
+    // its contrast in the stroke rather than in the fill.
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 7, 16, 15],
+      'circle-color': ['case', ['get', 'placed'], FILLED, SLOT],
+      'circle-opacity': ['case', ['get', 'placed'], 0.35, 0.12],
+      'circle-stroke-color': ['case', ['get', 'placed'], FILLED, SLOT],
+      'circle-stroke-width': 2.5,
+      'circle-stroke-opacity': 0.95,
+    },
+  });
+}
+
+// One slot's worth of geometry, by the same route the grader takes to it: an
+// area's `covers`, a street found by proximity to `transportation_name`, a
+// point as itself. Drawing a candidate any other way would eventually light up
+// something the grader would not accept.
+function zoneOf(map, { shape, covers = [], point }) {
+  if (shape === 'area') {
+    return districtFeatures.filter((f) => covers.includes(f.properties.name));
+  }
+  if (shape === 'line') {
+    const street = nearestNamedStreet(map, { lng: point[0], lat: point[1] }, 60);
+    return street ? shapeOf(map, street, 'transportation_name') : [];
+  }
+  return [{ geometry: { type: 'Point', coordinates: point } }];
+}
+
+/**
+ * Draw the slots for a tray round.
+ *
+ * `slots` is `[{ name, shape, covers, point, placed }]`. What is in the list is
+ * the caller's decision — learn.js shows the kind currently in hand plus
+ * everything already placed — because "which slots are worth drawing right now"
+ * is a question about the round, not about geometry.
+ */
+export function setBoard(map, slots) {
+  const features = slots.flatMap((slot) => zoneOf(map, slot).map((f) => ({
+    type: 'Feature',
+    geometry: f.geometry,
+    properties: { name: slot.name, placed: !!slot.placed },
+  })));
+  map.getSource(BOARD)?.setData({ type: 'FeatureCollection', features });
+}
+
+export function clearBoard(map) { map.getSource(BOARD)?.setData(EMPTY); }
 
 // ---- picking ----------------------------------------------------------------
 // Metres per screen pixel, so tolerances can be expressed in taps rather than
@@ -290,6 +412,48 @@ function pointInFeature(feature, point) {
 // card, and the only thing that can be said about a name with no boundary.
 function stadsdelAt(point) {
   return stadsdelFeatures.find((f) => pointInFeature(f, point))?.properties.name ?? null;
+}
+
+// ---- what the quiz asks of this file -----------------------------------------
+// A handful of questions, all of them ones the selection code already answers
+// for its own reasons. They are exported rather than reimplemented next door
+// because "which area is this point in" having two answers in one app is
+// exactly the kind of drift that shows up as the quiz marking a right answer
+// wrong.
+
+/**
+ * The delområde a point falls in, or null outside the municipality.
+ *
+ * Every area name is graded through here, and named through `covers`, so the
+ * 136 polygons are the only geometry the area half of the quiz needs.
+ */
+export function districtAt(point) {
+  return districtFeatures
+    .find((f) => f.properties.admin_level === 10 && pointInFeature(f, point))
+    ?.properties.name ?? null;
+}
+
+/** Outline an area given the delområden it is made of. */
+export function highlightCovers(map, covers) {
+  setShape(map, neighbourhoodShape(covers));
+}
+
+/** Ring a point — a landmark or a bridge, which have no shape to draw. */
+export function highlightPoint(map, coords) {
+  setShape(map, ringAt(coords));
+}
+
+/**
+ * The named street nearest a point, optionally lit up end to end.
+ *
+ * Doubles as the street round's grader and its reveal, which is the right way
+ * round: what gets drawn as the answer is by construction the same thing that
+ * was tested against.
+ */
+export function highlightStreet(map, lngLat, maxMeters, draw = false) {
+  const street = nearestNamedStreet(map, lngLat, maxMeters);
+  if (street && draw) setShape(map, shapeOf(map, street, 'transportation_name'));
+  return street;
 }
 
 // A delområde's stadsdel comes from the build (covers), not from geometry:

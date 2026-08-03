@@ -363,8 +363,13 @@ function appLayerIds(map) {
 // the chip that draws them has to be asked directly.
 const pickOptions = () => ({ streets: on.has('roads') });
 
-export function onFeatureClick(map, show) {
+// `busy` is the learning mode saying "this tap is mine". Selection is the study
+// map's reason to exist and the one thing a round cannot allow: tapping the map
+// to be told what is under your finger is the answer to the question you are
+// being asked.
+export function onFeatureClick(map, show, busy = () => false) {
   map.on('click', (e) => {
+    if (busy()) return;
     const hit = pickFeature(map, e, appLayerIds(map), pickOptions());
     if (!hit) { clearHighlight(map); return; }
     e._handled = true;
@@ -376,6 +381,7 @@ export function onFeatureClick(map, show) {
   // cursor is over a nameable basemap feature means querying the name layer,
   // which is too much work to redo on every mouse move.
   map.on('mousemove', (e) => {
+    if (busy()) return;
     const hits = map.queryRenderedFeatures(e.point, { layers: appLayerIds(map) });
     map.getCanvas().style.cursor = hits.length ? 'pointer' : '';
   });

@@ -289,6 +289,302 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 }
 .maplibregl-ctrl-attrib a { color: var(--ink-soft); }
 
+/* ---- learning: the picker ------------------------------------------------
+   The one full-screen surface in the app. Everywhere else the map is the
+   interface; here it is deliberately behind glass, because choosing what to
+   practise is reading, not looking. */
+
+#learn {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: rgb(248 244 240 / 96%);
+  backdrop-filter: blur(6px);
+  padding: calc(var(--safe-top) + 8px) 0 calc(var(--safe-bottom) + 8px);
+}
+
+#learnhead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap);
+  padding: 8px 16px 12px;
+}
+#learnhead h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+#learnhead p { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-soft); max-width: 46ch; }
+
+#toexplore, #forget {
+  flex: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+#toexplore { color: var(--accent); }
+
+#learnsub { margin: 8px 0 0; font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+#roundlist { flex: 1; overflow-y: auto; padding: 4px 16px 12px; -webkit-overflow-scrolling: touch; }
+
+/* One row per part of town: what it is called, what is in it, how much of it
+   you know, and the two ways to be asked. The bar is the only number that
+   matters here — a chunk is never "done", it is only as known as its least
+   known name. */
+.chunk {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgb(32 29 25 / 6%);
+}
+.chunkname { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.chunkname .count { color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: 13px; }
+/* A chunk is a part of town, not a category, so what is in it does not follow
+   from its name and has to be said. */
+.chunk .what { grid-column: 1; margin: 0; font-size: 12px; line-height: 1.35; color: var(--ink-soft); }
+.chunk .bar { grid-column: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.chunk .bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.chunk .modes { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 6px; }
+.mode {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink);
+  background: #f2ede6;
+  border: 0;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.mode:hover { background: #eae3d9; }
+
+#learnfoot { padding: 6px 16px 0; }
+
+/* ---- learning: a round in progress --------------------------------------- */
+
+#playbar {
+  position: absolute;
+  top: calc(var(--safe-top) + var(--gap));
+  left: var(--gap);
+  right: var(--gap);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 6px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+#prompt { flex: 1; margin: 0; font-size: 15px; line-height: 1.3; }
+#tally { flex: none; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+#quit { flex: none; width: 34px; height: 34px; padding: 8px; border: 0; border-radius: 50%; background: none; color: var(--ink-soft); }
+
+/* The tray holds one name, so it is a strip along the bottom rather than a
+   wall. It used to lay the whole chunk out at once and scroll to a third of the
+   screen, and in Centrum — 120 names — that was the map covered by the list of
+   things it was being asked about. Nothing here needs a max-height any more,
+   because nothing here can be more than one tag high. */
+#tray {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(var(--safe-bottom) + var(--gap));
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px;
+  pointer-events: none;
+}
+.nametag {
+  /* Bigger than it was: it is the one thing on offer, and it is a drag target
+     for a thumb rather than one chip among a hundred. */
+  padding: 11px 18px;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  touch-action: none;
+  cursor: grab;
+  pointer-events: auto;
+}
+/* Always on, now that the name is in hand from the moment it appears. */
+.nametag.armed { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nametag.lifted { opacity: .35; }
+
+/* What follows the finger. Never hit-tested, so the drop lands on the map
+   rather than on the label of the thing being dropped. */
+.ghost {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 9;
+  padding: 9px 13px;
+  font-size: 14px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  pointer-events: none;
+  transform-origin: 0 0;
+  margin: -20px 0 0 -40px;
+  box-shadow: var(--shadow);
+}
+
+#verdict {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--safe-top) + 68px);
+  z-index: 4;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 14px;
+  background: var(--panel);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  max-width: calc(100% - 2 * var(--gap));
+  text-align: center;
+}
+#verdict[data-tone="wrong"] { color: #a3341f; }
+#verdict[data-tone="right"] { color: var(--accent); }
+
+/* ---- learning: the fact and the summary ---------------------------------- */
+
+#factcard, #summary {
+  position: absolute;
+  left: var(--gap);
+  right: var(--gap);
+  bottom: calc(var(--safe-bottom) + var(--gap));
+  z-index: 6;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 14px 16px 12px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* On a phone the card is a sheet along the bottom, over a map it is mostly
+   covering anyway. Given a wider window it moves to a column down the right,
+   which is the one edge nothing else uses: the prompt owns the top, the tray
+   the bottom, and the answer being revealed is in the middle where you can
+   still watch it happen while you read. */
+#factcard {
+  max-height: 52vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 700px) {
+  #factcard {
+    left: auto;
+    right: var(--gap);
+    top: calc(var(--safe-top) + var(--bar) + 2 * var(--gap));
+    bottom: calc(var(--safe-bottom) + var(--gap));
+    width: 330px;
+    max-width: 36vw;
+    max-height: none;
+    margin: 0;
+  }
+}
+
+/* The picture, when there is one. Fixed aspect and cropped rather than
+   letterboxed: the frame is a consistent shape down the column, and a photo of
+   a square is not improved by bars either side of it. */
+#factfigure { margin: 10px 0 0; }
+#factimage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #ece7e0;
+  border-radius: 8px;
+}
+#factcredit {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+#factcredit a { color: inherit; }
+
+#factverdict {
+  margin: 0 0 2px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-soft);
+}
+#factverdict[data-tone="right"] { color: var(--accent); }
+#factname { margin: 0; font-size: 18px; }
+#factmeta { margin: 3px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }
+#facttext { margin: 8px 0 0; font-size: 14px; line-height: 1.5; }
+#factsource { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--ink-soft); }
+#next, .summaryactions button {
+  margin-top: 12px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #fff;
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+}
+#next { width: 100%; }
+
+#summary h2 { margin: 0; font-size: 18px; }
+#summary p { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
+#summarylist { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; max-height: 34vh; overflow-y: auto; }
+#summarylist button {
+  padding: 7px 11px;
+  font-size: 13px;
+  background: #f2ede6;
+  border: 0;
+  border-radius: 999px;
+  color: var(--ink);
+}
+/* Green for what you placed yourself, plain for what you were shown. No red:
+   being shown a name is how you learn it, not a failure to be marked up. */
+#summarylist li[data-outcome="right"] button { background: #e4efe9; color: #16553f; }
+.summaryactions { display: flex; gap: 8px; }
+.summaryactions button { flex: 1; }
+#summarydone { background: #f2ede6 !important; color: var(--ink) !important; }
+
+/* The way back to being asked. Bottom centre: the layer button owns the left
+   corner and MapLibre's own controls the right, and this belongs to neither
+   side of the map — it leaves it. */
+#tolearn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--safe-bottom) + var(--gap));
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--bar);
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--accent);
+  background: var(--panel);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+#tolearn svg { width: 17px; height: 17px; }
+
+/* Same rule as #chips above, for the same reason and with more places to get
+   it wrong: `display` from an id selector beats the UA rule behind `hidden`, so
+   every panel that sets its own display has to say this or it stays tabbable
+   while invisible. In a quiz that is not a cosmetic bug — a hidden tray is a
+   hidden answer sheet. */
+#learn[hidden], #play[hidden], #tray[hidden], #factcard[hidden], #summary[hidden],
+#layers[hidden], #searchbar[hidden], #tolearn[hidden], #playbar[hidden] { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   #boot { transition: none; }
 }
