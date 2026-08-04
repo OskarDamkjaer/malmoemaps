@@ -150,18 +150,35 @@ unreachable from inside a round, for the obvious reason.
   being asked for, what it is, its picture and what is known about it, all
   sitting there while you look for it; place it and the next name arrives on
   its own. So no question is a blank, and the picture has the whole question to
-  work on you instead of two seconds after you have stopped needing it. The
-  price is that a description often says roughly where the thing is, which is a
-  worse quiz and a better lesson. Its coverage is deliberately uneven: 44 of 136 delområden have real
-  text, all 55 landmarks, all 19 bridges, 36 of 174 streets. The rest place
-  perfectly well and fall back on what the build can prove — "Delområde i
-  Fosie", "Bro över Malmö kanal". A place I know nothing about says nothing
-  rather than something invented. Area text lives in `learn/about.json`;
-  everything else keeps its text next to its name in its own curated file. Every
-  line is a draft marked `verified: false` — the same bargain `landmarks.json`
-  already makes about coordinates.
+  work on you instead of two seconds after you have stopped needing it.
 
-- **And shows it.** 184 of the 384 names carry a photograph, fetched from
+  **And it never says where.** That is the one rule the text obeys, and it is
+  new: the panel used to be the reward for a correct placement, so a line like
+  "öster om Möllevången" or "vid Sankt Petri kyrka" cost nothing. Now the panel
+  *is* the question — up the whole time you are hunting — and the same line
+  hands over the answer with the question. So a description says what the thing
+  is, when it was built, what happened there and what it is known for, and
+  nothing about its position: no compass directions, no "mellan X och Y", no
+  neighbouring or containing place used as a marker. What the name already
+  carries is fair game — Limhamns kyrka may say Limhamn, and a bridge may say
+  who it is named after. The same rule took the derived line down with it: a
+  street's card said "Huvudgata · i Rönneholm", which was the answer in the
+  subtitle, and a bridge's said what it crossed, which for the four that do not
+  cross Malmö kanal was the same giveaway. A delområde still says its stadsdel,
+  because that is the chunk you picked before the round started.
+
+  The price is paid in blank cards, and it is the right price: where a line had
+  nothing in it but the position, the line is gone rather than reworded into
+  something that says nothing. Coverage is deliberately uneven and now slightly
+  thinner: 40 of 136 delområden have real text, 53 of 55 landmarks, 13 of 19
+  bridges, 22 of 174 streets. The rest place perfectly well and fall back on
+  what the build can prove — "Delområde · i Fosie", "Bro". A place I know
+  nothing about says nothing rather than something invented. Area text lives in
+  `learn/about.json`; everything else keeps its text next to its name in its own
+  curated file. Every line is a draft marked `verified: false` — the same
+  bargain `landmarks.json` already makes about coordinates.
+
+- **And shows it.** 180 of the 384 names carry a photograph, fetched from
   Swedish Wikipedia by `scripts/build-images.mjs` and served from this origin
   like everything else — no runtime request leaves the device, and the card is
   the same on a train. A picture is only accepted if the article carries
@@ -169,8 +186,22 @@ unreachable from inside a round, for the obvious reason.
   teaches you something false about a real place, and half the street names in
   Malmö are street names in every other Swedish town. Every picture shows who
   took it and under what licence, which is a condition of use rather than a
-  courtesy. The 200 names with none simply have none — mostly the through-roads
+  courtesy. The 204 names with none simply have none — mostly the through-roads
   added last, which Wikipedia has no article about and should not.
+
+  Coordinates prove the picture is of the right *place*; they cannot prove it is
+  a picture worth showing, so thirteen entries are now hand-pinned. Seven pairs
+  of names shared one file — Wikipedia illustrates two articles with the same
+  photograph, and the quiz then asked two questions with the same picture, which
+  at Norra and Södra Sofielund meant two halves of one place looking identical.
+  Each pair was split: the name the file is actually of keeps it, and the other
+  got a picture of its own from Commons, picked by coordinates the same way but
+  per file rather than per article. Nine names were re-pinned that way (Malmö
+  universitet had the university's *logotype*, Kungsparken and Värnhemstorget
+  had photographs from before 1920), and four are pinned to `null`, which means
+  "there is no good picture of this, stop looking" — three streets with no
+  proven photograph of their own, and Regementsgatan, whose only picture is the
+  canal that ran along it in 1910 and would send you looking for water.
 
 ## The map
 
@@ -444,7 +475,7 @@ built yet.
 ## Hosting
 
 ```
-node scripts/build-site.mjs         # → build/site (23.5 MB, 248 files) — upload as-is
+node scripts/build-site.mjs         # → build/site (23.5 MB, 244 files) — upload as-is
 ```
 
 Any static host over HTTPS (geolocation and service workers need it). The only

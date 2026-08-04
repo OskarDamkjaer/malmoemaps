@@ -6,13 +6,13 @@
       "Nothing in the pipeline had them: the basemap draws bridges but does not name them, landmarks.json holds only Öresundsbron. So this is the one quizzable category that needed a list of its own."
     ],
     "sourcing": "Every name here was read off OSM (man_made=bridge or a named bridge way inside config/bbox.json), never off memory — see scripts/build-learn.mjs --bridges, which re-runs that query and fails if a name has stopped existing. Coordinates come from the same query.",
-    "descriptions": "Swedish, drafted by hand, and deliberately uneven. Where a name's origin is not something I actually know, the line says only what the bridge does and where it is, which is checkable from the map itself. Nothing here is guessed to fill the field in; `verified: false` means nobody has checked it against a source yet.",
+    "descriptions": "Swedish, drafted by hand, and deliberately uneven. Says what the thing is, not where it is. The panel is the question now — name, kind, picture and text are all on screen while you are still looking for the place — so a line like \"öster om Möllevången\" or \"vid Sankt Petri kyrka\" hands over the answer with the question. No compass directions, no \"mellan X och Y\", no neighbouring or containing place used as a marker. What the name itself already carries is allowed: Limhamns kyrka may say Limhamn, and a bridge may say who or what it is named after. Where nothing was left but the position, the line is gone rather than reworded into something that says nothing. Six of the nineteen say nothing at all now: all they had was which corner of the canal ring they sit in.",
     "fields": {
       "name": "As OSM has it, which is also what the round asks for.",
       "over": "What it crosses. Malmö kanal unless said otherwise.",
       "carries": "The street or path across it, where it has one.",
       "lat/lon": "From the OSM element's centre.",
-      "description": "One or two lines, shown once the bridge is placed. Optional.",
+      "description": "One or two lines, shown while the bridge is being asked for. Optional, and never a position.",
       "source": "Where the description came from, when it came from anywhere.",
       "verified": "Set true once the description has been checked."
     }
@@ -24,7 +24,7 @@
       "carries": "E20 och Öresundsbanan",
       "lat": 55.56946,
       "lon": 12.86376,
-      "description": "Öppnad 1 juli 2000. Bro i 7 845 meter från Lernacken ut till den konstgjorda ön Peberholm, och därifrån vidare i Drogdentunneln till Amager — därför syns aldrig hela vägen till Danmark. Bil ovanpå, tåg inuti.",
+      "description": "Öppnad 1 juli 2000. 7 845 meter bro, som efter den konstgjorda ön Peberholm fortsätter i Drogdentunneln — därför är aldrig hela vägen till Danmark bro. Bil ovanpå, tåg inuti.",
       "source": "https://sv.wikipedia.org/wiki/%C3%96resundsbron",
       "verified": false
     },
@@ -34,7 +34,7 @@
       "carries": null,
       "lat": 55.60848,
       "lon": 13.00211,
-      "description": "Norra kanalkanten vid Sankt Petri kyrka, som bron har namnet efter. Förbinder Gamla Staden med kajen mot Centralstationen.",
+      "description": "Har sitt namn efter Sankt Petri kyrka.",
       "source": null,
       "verified": false
     },
@@ -44,7 +44,7 @@
       "carries": null,
       "lat": 55.60915,
       "lon": 12.99753,
-      "description": "Namnet efter Frans Suell, köpmannen som drev fram Malmös hamn på 1770-talet och står staty vid Norra Vallgatan med blicken mot havet.",
+      "description": "Namnet efter Frans Suell, köpmannen som drev fram Malmös hamn på 1770-talet.",
       "source": null,
       "verified": false
     },
@@ -54,7 +54,7 @@
       "carries": "Slussgatan",
       "lat": 55.60919,
       "lon": 13.01275,
-      "description": "Vid Slussen, där kanalen möter hamnbassängen i öster. Delområdet omkring heter samma sak.",
+      "description": "Har sitt namn efter slussen som en gång skilde kanalen från hamnen.",
       "source": null,
       "verified": false
     },
@@ -64,7 +64,7 @@
       "carries": "Skeppsbron",
       "lat": 55.60802,
       "lon": 12.99939,
-      "description": "Bro och kaj med samma namn, mellan Centralstationen och Gamla Staden.",
+      "description": "Bro och kaj med samma namn.",
       "source": null,
       "verified": false
     },
@@ -74,7 +74,7 @@
       "carries": null,
       "lat": 55.61232,
       "lon": 12.99627,
-      "description": "Över till Universitetsholmen och Orkanen, Malmö universitets bibliotekshus.",
+      "description": "Uppkallad efter Malmö universitet.",
       "source": null,
       "verified": false
     },
@@ -84,7 +84,7 @@
       "carries": null,
       "lat": 55.60521,
       "lon": 12.99021,
-      "description": "Bron in mot Malmöhus slott, över vallgraven som är kvar av försvarsverket.",
+      "description": "Går över den vallgrav som är kvar av Malmöhus försvarsverk.",
       "source": null,
       "verified": false
     },
@@ -94,7 +94,7 @@
       "carries": null,
       "lat": 55.60397,
       "lon": 13.01069,
-      "description": "Östra kanalringen vid Rörsjöstaden, uppkallad efter Sankt Pauli kyrka strax intill.",
+      "description": "Uppkallad efter Sankt Pauli kyrka.",
       "source": null,
       "verified": false
     },
@@ -104,7 +104,7 @@
       "carries": null,
       "lat": 55.60809,
       "lon": 13.01323,
-      "description": "Nordöstra hörnet av kanalringen, mot Slussen.",
+      "description": null,
       "source": null,
       "verified": false
     },
@@ -114,7 +114,7 @@
       "carries": null,
       "lat": 55.60096,
       "lon": 12.99941,
-      "description": "Södra kanalkanten vid Davidshall.",
+      "description": null,
       "source": null,
       "verified": false
     },
@@ -124,7 +124,7 @@
       "carries": null,
       "lat": 55.6073,
       "lon": 12.99611,
-      "description": "Västra sidan av kanalringen, mellan Gamla Staden och hamnen.",
+      "description": null,
       "source": null,
       "verified": false
     },
@@ -134,7 +134,7 @@
       "carries": null,
       "lat": 55.60935,
       "lon": 12.99093,
-      "description": "Hamnbron i väster, mot Västra Hamnen.",
+      "description": null,
       "source": null,
       "verified": false
     },
@@ -144,7 +144,7 @@
       "carries": null,
       "lat": 55.60746,
       "lon": 12.985,
-      "description": "Vid Neptunigatan, i kanalens västra ände förbi Slottsparken.",
+      "description": "Delar namn med Neptunigatan.",
       "source": null,
       "verified": false
     },
@@ -154,7 +154,7 @@
       "carries": null,
       "lat": 55.6039,
       "lon": 12.98209,
-      "description": "Kanalens sydvästra ände vid Slottsmöllan.",
+      "description": null,
       "source": null,
       "verified": false
     },
@@ -164,7 +164,7 @@
       "carries": null,
       "lat": 55.60589,
       "lon": 12.979,
-      "description": "Vid Västra Varvsgatan, där varvsområdet blivit stad.",
+      "description": "Uppkallad efter varvet, vars mark har blivit stad.",
       "source": null,
       "verified": false
     },
@@ -174,7 +174,7 @@
       "carries": null,
       "lat": 55.60488,
       "lon": 12.98051,
-      "description": "Kanalringens västligaste bro.",
+      "description": null,
       "source": null,
       "verified": false
     },
@@ -184,7 +184,7 @@
       "carries": "gångväg",
       "lat": 55.60196,
       "lon": 12.99201,
-      "description": "Gångbro i Kungsparken, Malmös äldsta anlagda park.",
+      "description": "Gångbro genom en av stadens äldsta parker.",
       "source": null,
       "verified": false
     },
@@ -194,7 +194,7 @@
       "carries": "gångväg",
       "lat": 55.60343,
       "lon": 12.98948,
-      "description": "Gångbron vid Slottsträdgården.",
+      "description": "Gångbro, uppkallad efter Slottsträdgården.",
       "source": null,
       "verified": false
     },
@@ -204,7 +204,7 @@
       "carries": "gångväg",
       "lat": 55.60271,
       "lon": 12.98667,
-      "description": "Gångbro vid Slottsmöllan, väderkvarnen i parkstråket.",
+      "description": "Gångbro, uppkallad efter väderkvarnen Slottsmöllan.",
       "source": null,
       "verified": false
     }

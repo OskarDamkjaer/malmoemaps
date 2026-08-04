@@ -19,10 +19,18 @@
 //
 // Three things it does add, all derived rather than authored:
 //
-//   `meta`      — what the thing is and where it sits ("Delområde i Fosie"),
+//   `meta`      — what kind of thing this is ("Delområde · i Fosie", "Bro"),
 //                 which is what the card falls back on for the names about.json
 //                 has no sentence for. Facts from the data are not the same as
 //                 facts made up to fill a field.
+//
+//                 It says *where* only when the where is already on the
+//                 player's screen: the panel is the question now, not the
+//                 reward for answering one, so a meta line that named the
+//                 delområde a street runs through was handing over the answer
+//                 with the question. A stadsdel is safe, and only a stadsdel —
+//                 it is the chunk you picked, so you were told it before the
+//                 round started. Everything finer than that is the answer.
 //   `point`     — where the map should centre, and what point-kind answers are
 //                 measured from. For an area it is the label point the map
 //                 already uses, so it is the same spot the name is written at.
@@ -164,7 +172,10 @@ const bridgeItems = bridgesDoc.bridges.map((b) => {
     kind: 'bridge',
     point: [b.lon, b.lat],
     stadsdel: stadsdelAt([b.lon, b.lat], b.name),
-    meta: ['Bro', b.over && `över ${b.over}`].filter(Boolean).join(' · '),
+    // `over` stays in the file — it is what the bridge is for — but not on the
+    // card: fifteen of the nineteen cross Malmö kanal, so the four that say
+    // anything else (Öresund, Sege å, Slottsgraven) say it loudly.
+    meta: 'Bro',
     about: b.description ?? null,
     source: b.source ?? null,
   };
@@ -200,7 +211,7 @@ const streetItems = streetsDoc.streets.map((s) => {
     // kilometres of it, or the round is played on a map the answer runs off.
     bbox: hit.bbox,
     stadsdel: stadsdelOf.get(hit.district) ?? null,
-    meta: [CLASS[hit.rank] ?? 'Gata', hit.district && `i ${hit.district}`].filter(Boolean).join(' · '),
+    meta: CLASS[hit.rank] ?? 'Gata',
     about: s.description ?? null,
     source: s.source ?? null,
   };

@@ -12,9 +12,9 @@ bullet lands here only when something non-obvious was actually decided.
   the delområden outlined and the streets stroked, the map had already narrowed
   the answer to a dozen shapes, and the round became about telling those shapes
   apart rather than about knowing where anything is. You can finish a chunk that
-  way having learned the shape of the board. The previous entry in this log
-  ("the board is the run you are in") was the third attempt in a week to keep
-  the easy half honest, which is its own kind of evidence.
+  way having learned the shape of the board. "The board is the run you are in",
+  below, was the third attempt in a week to keep the easy half honest, which is
+  its own kind of evidence.
 
   It also cost more than it looked like it did. Every chunk offered a choice
   nobody had the information to make — nothing on the picker says which mode you
@@ -65,6 +65,51 @@ bullet lands here only when something non-obvious was actually decided.
   back out of the archive by a test, which is the honest form of the claim: it
   is a fact about the tileset, not a preference.
 
+- **A description says what a thing is, never where it is** (2026-08-04). Moving
+  the panel from *after* the answer to *alongside the question* changed what its
+  text is allowed to contain, and every line in the repo was written under the
+  old rule. "Genom Seved i Södra Sofielund" was a fine reward and is a free
+  answer; so were "öster om Möllevången", "mellan Slottsstaden och Mellanheden"
+  and the forty-odd others like them. Audited all 184 curated lines against one
+  rule — what it is, when it was built, what happened there, what it is known
+  for, and nothing about position — and changed 141 of them.
+
+  Two judgement calls inside that rule. **A name may say what it already says:**
+  Limhamns kyrka can mention Limhamn and Petribron can say it is named after
+  Sankt Petri kyrka, because the etymology is in the name you were just handed
+  and pretending otherwise leaves half the bridges mute. **Composition is not
+  position:** Stadionområdet may list the arenas standing in it, because that is
+  what the name announces, but Gamla Staden may not point at Stortorget, because
+  there the containment is a coordinate.
+
+  Twenty-six lines had nothing left once the position came out, and those are
+  now empty rather than reworded into a sentence that says nothing — the same
+  bargain the rest of the pipeline makes. Coverage drops from 44/136 delområden,
+  36/174 streets and 19/19 bridges to 40, 22 and 13. The derived `meta` line went
+  the same way in `build-learn.mjs`: a street no longer prints the delområde it
+  runs through, and a bridge no longer prints what it crosses. A delområde still
+  prints its stadsdel, which is the chunk you chose before the round began.
+
+- **A picture per name, not per Wikipedia article** (2026-08-04). The picture
+  rule was "prove it is the right place" and coordinates do prove that — but
+  they say nothing about whether the picture is worth showing, and the audit
+  found three ways it wasn't. Seven pairs of names were sharing one file, because
+  Wikipedia illustrates two articles with the same photograph: Norra and Södra
+  Sofielund were the same picture of the same building, which is the failure the
+  coordinate check was built to prevent, arriving through the front door. One
+  name (Malmö universitet) had a *logotype* rather than a photograph. Three had
+  photographs from before 1920, of which Regementsgatan's is a canal that was
+  filled in — a card that sends you looking for water.
+
+  Fixed by hand-pinning thirteen entries, using the mechanism `images.json`
+  already had. Nine got a new picture chosen from Commons **geosearch**, which
+  is per-file coordinates rather than per-article ones and so is a strictly
+  stronger proof than the build's own; four are pinned to `null`. Not
+  automated: picking between six photographs of the same street is a judgement
+  about what a place looks like, and the build has no business making it. What
+  the build should do is stop handing the same file to two names, which is a
+  check worth adding when it next runs.
+
 - **The panel is the question, not the prize** (2026-08-03). The card was the
   reward for a correct placement: place Sofielund, then find out what Sofielund
   is. It is now up for the whole question instead — name, what it is, its
@@ -88,6 +133,10 @@ bullet lands here only when something non-obvious was actually decided.
   is a worse quiz and a better lesson. If that turns out to be wrong, the
   smallest fix is holding `about` and `meta` back until the answer is in, which
   keeps the name and the picture as the question.
+
+  *It turned out to be wrong the next day, and the fix was neither of those: the
+  text was rewritten rather than withheld. See "A description says what a thing
+  is, never where it is" above.*
 
 - **The board is the run you are in** (2026-08-03). Everything placed used to
   stay lit whatever was in hand, on the theory that the round so far is what you

@@ -133,9 +133,10 @@
   },
   "Davidshall": {
     "image": "/images/davidshall.webp",
-    "credit": "Foto: jorchr · CC BY-SA 3.0",
-    "article": "https://sv.wikipedia.org/wiki/Davidshall",
-    "away": 26
+    "credit": "Foto: Liberaler Humanist · CC BY-SA 3.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AHolmgatan%2C%20Malm%C3%B6.jpg",
+    "away": 73,
+    "pinned": true
   },
   "Davidshallstorg": {
     "image": "/images/davidshallstorg.webp",
@@ -361,9 +362,10 @@
   },
   "Hyllievång": {
     "image": "/images/hyllievang.webp",
-    "credit": "Foto: Dcastor · CC0",
-    "article": "https://sv.wikipedia.org/wiki/Hylliev%C3%A5ng",
-    "away": 355
+    "credit": "Foto: Sergei Gussev · CC BY 2.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AMalmo%20%2853233605006%29.jpg",
+    "away": 54,
+    "pinned": true
   },
   "Håkanstorp": {
     "image": "/images/hakanstorp.webp",
@@ -391,9 +393,10 @@
   },
   "Jägersro": {
     "image": "/images/jagersro.webp",
-    "credit": "Foto: Jorchr · CC BY 3.0",
-    "article": "https://sv.wikipedia.org/wiki/J%C3%A4gersro%20(anl%C3%A4ggning)",
-    "away": 403
+    "credit": "Foto: Jorchr · CC BY-SA 3.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AJ%C3%A4gersrotornet%2C%20Malm%C3%B6.jpg",
+    "away": 280,
+    "pinned": true
   },
   "Jägersro travbana": {
     "image": "/images/jagersro-travbana.webp",
@@ -403,9 +406,10 @@
   },
   "Kalkbrottet": {
     "image": "/images/kalkbrottet.webp",
-    "credit": "Foto: Jorchr · CC BY-SA 3.0",
-    "article": "https://sv.wikipedia.org/wiki/Limhamns%20kalkbrott",
-    "away": 43
+    "credit": "Foto: Håkan Dahlström from Malmö, Sweden · CC BY 2.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AKalkbrottet%20Limhamn%20%2815611633950%29.jpg",
+    "away": 219,
+    "pinned": true
   },
   "Kastanjegården": {
     "image": "/images/kastanjegarden.webp",
@@ -474,10 +478,11 @@
     "away": 116
   },
   "Kungsgatan": {
-    "image": "/images/kungsgatan.webp",
-    "credit": "Foto: jorchr · CC BY-SA 3.0",
-    "article": "https://sv.wikipedia.org/wiki/Kungsgatan%2C%20Malm%C3%B6",
-    "away": 121
+    "image": null,
+    "credit": null,
+    "article": null,
+    "pinned": true,
+    "why": "delade bild med Rörsjöstaden; ingen egen bild av gatan är styrkt"
   },
   "Kungshög": {
     "image": "/images/kungshog.webp",
@@ -487,9 +492,10 @@
   },
   "Kungsparken": {
     "image": "/images/kungsparken.webp",
-    "credit": "Foto: Unknown authorUnknown author · Public domain",
-    "article": "https://sv.wikipedia.org/wiki/Kungsparken%2C%20Malm%C3%B6",
-    "away": 102
+    "credit": "Foto: Zeth Winther · CC BY 3.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AThe%20fountain%20in%20Kungsparken%20Malm%C3%B6%2C%20with%20the%20Casino%20as%20a%20backprop%20-%20panoramio.jpg",
+    "away": 37,
+    "pinned": true
   },
   "Kvarnby": {
     "image": "/images/kvarnby.webp",
@@ -625,9 +631,10 @@
   },
   "Malmö universitet": {
     "image": "/images/malmo-universitet.webp",
-    "credit": "Foto: Smyken1000 · CC BY-SA 4.0",
-    "article": "https://sv.wikipedia.org/wiki/Malm%C3%B6%20universitet",
-    "away": 235
+    "credit": "Foto: News Oresund · CC BY 2.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AMalmo%20hogskola%2020160920%20750A9529%20%2829518264790%29.jpg",
+    "away": 56,
+    "pinned": true
   },
   "Malmöhus slott": {
     "image": "/images/malmohus-slott.webp",
@@ -672,16 +679,18 @@
     "away": 146
   },
   "Nobelvägen": {
-    "image": "/images/nobelvagen.webp",
-    "credit": "Foto: jorchr · CC BY-SA 3.0",
-    "article": "https://sv.wikipedia.org/wiki/Nobelv%C3%A4gen%2C%20Malm%C3%B6",
-    "away": 31
+    "image": null,
+    "credit": null,
+    "article": null,
+    "pinned": true,
+    "why": "delade bild med Ellstorp; ingen egen bild av gatan är styrkt"
   },
   "Norra Sofielund": {
     "image": "/images/norra-sofielund.webp",
-    "credit": "Foto: Jorchr · CC BY-SA 3.0",
-    "article": "https://sv.wikipedia.org/wiki/Sofielund%2C%20Malm%C3%B6",
-    "away": 72
+    "credit": "Foto: jorchr · CC BY-SA 3.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3ANorra%20Sofielund%2C%20Malm%C3%B6.jpg",
+    "away": 190,
+    "pinned": true
   },
   "Norra Sorgenfri": {
     "image": "/images/norra-sorgenfri.webp",
@@ -720,10 +729,11 @@
     "away": 569
   },
   "Regementsgatan": {
-    "image": "/images/regementsgatan.webp",
-    "credit": "Foto: see below · Public domain",
-    "article": "https://sv.wikipedia.org/wiki/Regementsgatan%2C%20Malm%C3%B6",
-    "away": 179
+    "image": null,
+    "credit": null,
+    "article": null,
+    "pinned": true,
+    "why": "enda bilden är kanalen som låg här ca 1910 — leder fel på dagens karta"
   },
   "Ribersborg": {
     "image": "/images/ribersborg.webp",
@@ -859,9 +869,10 @@
   },
   "Stadion": {
     "image": "/images/stadion.webp",
-    "credit": "Foto: Arne Müseler · CC BY-SA 3.0 de",
-    "article": "https://sv.wikipedia.org/wiki/Eleda%20Stadion",
-    "away": 124
+    "credit": "Foto: jorchr · CC BY-SA 3.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AMalm%C3%B6%20stadion.jpg",
+    "away": 149,
+    "pinned": true
   },
   "Stadiongatan": {
     "image": "/images/stadiongatan.webp",
@@ -936,10 +947,11 @@
     "away": 900
   },
   "Södra Sofielund": {
-    "image": "/images/sodra-sofielund.webp",
-    "credit": "Foto: Jorchr · CC BY-SA 3.0",
-    "article": "https://sv.wikipedia.org/wiki/Sofielund%2C%20Malm%C3%B6",
-    "away": 569
+    "image": null,
+    "credit": null,
+    "article": null,
+    "pinned": true,
+    "why": "delade bild med Norra Sofielund; ingen bild är styrkt för just södra delen"
   },
   "Teknikens och sjöfartens hus": {
     "image": "/images/teknikens-och-sjofartens-hus.webp",
@@ -1015,9 +1027,10 @@
   },
   "Värnhemstorget": {
     "image": "/images/varnhemstorget.webp",
-    "credit": "Foto: Sven Rosborn · CC BY-SA 3.0",
-    "article": "https://sv.wikipedia.org/wiki/V%C3%A4rnhemstorget",
-    "away": 10
+    "credit": "Foto: jorchr · CC BY-SA 3.0",
+    "article": "https://commons.wikimedia.org/wiki/File%3AV%C3%A4rnhemstorget.jpg",
+    "away": 21,
+    "pinned": true
   },
   "Västervång": {
     "image": "/images/vastervang.webp",

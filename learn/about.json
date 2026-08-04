@@ -9,10 +9,11 @@
     "twoMaps": "`stadsdelar` and `areas` are separate because five names are on both levels and mean different sizes of thing: Kirseberg the stadsdel is ten times Kirseberg the neighbourhood, and Hyllie, Rosengård, Oxie and Husie do the same. One flat map keyed by name would silently give the big one the little one's text — the kind of bug that is invisible until you read a card and it is subtly wrong. `areas` covers levels 3 and 4 together, where a repeated name really is the same place.",
     "status": "Every entry is a draft: written from what I know, marked verified:false, with a source only where the claim came from one. Checking them is the standing job this file exists to make visible — the same bargain landmarks.json makes about coordinates.",
     "fields": {
-      "text": "Swedish, one to three sentences, shown on the card after a correct placement.",
+      "text": "Swedish, one to three sentences, shown on the card while the name is being asked for.",
       "source": "Where it came from, when it came from anywhere.",
       "verified": "Set true once checked against a source."
-    }
+    },
+    "noLocation": "Says what the thing is, not where it is. The panel is the question now — name, kind, picture and text are all on screen while you are still looking for the place — so a line like \"öster om Möllevången\" or \"vid Sankt Petri kyrka\" hands over the answer with the question. No compass directions, no \"mellan X och Y\", no neighbouring or containing place used as a marker. What the name itself already carries is allowed: Limhamns kyrka may say Limhamn, and a bridge may say who or what it is named after. Where nothing was left but the position, the line is gone rather than reworded into something that says nothing."
   },
   "stadsdelar": {
     "Centrum": {
@@ -69,12 +70,12 @@
 
   "areas": {
     "Hyllie": {
-      "text": "Namnet på den nya stadsdelskärnan kring stationen — arena, mässa och köpcentrum på mark som var åker in på 2000-talet. Mindre än stadsdelen Hyllie, som också omfattar Kroksbäck, Holma och Bunkeflo.",
+      "text": "Den nya stadsdelskärnan kring stationen — arena, mässa och köpcentrum på mark som var åker in på 2000-talet. Mindre än stadsdelen med samma namn.",
       "source": null,
       "verified": false
     },
     "Rosengård": {
-      "text": "Bostadsområdena kring Rosengård Centrum och Rosengårds station. Namnet används både om dem och om hela stadsdelen omkring.",
+      "text": "Bostadsområdena från miljonprogrammet. Namnet används både om dem och om hela stadsdelen omkring.",
       "source": null,
       "verified": false
     },
@@ -84,22 +85,22 @@
       "verified": false
     },
     "Gamla Staden": {
-      "text": "Den medeltida staden innanför kanalen. Stortorget lades ut på 1530-talet och var då Nordens största torg; Lilla Torg kom till när det visade sig vara för stort.",
+      "text": "Den medeltida staden innanför vallarna, och Malmös kärna sedan 1200-talet. Gatunätet är i stora drag det som lades ut då.",
       "source": null,
       "verified": false
     },
     "Västra Hamnen": {
-      "text": "Kockums varv låg här tills fartygsbyggandet lades ner på 1980-talet, och den stora bockkranen såldes till Sydkorea 2002. Bostadsmässan Bo01 byggde om området 2001 och Turning Torso stod klart 2005.",
+      "text": "Kockums varv låg här tills fartygsbyggandet lades ner på 1980-talet, och den stora bockkranen såldes till Sydkorea 2002. Bostadsmässan Bo01 byggde om området 2001.",
       "source": null,
       "verified": false
     },
     "Möllevången": {
-      "text": "Möllevångstorget med sin saluhandel är stadsdelens mitt, och arbetarrörelsens Malmö dess historia. I dag stadens tätaste blandning av restauranger, torghandel och nattliv.",
+      "text": "Arbetarrörelsens Malmö, byggt för industristadens folk. I dag stadens tätaste blandning av restauranger, torghandel och nattliv.",
       "source": null,
       "verified": false
     },
     "Slottsstaden": {
-      "text": "Namnet finns i inget register men används av alla: kvarteren väster om Slottsparken, byggda kring sekelskiftet 1900 och framåt, mellan Regementsgatan och havet.",
+      "text": "Namnet finns i inget register men används av alla: kvarter byggda kring sekelskiftet 1900 och framåt.",
       "source": "https://sv.wikipedia.org/wiki/Slottsstaden",
       "verified": false
     },
@@ -109,12 +110,12 @@
       "verified": false
     },
     "Sofielund": {
-      "text": "Verkstäder, lager och bostäder om vartannat, öster om Möllevången. Delas i Norra och Södra Sofielund, med Seved i den södra delen.",
+      "text": "Verkstäder, lager och bostäder om vartannat. Delas i Norra och Södra Sofielund.",
       "source": null,
       "verified": false
     },
     "Sorgenfri": {
-      "text": "Gammalt industriområde mellan Nobelvägen och Amiralsgatan, under långsam omvandling till bostäder.",
+      "text": "Gammalt industriområde under långsam omvandling till bostäder.",
       "source": null,
       "verified": false
     },
@@ -124,7 +125,7 @@
       "verified": false
     },
     "Kirseberg": {
-      "text": "Backarna: den gamla arbetarstadsdelen på höjden nordost om spåren, med låg trähusbebyggelse kvar i Kirsebergsstaden.",
+      "text": "Backarna: den gamla arbetarstadsdelen på höjden, med låg trähusbebyggelse kvar.",
       "source": null,
       "verified": false
     },
@@ -134,7 +135,7 @@
       "verified": false
     },
     "Bunkeflostrand": {
-      "text": "Villasamhälle vid kusten söder om Limhamn, närmaste granne till Öresundsbrons fäste vid Lernacken.",
+      "text": "Villasamhälle vid kusten, utbyggt från 1960-talet och framåt.",
       "source": null,
       "verified": false
     },
@@ -144,32 +145,32 @@
       "verified": false
     },
     "Tygelsjö": {
-      "text": "By söder om Malmö med kyrkan kvar i mitten, numera med villakvarter runt sig.",
+      "text": "By med kyrkan kvar i mitten, numera med villakvarter runt sig.",
       "source": null,
       "verified": false
     },
     "Jägersro": {
-      "text": "Travbanan och galoppfältet i sydöst, med köpcentrum och handelsområde intill.",
+      "text": "Travbanan och galoppfältet, med köpcentrum och handelsområde intill.",
       "source": null,
       "verified": false
     },
     "Hamnen": {
-      "text": "Malmös arbetande hamn norr om staden — Frihamnen, Norra hamnen, oljehamnen. Nästan ingen bor här, vilket är varför namnet sällan syns på en karta över stadsdelar.",
+      "text": "Malmös arbetande hamn — Frihamnen, Norra hamnen, oljehamnen. Nästan ingen bor här, vilket är varför namnet sällan syns på en karta över stadsdelar.",
       "source": null,
       "verified": false
     },
     "Stadionområdet": {
-      "text": "Malmö Stadion byggdes till fotbolls-VM 1958; bredvid ligger Baltiska hallen och Eleda Stadion, byggd 2009.",
+      "text": "Stadens samlade idrottsanläggningar: Malmö Stadion från fotbolls-VM 1958, Baltiska hallen, och Eleda Stadion från 2009.",
       "source": null,
       "verified": false
     },
     "Lorensborg": {
-      "text": "Höghusen från slutet av 1950- och 60-talen väster om Pildammarna, en av Malmös första storskaliga bostadssatsningar.",
+      "text": "Höghus från slutet av 1950- och 60-talen, en av Malmös första storskaliga bostadssatsningar.",
       "source": null,
       "verified": false
     },
     "Kroksbäck": {
-      "text": "Miljonprogramsområde i Hyllie, med de karakteristiska gräskullarna mellan husen.",
+      "text": "Miljonprogramsområde med karakteristiska gräskullar mellan husen.",
       "source": null,
       "verified": false
     },
@@ -179,53 +180,43 @@
       "verified": false
     },
     "Söderkulla": {
-      "text": "Bostadsområde i Fosie, byggt under miljonprogrammet.",
+      "text": "Bostadsområde från miljonprogrammet.",
       "source": null,
       "verified": false
     },
     "Bellevue": {
-      "text": "Villaområde i Västra Innerstaden med några av stadens dyraste adresser.",
+      "text": "Villaområde med några av stadens dyraste adresser.",
       "source": null,
       "verified": false
     },
     "Fridhem": {
-      "text": "Villor och flerfamiljshus från tidigt 1900-tal, mellan Slottsstaden och Mellanheden.",
+      "text": "Villor och flerfamiljshus från tidigt 1900-tal.",
       "source": null,
       "verified": false
     },
     "Mellanheden": {
-      "text": "1940- och 50-talets Malmö i lamellhus, väster om Pildammarna.",
-      "source": null,
-      "verified": false
-    },
-    "Västervång": {
-      "text": "Bostadsområde i Västra Innerstaden, söder om Regementsgatan.",
+      "text": "1940- och 50-talets Malmö i lamellhus.",
       "source": null,
       "verified": false
     },
     "Kulladal": {
-      "text": "Egnahems- och radhusområde i Fosie, byggt från 1930-talet.",
-      "source": null,
-      "verified": false
-    },
-    "Gullvik": {
-      "text": "Bostadsområde i Fosie, mellan Ystadvägen och Inre Ringvägen.",
+      "text": "Egnahems- och radhusområde, byggt från 1930-talet.",
       "source": null,
       "verified": false
     },
     "Sege": {
-      "text": "Industri- och verksamhetsområde i norr, vid Sege å och infarten mot Lund.",
+      "text": "Industri- och verksamhetsområde vid Sege å.",
       "source": null,
       "verified": false
     },
     "Husie": {
-      "text": "Byn som gett hela stadsdelen sitt namn, öster om staden.",
+      "text": "Byn som gett hela stadsdelen sitt namn.",
       "source": null,
       "verified": false
     },
 
     "Rörsjöstaden": {
-      "text": "Rutnätsstaden öster om kanalen, byggd från slutet av 1800-talet när Malmö växte ur sina vallar.",
+      "text": "Rutnätsstaden som byggdes från slutet av 1800-talet, när Malmö växte ur sina vallar.",
       "source": null,
       "verified": false
     },
@@ -245,37 +236,37 @@
       "verified": false
     },
     "Värnhem": {
-      "text": "Värnhemstorget är en av stadens största bytespunkter för buss, och den östra porten ut ur innerstaden.",
+      "text": "Värnhemstorget är en av stadens största bytespunkter för buss.",
       "source": null,
       "verified": false
     },
     "Södervärn": {
-      "text": "Knutpunkten söder om innerstaden, där busslinjerna möts vid Södervärns station.",
+      "text": "Knutpunkt där många av stadens busslinjer möts.",
       "source": null,
       "verified": false
     },
     "Rådmansvången": {
-      "text": "Kvarteren mellan Triangeln och Möllevången. Området heter Rådmansvången i registren och Triangeln i verkligheten — ett av de tydligaste exemplen på att kartans namn inte alltid är stadens.",
+      "text": "Området heter Rådmansvången i registren och Triangeln i verkligheten — ett av de tydligaste exemplen på att kartans namn inte alltid är stadens.",
       "source": null,
       "verified": false
     },
     "Holma": {
-      "text": "Miljonprogramsområde i Hyllie, granne med Kroksbäck.",
+      "text": "Miljonprogramsområde.",
       "source": null,
       "verified": false
     },
     "Lindängen": {
-      "text": "Bostadsområde i Fosie från miljonprogramstiden, kring Lindängens centrum.",
+      "text": "Bostadsområde från miljonprogramstiden, kring Lindängens centrum.",
       "source": null,
       "verified": false
     },
     "Hermodsdal": {
-      "text": "Bostadsområde i Fosie, byggt på 1960-talet.",
+      "text": "Bostadsområde byggt på 1960-talet.",
       "source": null,
       "verified": false
     },
     "Nydala": {
-      "text": "Bostadsområde i Fosie vid Nydalabadet och Hindby.",
+      "text": "Bostadsområde med Nydalabadet.",
       "source": null,
       "verified": false
     },
@@ -285,42 +276,32 @@
       "verified": false
     },
     "Toftanäs": {
-      "text": "Våtmarksparken i Husie, anlagd för att rena dagvatten och i dag ett fågelområde.",
-      "source": null,
-      "verified": false
-    },
-    "Riseberga": {
-      "text": "Bostadsområde i Husie, öster om Inre Ringvägen.",
-      "source": null,
-      "verified": false
-    },
-    "Videdal": {
-      "text": "Villaområde i Husie.",
+      "text": "Våtmarkspark, anlagd för att rena dagvatten och i dag ett fågelområde.",
       "source": null,
       "verified": false
     },
     "Slussen": {
-      "text": "Där kanalen möter hamnbassängen i öster, vid Slussbron.",
+      "text": "Uppkallat efter slussen mellan kanalen och hamnen.",
       "source": null,
       "verified": false
     },
     "Östervärn": {
-      "text": "Kring Östervärns station, den lilla stationen på Kontinentalbanan öster om centrum.",
+      "text": "Kring Östervärns station på Kontinentalbanan.",
       "source": null,
       "verified": false
     },
     "Flensburg": {
-      "text": "Kvarteren söder om Centralstationen mot hamnen, uppkallade efter köpmanssläkten Flensburg.",
+      "text": "Uppkallat efter köpmanssläkten Flensburg.",
       "source": null,
       "verified": false
     },
     "Katrinelund": {
-      "text": "Mellan Värnhem och kanalen, med Katrinelundsskolan och idrottsplatsen.",
+      "text": "Katrinelundsskolan och idrottsplatsen ligger här.",
       "source": null,
       "verified": false
     },
     "Allmänna Sjukhuset": {
-      "text": "Delområdet är sjukhuset: Skånes universitetssjukhus i Malmö, SUS, med sitt eget kvarter mitt i staden.",
+      "text": "Delområdet är sjukhuset: Skånes universitetssjukhus i Malmö, SUS.",
       "source": null,
       "verified": false
     },
@@ -330,22 +311,22 @@
       "verified": false
     },
     "Svågertorp": {
-      "text": "Handels- och verksamhetsområde i söder, vid Yttre Ringvägen och egen station.",
+      "text": "Handels- och verksamhetsområde med egen station.",
       "source": null,
       "verified": false
     },
     "Hyllieby": {
-      "text": "Den gamla byn Hyllie, kvar som namn intill den nya stadsdelen omkring stationen.",
+      "text": "Den gamla byn Hyllie, kvar som namn sedan åkern blev stad.",
       "source": null,
       "verified": false
     },
     "Södra Sallerup": {
-      "text": "Byn öster om staden, omgiven av kalkbrott — här har kalk brutits sedan medeltiden.",
+      "text": "Byn omgiven av kalkbrott — här har kalk brutits sedan medeltiden.",
       "source": null,
       "verified": false
     },
     "Spillepengen": {
-      "text": "Avfallsanläggningen och deponin i norr, med golfbanan ovanpå den gamla tippen.",
+      "text": "Avfallsanläggningen och deponin, med golfbanan ovanpå den gamla tippen.",
       "source": null,
       "verified": false
     }
