@@ -2,18 +2,17 @@
 // answered, and exactly one answer is right.
 //
 // The failures guarded against here are all quiet ones. A curated name with no
-// geometry behind it does not crash — it just sits in the tray and can never be
-// placed. A chunk over the tray cap renders as a row you cannot drag on. A name
-// that appears twice makes a question with two right answers, and the grader
-// will pick the first one and mark you wrong for finding the second. None of
-// these are visible until you play the exact chunk they are in.
+// geometry behind it does not crash — it is just a question with nowhere on the
+// map to tap. A name that appears twice makes a question with two right answers,
+// and the grader will pick the first one and mark you wrong for finding the
+// second. None of these are visible until you play the exact chunk they are in.
 //
 // Run: node --test test/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import {
-  KINDS, KIND_IDS, MAX_CHUNK, byKind, chunksOf, graded, shuffled,
+  KINDS, KIND_IDS, MAX_CHUNK, byKind, chunksOf, graded,
 } from '../app/rounds.mjs';
 
 const FILE = 'build/data/learn.json';
@@ -84,11 +83,11 @@ test('areas are graded against delområden that exist', { skip }, () => {
 });
 
 test('everything with an extent brings it', { skip }, () => {
-  // Tray mode frames a chunk from these. A missing bbox silently falls back to
-  // the label point, which frames the chunk too tight — the polygon you are
-  // meant to drop on, or the four kilometres of street you are meant to find,
-  // ends up off the screen. Points are exempt: for them the point *is* the
-  // extent.
+  // A round's opening view is framed from these. A missing bbox silently falls
+  // back to the label point, which frames the chunk too tight — the polygon you
+  // are meant to tap inside, or the four kilometres of street you are meant to
+  // find, ends up off the screen. Points are exempt: for them the point *is*
+  // the extent.
   for (const it of items) {
     if (it.kind !== 'area' && it.kind !== 'street') continue;
     const [w, s, e, n] = it.bbox ?? [];
@@ -141,9 +140,9 @@ test('a round asks one kind at a time, in the order the kinds are declared', () 
 });
 
 test('grouping by kind keeps every name and the order it was given inside a kind', () => {
-  // Stability is what lets the two modes each keep their own idea of what to
-  // ask first — a shuffle for tray, spaced repetition for point — while sharing
-  // this one function.
+  // Stability is what lets progress.mjs decide what to ask first: byKind sets
+  // the order between kinds, spaced repetition sets it inside one, and neither
+  // gets to undo the other.
   const items = Array.from({ length: 40 }, (_, i) => ({
     name: `n${i}`, kind: KIND_IDS[i % KIND_IDS.length],
   }));
@@ -158,20 +157,6 @@ test('grouping by kind keeps every name and the order it was given inside a kind
       `${kind} came back in a different order than it went in`,
     );
   }
-});
-
-test('the shuffle keeps every name and does not leave them where they were', () => {
-  const items = Array.from({ length: 60 }, (_, i) => ({ name: `n${i}`, kind: 'area' }));
-  const out = shuffled(items);
-
-  assert.deepEqual(new Set(out.map((it) => it.name)), new Set(items.map((it) => it.name)));
-  assert.equal(items[0].name, 'n0', 'the input was mutated');
-
-  // The reason this is Fisher–Yates and not `sort(() => Math.random() - 0.5)`:
-  // that comparator leaves most items within a few places of where they
-  // started. Over 60 items, a real shuffle moves the great majority of them.
-  const moved = out.filter((it, i) => it.name !== items[i].name).length;
-  assert.ok(moved > 45, `only ${moved} of 60 items moved — that is not a shuffle`);
 });
 
 test('the chunks are listed from the middle of town outward', { skip }, () => {

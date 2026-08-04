@@ -17,20 +17,23 @@
 //            the geometry the map already has.
 //   near   — how close counts, for the kinds that are graded by distance.
 //
-// Both modes hand you one name at a time, in the order `byKind` sets, and they
-// are the same question asked twice:
+// There is one question — **peka ut**: one name at a time, in the order `byKind`
+// sets, on a bare map, tap where it is.
 //
-//   'tray'  — the name comes with its slots: every place in the chunk it could
-//             go, lit on the map, with the ones you have already placed lit
-//             green. You can see what is left, so the last few in a kind are
-//             answered by elimination; that is the easy direction, and it is
-//             where you start.
-//   'point' — one name and a bare map, tap where it is. Nothing to eliminate
-//             against, so this is the direction that says whether you know it.
+// There used to be two. The other one, "dra ut alla", lit up every slot the name
+// could go in and asked you to pick among them, on the theory that recognition
+// is the easy direction you start with before you can recall. What it actually
+// was, once the slots were drawn, was a matching exercise: with the delområden
+// outlined and the streets stroked, the map had already narrowed the answer to a
+// dozen shapes and the round was about telling those shapes apart rather than
+// about knowing where anything is. Two modes also meant every chunk offered a
+// choice nobody had the information to make, and half the code in learn.js
+// existed to keep the easy half honest. One question, asked properly.
 //
-// Both leave the map yours: pan and zoom are on, because zooming in to be sure
-// is not cheating when there are no labels to read, and a chunk framed to fit
-// Centrum on a phone is too small a scale to tell two canal bridges apart on.
+// The map is yours while you answer: pan and zoom are on, because zooming in to
+// be sure is not cheating when there are no labels to read, and a chunk framed
+// to fit Centrum on a phone is too small a scale to tell two canal bridges apart
+// on.
 
 /**
  * The kinds of thing the quiz can ask about.
@@ -73,7 +76,20 @@ export const OUTLINE_LAYERS = [...new Set(
   Object.values(KINDS).flatMap((k) => k.outline ?? []),
 )];
 
-export const MODES = ['tray', 'point'];
+/**
+ * The zoom the tiles start naming ordinary streets at.
+ *
+ * `transportation_name` carries motorways and through-roads from z10, and the
+ * other three thousand names only from z14 — so below it a street question
+ * cannot be answered *or* graded, because the grader finds what you tapped by
+ * looking it up in the tiles that happen to be loaded. Framed to fit a whole
+ * stadsdel, a chunk opens well under this, which is why the round says so out
+ * loud instead of marking correct answers wrong.
+ *
+ * A fact about the archive rather than a preference, so `test/streets.test.mjs`
+ * reads it back out of malmo.pmtiles.
+ */
+export const STREET_ZOOM = 14;
 
 // ---- distance ----------------------------------------------------------------
 // Equirectangular rather than haversine. Over a city fifteen kilometres across
@@ -101,32 +117,16 @@ const centroid = (items) => [
  * place a delområde is not what you are doing when you place a bridge — one is
  * "which of these outlines is it", the other is "where on the water is it" —
  * and alternating between them means starting over on every question. Grouped,
- * a run of one kind builds: the board lights the same set of slots for a dozen
- * questions in a row, what you have already placed stays on screen next to what
- * you have not, and the last few in a kind genuinely do go by elimination.
+ * a run of one kind builds: a dozen questions in a row are the same act, and by
+ * the end of the delområden you are reading the city's outlines rather than
+ * working out afresh what you are being asked to do.
  *
  * Stable, so whatever order the caller already put the items in survives inside
- * each kind — tray mode hands this a shuffle, point mode hands it
- * progress.mjs's spaced repetition, and both keep their idea of what to ask
- * first *within* a kind.
+ * each kind — progress.mjs's spaced repetition decides what to ask first, and it
+ * gets to decide that *within* a kind.
  */
 export function byKind(items) {
   return [...items].sort((a, b) => KIND_IDS.indexOf(a.kind) - KIND_IDS.indexOf(b.kind));
-}
-
-/**
- * Fisher–Yates, because `sort(() => Math.random() - 0.5)` is not a shuffle: it
- * asks the comparator for an inconsistent answer and leaves items near where
- * they started. "In a random order" is now the documented behaviour of a round
- * rather than a nicety, so it should be the real thing.
- */
-export function shuffled(items) {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
 }
 
 /**
@@ -138,7 +138,7 @@ export function shuffled(items) {
  * blocks and a few blocks cannot hold a street: Amiralsgatan runs the width of
  * the city. So a chunk became a whole stadsdel and this became the cap on one.
  *
- * Now the tray holds one name at a time, so nothing has to fit on a screen at
+ * Now a round holds one name at a time, so nothing has to fit on a screen at
  * all and the only thing left to be afraid of is length. A chunk is a sitting;
  * past a couple of hundred questions it is a syllabus, and the honest fix for
  * that would be cutting the chunks finer rather than raising this. Centrum is
@@ -217,7 +217,7 @@ export function chunksOf(items) {
  *
  * One function for all three shapes, because "how close is close enough" is the
  * only rule in this app that decides anything, and it should be readable in one
- * place rather than spread across the two modes that call it.
+ * place rather than restated per kind at each call site.
  *
  * `hit` is what the map found at the drop point: for an area, the item whose
  * polygon contains it; for the others, the nearest item and its distance.

@@ -351,8 +351,11 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 .chunk .what { grid-column: 1; margin: 0; font-size: 12px; line-height: 1.35; color: var(--ink-soft); }
 .chunk .bar { grid-column: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .chunk .bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
-.chunk .modes { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 6px; }
-.mode {
+/* One button, in the cell that used to hold a choice of two. */
+.chunk .start {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
   padding: 8px 12px;
   font-size: 13px;
   color: var(--ink);
@@ -361,7 +364,7 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
   border-radius: 999px;
   white-space: nowrap;
 }
-.mode:hover { background: #eae3d9; }
+.chunk .start:hover { background: #eae3d9; }
 
 #learnfoot { padding: 6px 16px 0; }
 
@@ -384,56 +387,6 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 #prompt { flex: 1; margin: 0; font-size: 15px; line-height: 1.3; }
 #tally { flex: none; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 #quit { flex: none; width: 34px; height: 34px; padding: 8px; border: 0; border-radius: 50%; background: none; color: var(--ink-soft); }
-
-/* The tray holds one name, so it is a strip along the bottom rather than a
-   wall. It used to lay the whole chunk out at once and scroll to a third of the
-   screen, and in Centrum — 120 names — that was the map covered by the list of
-   things it was being asked about. Nothing here needs a max-height any more,
-   because nothing here can be more than one tag high. */
-#tray {
-  position: absolute;
-  left: 0; right: 0;
-  bottom: calc(var(--safe-bottom) + var(--gap));
-  z-index: 3;
-  display: flex;
-  justify-content: center;
-  padding: 8px 12px;
-  pointer-events: none;
-}
-.nametag {
-  /* Bigger than it was: it is the one thing on offer, and it is a drag target
-     for a thumb rather than one chip among a hundred. */
-  padding: 11px 18px;
-  font-size: 16px;
-  color: var(--ink);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  box-shadow: var(--shadow);
-  touch-action: none;
-  cursor: grab;
-  pointer-events: auto;
-}
-/* Always on, now that the name is in hand from the moment it appears. */
-.nametag.armed { background: var(--accent); border-color: var(--accent); color: #fff; }
-.nametag.lifted { opacity: .35; }
-
-/* What follows the finger. Never hit-tested, so the drop lands on the map
-   rather than on the label of the thing being dropped. */
-.ghost {
-  position: fixed;
-  top: 0; left: 0;
-  z-index: 9;
-  padding: 9px 13px;
-  font-size: 14px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 999px;
-  pointer-events: none;
-  transform-origin: 0 0;
-  margin: -20px 0 0 -40px;
-  box-shadow: var(--shadow);
-}
 
 #verdict {
   position: absolute;
@@ -471,8 +424,8 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 
 /* On a phone the card is a sheet along the bottom; given a wider window it
    moves to a column down the right, which is the one edge nothing else uses —
-   the prompt owns the top, the nametag the bottom, and the map keeps the middle
-   where you can watch the answer appear while you read about it.
+   the prompt owns the top and the map keeps the middle, where you can watch the
+   answer appear while you read about it.
 
    It is on the whole time now, which changes what it is allowed to cost. As a
    card after an answer it could take half the screen for a moment; as the
@@ -487,14 +440,6 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 @media (max-width: 699px) {
   #factcard.asking { max-height: 38vh; }
   #factcard.asking #factimage { aspect-ratio: 16 / 9; }
-  /* The nametag and the sheet both want the bottom edge, and the sheet is the
-     taller of the two, so the tag goes above it. `--panel-h` is measured in
-     learn.js rather than guessed at here: the panel's height depends on whether
-     the name has a picture and a paragraph, which is not something a stylesheet
-     can know. */
-  #play[data-mode="tray"] #tray {
-    bottom: calc(var(--safe-bottom) + var(--gap) + var(--panel-h, 0px) + 8px);
-  }
 }
 
 @media (min-width: 700px) {
@@ -597,9 +542,9 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 /* Same rule as #chips above, for the same reason and with more places to get
    it wrong: `display` from an id selector beats the UA rule behind `hidden`, so
    every panel that sets its own display has to say this or it stays tabbable
-   while invisible. In a quiz that is not a cosmetic bug — a hidden tray is a
+   while invisible. In a quiz that is not a cosmetic bug — a hidden summary is a
    hidden answer sheet. */
-#learn[hidden], #play[hidden], #tray[hidden], #factcard[hidden], #summary[hidden],
+#learn[hidden], #play[hidden], #factcard[hidden], #summary[hidden],
 #layers[hidden], #searchbar[hidden], #tolearn[hidden], #playbar[hidden],
 /* `#factsource` sets `display: inline-block` from an id, which beat the UA
    sheet's rule for `hidden` outright — so "Källa" was drawn under every card,

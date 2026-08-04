@@ -60,13 +60,45 @@ function tileValue(buf) {
   return out;
 }
 
+// The geometry column: a run of commands (MoveTo, LineTo, ClosePath), each
+// followed by zigzagged deltas from the cursor. Decoded into rings of tile
+// coordinates; whether those rings are a line or a polygon is the caller's
+// business, because MVT stores that as a separate field.
+function rings(buf) {
+  const r = reader(buf);
+  const out = [];
+  let ring = null;
+  let x = 0;
+  let y = 0;
+  while (!r.done) {
+    const header = r.varint();
+    const command = header & 7;
+    const count = header >> 3;
+    // ClosePath carries no parameters and, for the lines this is used on,
+    // never appears.
+    if (command === 7) continue;
+    for (let i = 0; i < count; i++) {
+      const dx = r.varint();
+      const dy = r.varint();
+      x += (dx >> 1) ^ -(dx & 1);
+      y += (dy >> 1) ^ -(dy & 1);
+      // A MoveTo starts a new ring; a LineTo continues the one in hand.
+      if (command === 1) { ring = [[x, y]]; out.push(ring); } else ring?.push([x, y]);
+    }
+  }
+  return out;
+}
+
 /**
- * The properties of every feature in one layer of a tile.
+ * One layer of one tile, decoded.
  *
- * MVT stores properties as indexes into per-layer key and value tables, which
- * is the whole reason this is cheap: geometry is never even decoded.
+ * With no `at`, properties only — MVT stores those as indexes into per-layer
+ * key and value tables, which is what makes reading every tile in the archive
+ * cheap, and geometry is not even walked. Given `at` (the tile's own z/x/y),
+ * each feature also gets a GeoJSON geometry in lng/lat, which is what the
+ * browser's `querySourceFeatures` hands the app.
  */
-export function layerProperties(tile, wanted) {
+function layerOf(tile, wanted, at = null) {
   const out = [];
   fields(tile, (num, wire, r) => {
     if (num !== 3 || wire !== 2) return false;
@@ -75,33 +107,61 @@ export function layerProperties(tile, wanted) {
     const values = [];
     const features = [];
     let name = '';
+    let extent = 4096;
     fields(buf, (n, w, rr) => {
       if (n === 1) { name = rr.bytes().toString(); return true; }
+      if (n === 5) { extent = rr.varint(); return true; }
       if (n === 3) { keys.push(rr.bytes().toString()); return true; }
       if (n === 4) { values.push(tileValue(rr.bytes())); return true; }
       if (n === 2) {
-        const tags = [];
+        const feature = { tags: [], type: 0, geometry: null };
         fields(rr.bytes(), (fn, fw, fr) => {
+          if (fn === 3) { feature.type = fr.varint(); return true; }
+          if (fn === 4 && at) { feature.geometry = rings(fr.bytes()); return true; }
           if (fn !== 2 || fw !== 2) return false;
           const packed = reader(fr.bytes());
-          while (!packed.done) tags.push(packed.varint());
+          while (!packed.done) feature.tags.push(packed.varint());
           return true;
         });
-        features.push(tags);
+        features.push(feature);
         return true;
       }
       return false;
     });
     if (name !== wanted) return true;
-    for (const tags of features) {
+    for (const f of features) {
       const props = {};
-      for (let i = 0; i < tags.length; i += 2) props[keys[tags[i]]] = values[tags[i + 1]];
-      out.push(props);
+      for (let i = 0; i < f.tags.length; i += 2) props[keys[f.tags[i]]] = values[f.tags[i + 1]];
+      out.push(at ? { properties: props, geometry: geoJSON(f, extent, at) } : props);
     }
     return true;
   });
   return out;
 }
+
+// Tile coordinates to lng/lat, the same conversion vector-tile-js does on the
+// way to `toGeoJSON` — so what a test sees is what the app sees.
+function geoJSON({ type, geometry }, extent, { z, x, y }) {
+  const size = extent * 2 ** z;
+  const project = ([px, py]) => {
+    const lon = ((x * extent + px) * 360) / size - 180;
+    const y2 = 180 - ((y * extent + py) * 360) / size;
+    const lat = (360 / Math.PI) * Math.atan(Math.exp((y2 * Math.PI) / 180)) - 90;
+    return [lon, lat];
+  };
+  const lines = (geometry ?? []).map((ring) => ring.map(project));
+  if (type === 1) return { type: 'Point', coordinates: lines[0]?.[0] ?? [0, 0] };
+  if (type === 3) return { type: 'Polygon', coordinates: lines };
+  return lines.length === 1
+    ? { type: 'LineString', coordinates: lines[0] }
+    : { type: 'MultiLineString', coordinates: lines };
+}
+
+/** The properties of every feature in one layer of a tile. */
+export const layerProperties = (tile, wanted) => layerOf(tile, wanted);
+
+/** The same, with geometry, given where the tile sits. */
+export const layerFeatures = (tile, wanted, at) => layerOf(tile, wanted, at);
 
 // ---- pmtiles ----------------------------------------------------------------
 function directory(buf) {
@@ -124,8 +184,7 @@ function directory(buf) {
 }
 
 // Tile ids are one Hilbert curve per zoom, laid end to end, so the zoom is
-// recoverable from the id alone — which is all this needs; where a tile *is*
-// never comes up.
+// recoverable from the id alone.
 function zoomOf(tileId) {
   let z = 0;
   let base = 0;
@@ -133,8 +192,34 @@ function zoomOf(tileId) {
   return z;
 }
 
-/** Every tile in the archive, as `{ zoom, data }`, decompressed. */
-export function* tiles(file, { minZoom = 0 } = {}) {
+/**
+ * Where a tile is: the id's position along its zoom's Hilbert curve, undone.
+ *
+ * The textbook d2xy. Needed only because geometry has to come out in lng/lat,
+ * and a tile's coordinates are half of that conversion.
+ */
+function xyOf(tileId, z) {
+  let base = 0;
+  for (let i = 0; i < z; i++) base += 4 ** i;
+  let t = tileId - base;
+  let x = 0;
+  let y = 0;
+  for (let s = 1; s < 2 ** z; s *= 2) {
+    const rx = 1 & Math.floor(t / 2);
+    const ry = 1 & (t ^ rx);
+    if (ry === 0) {
+      if (rx === 1) { x = s - 1 - x; y = s - 1 - y; }
+      [x, y] = [y, x];
+    }
+    x += s * rx;
+    y += s * ry;
+    t = Math.floor(t / 4);
+  }
+  return [x, y];
+}
+
+/** Every tile in the archive, as `{ z, x, y, zoom, data }`, decompressed. */
+export function* tiles(file, { minZoom = 0, zoom: only = null } = {}) {
   const fd = openSync(file, 'r');
   try {
     const read = (off, len) => { const b = Buffer.alloc(len); readSync(fd, b, 0, len, off); return b; };
@@ -156,8 +241,9 @@ export function* tiles(file, { minZoom = 0 } = {}) {
 
     for (const e of entries) {
       const zoom = zoomOf(e.tileId);
-      if (zoom < minZoom) continue;
-      yield { zoom, data: decompress(read(dataOff + e.offset, e.length), tileComp) };
+      if (zoom < minZoom || (only !== null && zoom !== only)) continue;
+      const [x, y] = xyOf(e.tileId, zoom);
+      yield { z: zoom, x, y, zoom, data: decompress(read(dataOff + e.offset, e.length), tileComp) };
     }
   } finally {
     closeSync(fd);

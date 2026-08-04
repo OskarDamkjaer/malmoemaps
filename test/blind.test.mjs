@@ -58,9 +58,9 @@ test('the shapes are kept', { skip }, () => {
 test('every outline a round protects is a layer that exists', { skip }, () => {
   // Naming an outline layer that no longer exists fails silently: the blinding
   // still works, and the round is played on a map with nothing drawn on it at
-  // all — a tray of area names over a blank rectangle.
+  // all — "var ligger Sofielund?" over a blank rectangle.
   const ids = new Set(allLayers().map((l) => l.id));
-  assert.ok(OUTLINE_LAYERS.length, 'nothing is protected, so areas have no slots to aim at');
+  assert.ok(OUTLINE_LAYERS.length, 'nothing is protected, so areas have no outlines to aim at');
   for (const id of OUTLINE_LAYERS) {
     assert.ok(ids.has(id), `a round protects "${id}", which no layer draws`);
   }

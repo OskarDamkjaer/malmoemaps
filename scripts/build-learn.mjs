@@ -126,8 +126,9 @@ const areaItems = al10.map((f) => {
     name,
     kind: 'area',
     point: labelPoint(f, name),
-    // What the tray view has to contain: you drop onto the polygon, so framing
-    // the chunk by label points alone would push half of it off screen.
+    // What the round's opening view has to contain: you answer by tapping
+    // inside the polygon, so framing the chunk by label points alone would push
+    // half of it off screen.
     bbox: bboxOf(flatCoords(f.geometry)),
     covers: [name],
     stadsdel,
@@ -276,8 +277,8 @@ for (const kind of KIND_IDS) {
 }
 
 // Chunking is what makes the quiz playable, so it is checked here rather than
-// discovered on the front door: a chunk over the cap has no tray mode, and the
-// cap is the only thing standing between "a round" and "a syllabus".
+// discovered on the front door: the cap is the only thing standing between "a
+// round" and "a syllabus".
 const chunks = chunksOf(items);
 for (const chunk of chunks) {
   if (chunk.items.length > MAX_CHUNK) {

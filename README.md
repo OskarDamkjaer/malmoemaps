@@ -8,23 +8,14 @@ on, not a thing to look something up in.
 There is **one quiz**, and it is the city rather than a category: a row per part
 of town, each holding whatever is in it — the delområden, the streets worth
 knowing, the bridges, the landmarks. A round asks them in that order, a kind at
-a time, one name at a time. Two ways to be asked, and they are the same question
-in both directions:
+a time, one name at a time. There is one way to be asked:
 
-- **Dra ut alla** — one name at a time, dragged out onto the map, and the map
-  shows you where it could go: every delområde in the chunk if it is an area,
-  every bridge if it is a bridge, every street if it is a street. A slot is
-  dashed until something lands in it and solid green after, so you can see what
-  is left and the last few in a kind go by elimination. That is the easy
-  direction, and it is where you start.
 - **Peka ut** — one name, no slots, tap where it is. Nothing to eliminate
-  against, so this is the one that says whether you actually know it.
+  against, so it is the one that says whether you actually know it.
 
-The board shows the run you are in and nothing else, so finishing the
-delområden clears them off before the gator start. Both modes leave the map
-yours — pan and zoom are on, because zooming in to be sure is not cheating when
-there is nothing left to read — and neither re-frames between questions. The
-reveal moves the view only when the answer is off screen.
+The map is yours while you answer: pan and zoom are on, because zooming in to be
+sure is not cheating when there is nothing left to read, and nothing re-frames
+between questions. The reveal moves the view only when the answer is off screen.
 
 The panel alongside is the question rather than the reward for answering one:
 what Västra Hamnen was before it was Västra Hamnen, why Augustenborg is famous
@@ -90,6 +81,10 @@ unreachable from inside a round, for the obvious reason.
   Areas are graded through one lookup — *which delområde is this point in* —
   and streets reuse what the selection code already does: find the named street
   under your finger. Nothing here re-implements geometry the map already has.
+  Revealing a street goes the other way round, by name rather than by proximity:
+  a street's own point is a vertex, OSM ways are split at junctions, so asking
+  what is nearest it is asking which of two crossing streets wins by a
+  centimetre. See *Streets are found by name* in `DECISIONS.md`.
 
   The four collide on six names: Pildammsparken and Augustenborg are both a park
   and a delområde, Öresundsbron is both a bridge and a landmark. Merged, those
@@ -106,12 +101,13 @@ unreachable from inside a round, for the obvious reason.
 
   They are uneven — Rosengård has 13 names, Centrum 120 — and that is honest,
   because those parts of town are not the same size either. An earlier cut
-  sliced them down to twenty apiece so a tray would fit a phone screen without
-  scrolling, and that turned out to be optimising the wrong thing: a twenty-name
-  slice of Centrum is a few blocks, and a few blocks cannot hold a street.
-  Amiralsgatan and Regementsgatan run the width of the city, so every chunk
-  small enough to be comfortable was too small to contain the things most worth
-  knowing. Nothing has to fit on a screen now that the tray holds one name.
+  sliced them down to twenty apiece so a wall of nametags would fit a phone
+  screen without scrolling, and that turned out to be optimising the wrong
+  thing: a twenty-name slice of Centrum is a few blocks, and a few blocks cannot
+  hold a street. Amiralsgatan and Regementsgatan run the width of the city, so
+  every chunk small enough to be comfortable was too small to contain the things
+  most worth knowing. Nothing has to fit on a screen now that a round holds one
+  name at a time.
 
   The picker lists them **outward from Stortorget**, nearest first, because that
   is how a city is learned. It used to be A–Ö, which put Centrum third behind
@@ -121,12 +117,13 @@ unreachable from inside a round, for the obvious reason.
 
 - **A round runs a kind at a time**, in the order the kinds are declared in
   `app/rounds.mjs`: every delområde, then every gata, then the broar, then the
-  landmärken, shuffled inside each. Mixing them cost more than it looked like it
-  would — placing a delområde ("which of these outlines is it") and placing a
-  bridge ("where on the water is it") are different jobs, and alternating means
-  starting over on every question. Grouped, a run builds: the board lights the
-  same set of slots for a dozen questions, and what you have already placed
-  stays there to eliminate against.
+  landmärken, worst-remembered first inside each. Mixing them cost more than it
+  looked like it would — placing a delområde ("which of these outlines is it")
+  and placing a bridge ("where on the water is it") are different jobs, and
+  alternating means starting over on every question. Grouped, a run builds: a
+  dozen questions in a row are the same act, and by the end of the delområden
+  you are reading the city's outlines rather than working out afresh what you
+  are being asked to do.
 
 - **Two strikes, then the answer.** A third guess at a name you have no idea
   about is stabbing at the map, not learning. The first miss says what you *did*
@@ -297,10 +294,10 @@ learn/      what can be asked about and what is said back:
 ```
 
 The app is twelve files. The map: `index.html`, `app.css`, `app.js` (map,
-chrome, chips, the two modes, boot), `layers.js` (areas, landmarks, category
+chrome, chips, boot), `layers.js` (areas, landmarks, category
 plumbing), `categories.mjs` (the layer menu: what each chip stands for),
 `area-levels.mjs` (the zoom ladder), `highlight.js` (what you tapped and its
-shape — and, now, what the quiz is graded against, plus the tray board),
+shape — and what the quiz is graded against and reveals),
 `kinds.js` (what an icon means, in Swedish), `search.js`. The learning:
 `rounds.mjs` (what can be asked and what counts as knowing it),
 `learn.js` (the loop and its chrome),
@@ -382,7 +379,7 @@ console.
 node --test 'test/*.test.mjs'       # no deps, no runner, no config
 ```
 
-Four things here are worth testing, and all for the same reason: their bugs are
+Five things here are worth testing, and all for the same reason: their bugs are
 invisible.
 
 The first is the area ladder — two levels overlapping for
@@ -416,14 +413,31 @@ no geometry is a question that can never be answered; a name in the set twice is
 a question with two right answers, and the grader will mark you wrong for
 finding the second; a chunk over the length cap is a round nobody finishes; an
 area with no bbox frames its chunk too tight and pushes the polygon you are
-meant to drop on off the screen. `test/rounds.test.mjs` asks all of those, plus
-that a round asks a kind at a time and shuffles honestly inside one, that a
-chunk is one part of town and that the cut is stable between calls,
-plus the grader's own rules — nearest-wins, per-kind tolerances, and the pixel
-floor that keeps 250 m from being a dare at a zoomed-out view.
+meant to tap in off the screen. `test/rounds.test.mjs` asks all of those, plus
+that a round asks a kind at a time, that a chunk is one part of town and that
+the cut is stable between calls, plus the grader's own rules — nearest-wins,
+per-kind tolerances, and the pixel floor that keeps 250 m from being a dare at a
+zoomed-out view.
+
+The fifth is the streets, and it needed a different kind of test. A street is
+the one kind with no geometry of its own: it is a *name* that has to be found
+again at runtime in whatever vector tiles the browser happens to hold, so
+nothing about it can be checked by reading `learn.json` — `learn.json` is fine.
+So `test/streets.test.mjs` opens `malmo.pmtiles`, decodes `transportation_name`
+out of it (`scripts/lib/pmtiles.mjs` grew a geometry decoder for this), and
+hands `app/highlight.js` a map whose `querySourceFeatures` answers from those
+tiles. What the test sees is what the app sees. It asks whether every street
+lights up as itself rather than as the one crossing it, along its whole length
+rather than a fragment; whether two streets sharing a name stay two; whether a
+tap mid-block is graded as the street you are standing on; and whether
+`STREET_ZOOM` — the zoom the round warns you to get above — is really where the
+archive starts naming ordinary streets. All five of those failed at some point,
+and none of them looked like a failure on screen: they looked like the map
+being vague.
 
 `test/areas.test.mjs`, `test/style.test.mjs`, `test/categories.test.mjs`,
-`test/rounds.test.mjs` and `test/blind.test.mjs` read `build/` and `data/`,
+`test/rounds.test.mjs`, `test/streets.test.mjs` and `test/blind.test.mjs` read
+`build/` and `data/`,
 which are gitignored; they skip with a note rather than fail if you haven't
 built yet.
 

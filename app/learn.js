@@ -1,12 +1,9 @@
-// The quiz: the map as a board you place names on.
+// The quiz: the map as the thing you point at.
 //
 // One quiz, cut into chunks of one part of town each, and a chunk mixes
 // whatever is there — delområden, gator, broar, landmärken, asked a kind at a
-// time. Two modes, one question, and both hand you one name at a time. In
-// 'tray' mode the map shows you every slot that name could go in, so the ones
-// you have already placed are there to eliminate against; in 'point' mode it
-// shows you nothing. Tray is recognition, point is recall — the same names
-// played twice, in the order that makes them learnable.
+// time. One question, one name at a time: here is what this place is, now point
+// at it.
 //
 // What decides right and wrong is not in here: rounds.mjs holds the rule and
 // the tolerances, blind.js takes the words off the map, progress.mjs remembers
@@ -34,16 +31,22 @@
 //
 //   Nothing waits for a button. A settled answer outlines itself on the map and
 //   the next name arrives a beat later, because the reading is already done.
+//
+// There used to be a second mode — "dra ut alla", which lit every slot the name
+// could go in and asked you to choose among them. It is gone, and rounds.mjs
+// says why; what went with it here was a tray, a drag ghost, a board of slots
+// that had to be redrawn on every pan, and a `mode` threaded through every
+// function in this file.
 import {
-  KINDS, MODES, OUTLINE_LAYERS, byKind, chunksOf, graded, metersBetween, shuffled,
+  KINDS, OUTLINE_LAYERS, STREET_ZOOM, byKind, chunksOf, graded, metersBetween,
 } from './rounds.mjs';
 import {
   forgetEverything, inAskingOrder, progressOf, record,
 } from './progress.mjs';
 import { enterBlind, leaveBlind } from './blind.js';
 import {
-  clearBoard, clearHighlight, districtAt, highlightCovers, highlightPoint,
-  highlightStreet, setBoard,
+  clearHighlight, districtAt, highlightCovers, highlightPoint, highlightStreet,
+  streetAt,
 } from './highlight.js';
 
 const DATA = '/data/learn.json';
@@ -89,8 +92,8 @@ function metersPerPixel() {
  * Computed from what is in the chunk rather than read off a zoom ladder: chunks
  * are cut by stadsdel and then by size, so they are not all the same size and a
  * fixed zoom would show half of one and a tenth of another. Areas contribute
- * their whole extent (`bbox`), not their label point — in tray mode you drop
- * onto the polygon, so the polygon is what has to be on screen.
+ * their whole extent (`bbox`), not their label point — you answer by tapping
+ * inside the polygon, so the polygon is what has to be on screen.
  */
 function boundsOf(chunk) {
   let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
@@ -107,9 +110,9 @@ function boundsOf(chunk) {
   return [[w, s], [e, n]];
 }
 
-// The prompt sits along the top, the nametag along the bottom, and the panel
-// takes a whole column or a whole sheet depending on the window: padding is
-// what keeps the board out from under all of it.
+// The prompt sits along the top and the panel takes a whole column or a whole
+// sheet depending on the window: padding is what keeps the chunk out from under
+// both.
 function frame(chunk, duration) {
   // The #factcard breakpoint in app.css, asked of the canvas rather than the
   // window because the canvas is the thing being padded.
@@ -155,7 +158,7 @@ function hitAt(target, lngLat) {
 
   if (shape === 'line') {
     const near = Math.max(KINDS[target.kind].near, 26 * metersPerPixel());
-    const street = highlightStreet(map, lngLat, near);
+    const street = streetAt(map, lngLat, near);
     if (!street) return null;
     return {
       name: street.properties.name,
@@ -175,96 +178,33 @@ function hitAt(target, lngLat) {
 // ---- the session -----------------------------------------------------------
 const el = (id) => document.getElementById(id);
 
-function startSession(chunk, mode) {
+function startSession(chunk) {
   session = {
     chunk,
-    mode,
-    // Both modes ask one name at a time and both ask a kind at a time; they
-    // differ only in what decides the order inside a kind. Point mode asks what
-    // progress.mjs says you are worst at, which is the whole point of a mode
-    // with nothing to eliminate against. Tray mode shuffles, because there it
-    // would be a tell: the slots are on the map, and always being handed the
-    // one you keep missing first is a hint about which slot it is.
-    queue: byKind(mode === 'point' ? inAskingOrder(chunk.items) : shuffled(chunk.items)),
+    // A kind at a time (byKind), and inside a kind whatever progress.mjs says
+    // you are worst at.
+    queue: byKind(inAskingOrder(chunk.items)),
     done: [],
     // Misses so far this session, by name. On the item it would outlive the
     // session — the items are the fetched data, shared by every chunk that
     // holds them — and "En gång till" would start you on your last strike.
     strikes: new Map(),
-    armed: null,
     // True between a settled answer and the next question, while the map is
     // showing where the thing was. A tap then is looking, not guessing.
     settling: false,
   };
   reviewing = false;
   clearTimeout(settleTimer);
-  // The panel sits along the bottom on a phone, and so does the nametag. Which
-  // of them has the bottom edge is a question about the mode, so the mode is on
-  // the element and app.css answers it there.
-  el('play').dataset.mode = mode;
   enterBlind(map, OUTLINE_LAYERS);
   clearHighlight(map);
-  // The opening view, not a cage. Tray mode used to disable pan and zoom on the
-  // grounds that you cannot pan with a name in your hand — true of the old wall
-  // of nametags, where the map had to hold still for a hundred drop targets,
-  // and false now: there is one tag, it is placed as often by tapping as by
-  // dragging, and a chunk framed to fit Centrum on a phone is too small a scale
-  // to tell two canal bridges apart on. Zooming in is not cheating when there
-  // are no labels to read. (The board is drawn by renderRound, which is what
-  // knows which name is in hand.)
+  // The opening view, not a cage: pan and zoom stay on, because zooming in to
+  // be sure is not cheating when there are no labels to read, and a chunk
+  // framed to fit Centrum on a phone is too small a scale to tell two canal
+  // bridges apart on.
   frame(chunk, 600);
-  if (mode !== 'tray') clearBoard(map);
   el('learn').hidden = true;
   el('play').hidden = false;
   renderRound();
-}
-
-/**
- * The slots, and which of them are filled.
- *
- * The board is the run you are in and nothing else: every item of the kind in
- * hand, dashed where it is still open and solid green where something has
- * landed. Showing all four kinds at once would be a wall of rings and tints
- * over a map that is meant to still be readable, and would answer a question
- * nobody asked — you are not choosing between a bridge and a street, you are
- * choosing between the bridges.
- *
- * That applies to what is *finished* too, which it did not use to. Everything
- * placed stayed lit whatever was in hand, on the theory that the round so far
- * is what you eliminate against — but you eliminate within a kind, and by the
- * time the areas were done that theory meant twenty green delområden sitting
- * under the street run, tinting half the city a colour that no longer meant
- * anything. A run starts clean.
- */
-function drawBoard(inHand = session.armed) {
-  if (!inHand) { clearBoard(map); return 0; }
-  const placed = new Set(session.done.map((d) => d.item.name));
-  const shown = session.chunk.items.filter((it) => it.kind === inHand.kind);
-  return setBoard(map, shown.map((it) => ({
-    name: it.name,
-    shape: shapeOf(it),
-    covers: it.covers,
-    point: it.point,
-    placed: placed.has(it.name),
-  })));
-}
-
-/**
- * The board, and the prompt that goes with whether it could be drawn.
- *
- * Street slots come out of the loaded vector tiles, so both what you can see
- * and what the grader can accept depend on the zoom you are at. Rather than
- * leave a street round looking broken at the zoom a whole stadsdel is framed
- * at, the prompt says the one thing that fixes it. The app already talks this
- * way — the layer chips say "zooma in" for the same reason.
- */
-function refreshBoard() {
-  const drawn = drawBoard();
-  const inHand = session.armed;
-  const blind = inHand && shapeOf(inHand) === 'line' && !drawn;
-  el('prompt').textContent = blind
-    ? `Zooma in för att se gatorna — ${session.chunk.label}`
-    : `Dra namnet dit det hör hemma — ${session.chunk.label}`;
 }
 
 function quitRound() {
@@ -273,7 +213,6 @@ function quitRound() {
   reviewing = false;
   leaveBlind(map);
   clearHighlight(map);
-  clearBoard(map);
   session = null;
   el('play').hidden = true;
   el('factcard').hidden = true;
@@ -298,6 +237,15 @@ const answerable = () => !!session && !session.settling && !reviewing
  * One attempt at one name. The only path from a tap to the store.
  */
 function answer(item, lngLat) {
+  // A street tap at this zoom finds nothing in the tiles to grade against (see
+  // renderPrompt), so it is not a miss — it is a question that has not been
+  // asked yet. Costing someone a strike for the app's own blind spot is how two
+  // strikes and the answer turns into "the streets are broken".
+  if (shapeOf(item) === 'line' && map.getZoom() < STREET_ZOOM) {
+    say('Zooma in för att svara på gator.', 'wrong');
+    return;
+  }
+
   const hit = hitAt(item, lngLat);
   const verdict = graded({ item, hit, metersPerPixel: metersPerPixel() });
 
@@ -353,11 +301,10 @@ function finish(item, outcome) {
 /**
  * Is this spot somewhere you can actually see it?
  *
- * Not `getBounds().contains`, which counts the strip under the prompt bar, the
- * nametag and — on a wide window — the whole column the fact card is about to
- * open in. Revealing an answer *behind the card explaining it* is the failure
- * this exists to avoid, so the test is against the part of the canvas nothing
- * is sitting on top of.
+ * Not `getBounds().contains`, which counts the strip under the prompt bar and —
+ * on a wide window — the whole column the fact card is sitting in. Revealing an
+ * answer *behind the card explaining it* is the failure this exists to avoid,
+ * so the test is against the part of the canvas nothing is on top of.
  */
 function inView(point) {
   const canvas = map.getCanvas();
@@ -374,8 +321,13 @@ function inView(point) {
 function reveal(item) {
   const shape = shapeOf(item);
   if (shape === 'area') highlightCovers(map, item.covers ?? [item.name]);
-  else if (shape === 'line') highlightStreet(map, { lng: item.point[0], lat: item.point[1] }, 60, true);
-  else highlightPoint(map, item.point);
+  // By name. Asking for the street nearest the item's own point lit up whatever
+  // crossed it there, because that point is a junction — see highlight.js. If
+  // the tiles for it are not loaded there is nothing to draw, and a ring at the
+  // point at least says where to look.
+  else if (shape === 'line') {
+    if (!highlightStreet(map, item.name, item.point)) highlightPoint(map, item.point);
+  } else highlightPoint(map, item.point);
   // Move only when there is something to move for. Flying to every answer takes
   // the view out from under someone who panned there on purpose; never moving
   // means being told "så här ligger det" about a place off the edge of the
@@ -389,132 +341,31 @@ function renderTally() {
 }
 
 function renderRound() {
-  const { mode, queue } = session;
   renderTally();
-  el('tray').hidden = mode !== 'tray';
-
-  if (!queue.length) { hideFact(); showSummary(); return; }
+  if (!session.queue.length) { hideFact(); showSummary(); return; }
   // The panel is the question, so it is filled here rather than after an answer.
-  showFact(queue[0]);
-
-  if (mode === 'point') {
-    el('prompt').textContent = `Var ligger ${queue[0].name}?`;
-    return;
-  }
-
-  // The name on offer is in hand from the moment it appears — there is only one
-  // of it, so there is nothing to choose between and an arming tap would be a
-  // tap that exists to be got out of the way. The board lights its kind's slots
-  // straight away, which is what tray mode is *for*.
-  session.armed = queue[0] ?? null;
-  renderTray();
-  refreshBoard();
+  showFact(session.queue[0]);
+  renderPrompt();
 }
 
 /**
- * One name, at the bottom of the screen.
+ * What you are being asked, and — for the streets — whether you can be.
  *
- * It used to be all of them — the whole chunk laid out as a wall of nametags —
- * and at 104 names that wall covered the city it was asking about. Which was
- * the bug: the elimination the mode is built around is supposed to happen *on
- * the map*, between the slots you can see filling up, and instead the map was
- * the thing hidden behind the list. One at a time gives the round back its
- * board, and gives the tray a job it can do in the space it has.
+ * A street is graded by looking up what you tapped in the loaded vector tiles,
+ * and `transportation_name` does not carry ordinary street names below
+ * STREET_ZOOM. Framed to fit a stadsdel, a chunk opens below it: the map would
+ * take a perfectly good tap on Södergatan and mark it wrong, having found no
+ * street there at all. So the round says the one thing that fixes it, which is
+ * a fact about the zoom and gives nothing away about the answer. The layer
+ * chips already talk this way.
  */
-function renderTray() {
-  const tray = el('tray');
-  tray.replaceChildren();
+function renderPrompt() {
   const item = session.queue[0];
   if (!item) return;
-
-  // A button, so it is focusable and announced as the thing you are being
-  // asked about; but nothing hangs off its click, because it is already in
-  // hand and there is nothing for a second gesture to do.
-  const chip = document.createElement('button');
-  chip.type = 'button';
-  chip.className = 'nametag armed';
-  chip.textContent = item.name;
-  chip.dataset.name = item.name;
-  armDragging(chip, item);
-  tray.append(chip);
-}
-
-/**
- * Dragging a name onto the map — or just tapping the map, which places it too.
- *
- * Pointer events rather than HTML5 drag-and-drop, which does not exist on
- * touch. Holding and dragging moves a ghost under your finger and drops where
- * you let go. Tapping the map does the same thing without the ghost, because
- * the name is in hand already (renderRound), and one-handed on a phone that is
- * the better of the two.
- *
- * The dragging is the affordance rather than the mechanism, then: it is what
- * makes the tag look like something you put somewhere. Nothing here has to
- * arm, disarm or suppress the click it generates, which is three pieces of
- * bookkeeping that went away with the wall of tags.
- */
-function armDragging(chip, item) {
-  let ghost = null;
-  let moved = false;
-  let from = null;
-
-  // Putting the name down, however it ends: the ghost goes, and the board goes
-  // back to showing the slots for whatever is in hand.
-  const drop = () => {
-    ghost?.remove();
-    ghost = null;
-    chip.classList.remove('lifted');
-    if (session) drawBoard();
-  };
-
-  chip.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
-    chip.setPointerCapture(e.pointerId);
-    moved = false;
-    from = [e.clientX, e.clientY];
-  });
-
-  chip.addEventListener('pointermove', (e) => {
-    if (!chip.hasPointerCapture(e.pointerId) || !from) return;
-    // Distance from where the finger went down, not `movementX` — which is not
-    // reliably reported for touch pointers, and this is a phone app first. A
-    // drag that never registered as one would silently become a tap.
-    if (!moved && Math.hypot(e.clientX - from[0], e.clientY - from[1]) < 6) return;
-    moved = true;
-    if (!ghost) {
-      ghost = document.createElement('div');
-      ghost.className = 'ghost';
-      ghost.textContent = item.name;
-      document.body.append(ghost);
-      chip.classList.add('lifted');
-      // The name is now in hand, so the map shows where it could go. Once, on
-      // the move that starts the drag — the board is a source rebuild, not
-      // something to redo sixty times a second.
-      drawBoard(item);
-    }
-    ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-  });
-
-  chip.addEventListener('pointerup', (e) => {
-    drop();
-    if (!moved) return;
-
-    // Let go over the app's own chrome and nothing happens — the tray and the
-    // prompt bar sit *on top of* the map, so a drop there is geometrically on
-    // the canvas and would otherwise be graded as a guess at the bottom edge of
-    // the screen. Dropping a name back where you picked it up has to mean
-    // changing your mind.
-    const under = document.elementFromPoint(e.clientX, e.clientY);
-    if (under?.closest('#tray, #playbar, #factcard, #summary')) return;
-
-    const rect = map.getCanvas().getBoundingClientRect();
-    const inside = e.clientX >= rect.left && e.clientX <= rect.right
-      && e.clientY >= rect.top && e.clientY <= rect.bottom;
-    if (!inside || !answerable()) return;
-    answer(item, map.unproject([e.clientX - rect.left, e.clientY - rect.top]));
-  });
-
-  chip.addEventListener('pointercancel', drop);
+  const blind = shapeOf(item) === 'line' && map.getZoom() < STREET_ZOOM;
+  el('prompt').textContent = blind
+    ? 'Zooma in för att se gatorna'
+    : `Var ligger ${item.name}?`;
 }
 
 let sayTimer = 0;
@@ -557,10 +408,7 @@ function showPicture(item) {
   // A picture that will not load leaves no frame behind. The likeliest cause is
   // a first run that went offline before the service worker finished, which is
   // not worth a broken-image icon on the one card the app exists to show.
-  // Either way the panel has just changed height, and something is positioned
-  // off that height.
-  img.onerror = () => { figure.hidden = true; measurePanel(); };
-  img.onload = measurePanel;
+  img.onerror = () => { figure.hidden = true; };
   el('factcredit').textContent = item.credit ?? '';
   el('factcredit').hidden = !item.credit;
   figure.hidden = false;
@@ -604,24 +452,11 @@ function showFact(item, outcome = null) {
   el('factcard').classList.toggle('asking', asking);
   el('factcard').hidden = false;
   if (!asking) { el('next').textContent = 'Klart'; el('next').focus(); }
-  measurePanel();
-}
-
-/**
- * How tall the panel ended up, for the one thing that has to know: on a phone
- * the nametag sits above it, and how far above depends on whether this name
- * came with a picture and a paragraph. A stylesheet cannot ask that, so the
- * answer is measured and handed over as a custom property.
- */
-function measurePanel() {
-  const card = el('factcard');
-  el('play').style.setProperty('--panel-h', card.hidden ? '0px' : `${card.offsetHeight}px`);
 }
 
 function hideFact() {
   el('factcard').hidden = true;
   reviewing = false;
-  measurePanel();
 }
 
 /**
@@ -726,18 +561,14 @@ function chunkRow(chunk) {
   fill.style.width = `${total ? (known / total) * 100 : 0}%`;
   bar.append(fill);
 
-  const actions = document.createElement('div');
-  actions.className = 'modes';
-  for (const mode of MODES) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'mode';
-    btn.textContent = mode === 'tray' ? 'Dra ut alla' : 'Peka ut';
-    btn.addEventListener('click', () => startSession(chunk, mode));
-    actions.append(btn);
-  }
+  const start = document.createElement('button');
+  start.type = 'button';
+  start.className = 'start';
+  start.textContent = 'Peka ut';
+  start.setAttribute('aria-label', `Peka ut i ${chunk.label}`);
+  start.addEventListener('click', () => startSession(chunk));
 
-  row.append(label, what, bar, actions);
+  row.append(label, what, bar, start);
   return row;
 }
 
@@ -751,9 +582,9 @@ export async function initLearn(mapInstance, { onExplore }) {
   // Only ever the review card's way out, now that questions advance themselves.
   el('next').addEventListener('click', hideFact);
   el('summaryagain').addEventListener('click', () => {
-    const { chunk, mode } = session;
+    const { chunk } = session;
     el('summary').hidden = true;
-    startSession(chunk, mode);
+    startSession(chunk);
   });
   el('summarydone').addEventListener('click', quitRound);
   el('toexplore').addEventListener('click', () => leaveToExplore?.());
@@ -768,22 +599,14 @@ export async function initLearn(mapInstance, { onExplore }) {
   map.on('click', (e) => {
     if (!session) return;
     e._handled = true;
-    if (!answerable()) return;
-    const item = session.mode === 'point' ? session.queue[0] : session.armed;
-    if (item) answer(item, e.lngLat);
+    if (answerable()) answer(session.queue[0], e.lngLat);
   });
 
-  // A street slot is found in the tiles that are loaded (highlight.js asks the
-  // `transportation_name` source what is near the point), so the board is only
-  // true of the view it was built at. That did not matter while tray mode was
-  // played at a fixed view; now that you can pan and zoom, panning to a street
-  // that was off screen has to bring its slot with it — and zooming out past
-  // where the source has geometry has to be recoverable by zooming back in.
-  map.on('moveend', () => {
-    // Not while the card is up: the board behind it belongs to the question
-    // just answered, and the easeTo that revealed the answer is itself a move.
-    if (session?.mode === 'tray' && el('factcard').hidden) refreshBoard();
-  });
+  // Whether a street question can be answered at all depends on the zoom, and
+  // the zoom is yours to change mid-question, so the prompt has to keep up:
+  // zoom in and "Zooma in för att se gatorna" becomes the question, zoom back
+  // out and it becomes the warning again.
+  map.on('moveend', () => { if (answerable()) renderPrompt(); });
 }
 
 /**

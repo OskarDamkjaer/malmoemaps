@@ -16,19 +16,26 @@
 //
 // And the basemap's road geometry carries no names — names live in a parallel
 // `transportation_name` layer. So a street is found by proximity to that layer
-// rather than by hit-testing the road you can see.
+// rather than by hit-testing the road you can see. Proximity is for fingers
+// only: anything that already knows the name asks for it by name (see
+// `streetPieces`), because a street's own point sits on a junction and
+// proximity there is a coin toss between two streets.
 import { categoryOfLayer } from './categories.mjs';
 import { kindLabel } from './kinds.js';
 
 const SRC = 'highlight';
-const BOARD = 'board';
 const ACCENT = '#b8562b';
-// The two states of a slot on the tray board. Green is the app's own accent,
-// which everywhere else means "this is the answer" — here it means "this one is
-// answered", which is the same claim.
-const SLOT = '#6d665e';
-const FILLED = '#1f6f5c';
 const EMPTY = { type: 'FeatureCollection', features: [] };
+
+// How close two pieces have to be to count as the same street.
+//
+// The same number as `CLUSTER_GAP_M` in scripts/build-streets.mjs, and for the
+// same reason: segments of one street touch end to end, and two streets sharing
+// a name sit villages apart. It has to be the same number because the build's
+// clustering is what decided that "Almviksvägen" is one entry in the quiz, and
+// a smaller number here would light up half of what the quiz calls by that
+// name. `test/streets.test.mjs` holds the two to each other.
+const LINK_M = 500;
 
 // Districts and stadsdelar are kept unclipped here, straight from their
 // GeoJSON: they are what gets highlighted where tile seams would show as stray
@@ -123,6 +130,12 @@ const piecesNamed = (map, sourceLayer, name) => map
   .querySourceFeatures('openmaptiles', { sourceLayer, filter: ['==', 'name', name] })
   .filter((f) => f.properties.name === name);
 
+const asPieces = (features, outline) => features.map((f) => ({
+  type: 'Feature',
+  geometry: f.geometry,
+  properties: { _outline: outline },
+}));
+
 function shapeOf(map, feature, sourceLayer, { outline = false } = {}) {
   const lat = map.getCenter().lat;
   const name = feature.properties?.name;
@@ -139,22 +152,46 @@ function shapeOf(map, feature, sourceLayer, { outline = false } = {}) {
       const gap = gapMeters(box, bboxOf(f.geometry), lat);
       if (gap < bestGap) { bestGap = gap; seed = i; }
     });
-    if (seed >= 0) features = cluster(pieces, seed, 220, lat);
+    if (seed >= 0) features = cluster(pieces, seed, LINK_M, lat);
   }
 
-  return features.map((f) => ({
-    type: 'Feature',
-    geometry: f.geometry,
-    properties: { _outline: outline },
-  }));
+  return asPieces(features, outline);
+}
+
+/**
+ * A street you can already name, in full: every loaded piece called `name` that
+ * hangs together with the one nearest `point`.
+ *
+ * The other way round from `shapeOf`, and the distinction matters. Asking "what
+ * is nearest this point" is the right question when a finger has just landed
+ * somewhere and the name is what you want out of it. It is the wrong question
+ * when the name is what you started with — because a street's point is a vertex
+ * of its own geometry (scripts/lib/geo.mjs picks one), OSM ways are split at
+ * junctions, so that vertex is usually a crossroads with two streets running
+ * through it at a distance of zero. Ask for Södergatan by proximity to
+ * Södergatan's own point and you get Skomakaregatan by a third of a metre, and
+ * the map lights up the wrong street — a short one, crossways, which is what
+ * "only a section of it highlighted" looks like.
+ *
+ * `point` still does the disambiguating, just not the identifying: Bruksvägen
+ * exists in Oxie and in Klagshamn, and the one meant is the one near the point.
+ */
+function streetPieces(map, name, point) {
+  const pieces = piecesNamed(map, 'transportation_name', name)
+    .filter((f) => f.geometry.type !== 'Point');
+  if (!pieces.length) return [];
+  const lat = point[1];
+  let seed = 0;
+  let best = Infinity;
+  pieces.forEach((f, i) => {
+    const d = distanceToLine(point, f.geometry, lat);
+    if (d < best) { best = d; seed = i; }
+  });
+  return cluster(pieces, seed, LINK_M, lat);
 }
 
 // ---- layers -----------------------------------------------------------------
 export function addHighlightLayers(map) {
-  // The tray board goes on first, so the highlight — which is the *answer*,
-  // drawn the moment a name is settled — always sits on top of the slots.
-  addBoardLayers(map);
-
   map.addSource(SRC, { type: 'geojson', data: EMPTY });
 
   map.addLayer({
@@ -201,154 +238,6 @@ const setShape = (map, features) => map.getSource(SRC)
   ?.setData({ type: 'FeatureCollection', features });
 
 export function clearHighlight(map) { setShape(map, []); }
-
-// ---- the tray board ----------------------------------------------------------
-// Tray mode drags names onto a blinded map, and a blinded map does not say
-// where anything *goes*. The delområde boundaries are forced on, but all 136 of
-// them are, so a chunk of eleven names is dragged onto a mesh of identical
-// cells with no way to tell a candidate from a bystander. For a bridge it is
-// worse: nothing is drawn at all, and "drag this name onto the city" is not a
-// question with a visible answer set.
-//
-// So picking a name up lights the slots it could go in — every delområde in the
-// chunk when the name is an area, every bridge when it is a bridge — and a slot
-// turns green once something has landed in it. That is what makes the last few
-// answerable by elimination, which is the whole point of the easy direction:
-// tray mode is recognition, and recognition needs something to recognise
-// *among*. Point mode, which is recall, gets no board at all.
-//
-// The cost is real and accepted: with the drop zones drawn, tray mode is closer
-// to matching names against slots than to placing them from memory. That is
-// what the easy direction is for, and it is why the same chunk is also playable
-// the other way.
-function addBoardLayers(map) {
-  map.addSource(BOARD, { type: 'geojson', data: EMPTY });
-
-  map.addLayer({
-    id: 'board-fill',
-    type: 'fill',
-    source: BOARD,
-    filter: ['==', ['geometry-type'], 'Polygon'],
-    // Deliberately faint. An area slot can be half the screen, and at the
-    // opacity a small shape wants it becomes a wash that everything else — the
-    // rings, the streets, the map underneath — has to be read through. The
-    // outline below is what says where the slot is; the fill only has to say
-    // which side of the line you are on.
-    paint: {
-      'fill-color': ['case', ['get', 'placed'], FILLED, SLOT],
-      'fill-opacity': ['case', ['get', 'placed'], 0.13, 0.05],
-    },
-  });
-
-  // Both the outline of an area slot and the whole length of a street slot. A
-  // street has to read as a stroke along the road rather than as a hairline, so
-  // it is drawn several times wider than a boundary.
-  //
-  // **An empty slot is dashed; a filled one is solid.** Colour alone was doing
-  // this job and could not, on the streets in particular: a grey stroke along a
-  // road drawn in grey casing, next to a green stroke along a road that is not,
-  // are two differences your eye has to go looking for — and with fifty street
-  // slots lit at once in Centrum, going looking is the whole task. Dashed
-  // against solid is a difference that cannot be missed, holds up over white,
-  // yellow and orange roads alike, and does not depend on telling two muted
-  // colours apart. It is two layers rather than one expression because
-  // `line-dasharray` is not data-driven in MapLibre.
-  const line = (id, placed) => ({
-    id,
-    type: 'line',
-    source: BOARD,
-    filter: ['all',
-      ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'LineString']],
-      placed ? ['get', 'placed'] : ['!', ['get', 'placed']]],
-    layout: { 'line-join': 'round', 'line-cap': placed ? 'round' : 'butt' },
-    paint: {
-      'line-color': placed ? FILLED : SLOT,
-      'line-width': ['case',
-        ['==', ['geometry-type'], 'LineString'], placed ? 8 : 6,
-        placed ? 2.5 : 1.6],
-      // The empty state is more opaque than it was as well as dashed. It used
-      // to sit at 0.6, which on a pale road is a suggestion, not a stroke.
-      'line-opacity': placed ? 0.95 : 0.85,
-      // In line widths, so the dash keeps its proportions between a 6 px street
-      // and a 1.6 px boundary rather than turning one of them into a dotted rule.
-      ...(placed ? {} : { 'line-dasharray': [1.6, 1.1] }),
-    },
-  });
-
-  map.addLayer(line('board-line', false));
-  // Filled on top: an answered street crossing an unanswered one should read as
-  // the answered one, since that is the thing that changed.
-  map.addLayer(line('board-line-placed', true));
-
-  // A landmark or a bridge has no shape to tint, so its slot is a ring at the
-  // spot. Deliberately not drawn at the grading tolerance: a 250 m disc is a
-  // dinner plate at close zoom, and the ring is there to say "one of these",
-  // not to promise exactly where the edge of right is.
-  map.addLayer({
-    id: 'board-point',
-    type: 'circle',
-    source: BOARD,
-    filter: ['==', ['geometry-type'], 'Point'],
-    // A ring has to survive being drawn on top of an area slot, so it carries
-    // its contrast in the stroke rather than in the fill.
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 7, 16, 15],
-      'circle-color': ['case', ['get', 'placed'], FILLED, SLOT],
-      'circle-opacity': ['case', ['get', 'placed'], 0.35, 0.12],
-      'circle-stroke-color': ['case', ['get', 'placed'], FILLED, SLOT],
-      'circle-stroke-width': 2.5,
-      'circle-stroke-opacity': 0.95,
-    },
-  });
-}
-
-// One slot's worth of geometry, by the same route the grader takes to it: an
-// area's `covers`, a street found by proximity to `transportation_name`, a
-// point as itself. Drawing a candidate any other way would eventually light up
-// something the grader would not accept.
-function zoneOf(map, { shape, covers = [], point }) {
-  if (shape === 'area') {
-    return districtFeatures.filter((f) => covers.includes(f.properties.name));
-  }
-  if (shape === 'line') {
-    const street = nearestNamedStreet(map, { lng: point[0], lat: point[1] }, 60);
-    return street ? shapeOf(map, street, 'transportation_name') : [];
-  }
-  return [{ geometry: { type: 'Point', coordinates: point } }];
-}
-
-/**
- * Draw the slots for a tray round, and say how many of them could be drawn.
- *
- * `slots` is `[{ name, shape, covers, point, placed }]`. What is in the list is
- * the caller's decision — learn.js shows the kind currently in hand — because
- * "which slots are worth drawing right now" is a question about the round, not
- * about geometry.
- *
- * The count is not bookkeeping. A street slot is looked up in the vector tiles
- * that happen to be loaded, and `transportation_name` is not in them below
- * about z14 — so at the zoom a whole stadsdel is framed at, a street slot
- * resolves to nothing at all. That is not only a drawing problem: the grader
- * finds your answer through the same lookup, so a street question asked at that
- * zoom cannot be got right either. Returning the count lets the caller notice
- * and say so, instead of showing a blank map and marking you wrong on it.
- */
-export function setBoard(map, slots) {
-  let drawn = 0;
-  const features = slots.flatMap((slot) => {
-    const zone = zoneOf(map, slot);
-    if (zone.length) drawn += 1;
-    return zone.map((f) => ({
-      type: 'Feature',
-      geometry: f.geometry,
-      properties: { name: slot.name, placed: !!slot.placed },
-    }));
-  });
-  map.getSource(BOARD)?.setData({ type: 'FeatureCollection', features });
-  return drawn;
-}
-
-export function clearBoard(map) { map.getSource(BOARD)?.setData(EMPTY); }
 
 // ---- picking ----------------------------------------------------------------
 // Metres per screen pixel, so tolerances can be expressed in taps rather than
@@ -480,16 +369,26 @@ export function highlightPoint(map, coords) {
 }
 
 /**
- * The named street nearest a point, optionally lit up end to end.
- *
- * Doubles as the street round's grader and its reveal, which is the right way
- * round: what gets drawn as the answer is by construction the same thing that
- * was tested against.
+ * What street is under this finger? The street round's grader, and the only
+ * thing the quiz asks by proximity — because a tap is a place, not a name.
  */
-export function highlightStreet(map, lngLat, maxMeters, draw = false) {
-  const street = nearestNamedStreet(map, lngLat, maxMeters);
-  if (street && draw) setShape(map, shapeOf(map, street, 'transportation_name'));
-  return street;
+export function streetAt(map, lngLat, maxMeters) {
+  return nearestNamedStreet(map, lngLat, maxMeters);
+}
+
+/**
+ * Light up a street the caller can already name, end to end.
+ *
+ * The reveal, and its own answer to "which Bruksvägen" — `point` picks the
+ * cluster. Returns false when the tiles for it are not loaded, which below
+ * about z14 is every minor street in Malmö: the caller has to be able to tell
+ * "drawn" from "there was nothing to draw".
+ */
+export function highlightStreet(map, name, point) {
+  const pieces = streetPieces(map, name, point);
+  if (!pieces.length) return false;
+  setShape(map, asPieces(pieces, false));
+  return true;
 }
 
 // A delområde's stadsdel comes from the build (covers), not from geometry:
@@ -549,13 +448,12 @@ export function highlightSearchResult(map, entry) {
     const shape = districtShape(entry.name);
     if (shape.length) { setShape(map, shape); return; }
   }
-  if (entry.cat === 'street') {
-    const near = nearestNamedStreet(map, { lng: entry.point[0], lat: entry.point[1] }, 60);
-    if (near?.properties.name === entry.name) {
-      setShape(map, shapeOf(map, near, 'transportation_name'));
-      return;
-    }
-  }
+  // By name, not by what is nearest the point: a search result's point is a
+  // vertex of the street, which is to say a junction, where the cross street is
+  // just as close. Asking by proximity used to hand back the wrong street often
+  // enough that the name check below it quietly dropped a fifth of the streets
+  // in the index to a ring instead.
+  if (entry.cat === 'street' && highlightStreet(map, entry.name, entry.point)) return;
   setShape(map, ringAt(entry.point));
 }
 

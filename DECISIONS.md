@@ -3,6 +3,68 @@
 Short log of the non-obvious choices, so they don't get relitigated. A dated
 bullet lands here only when something non-obvious was actually decided.
 
+- **One mode: peka ut** (2026-08-04). "Dra ut alla" is gone. It lit up every
+  slot the name could go in — every delområde in the chunk, every bridge, every
+  street — and asked you to choose among them, on the theory that recognition is
+  the easy direction you start with before you can recall.
+
+  What it actually was, once the slots were drawn, was a matching exercise. With
+  the delområden outlined and the streets stroked, the map had already narrowed
+  the answer to a dozen shapes, and the round became about telling those shapes
+  apart rather than about knowing where anything is. You can finish a chunk that
+  way having learned the shape of the board. The previous entry in this log
+  ("the board is the run you are in") was the third attempt in a week to keep
+  the easy half honest, which is its own kind of evidence.
+
+  It also cost more than it looked like it did. Every chunk offered a choice
+  nobody had the information to make — nothing on the picker says which mode you
+  should be in, and the honest answer was "the hard one". And in the code, a
+  `mode` was threaded through every function in learn.js, with a tray, a drag
+  ghost, a board of slots that had to be redrawn on every pan, and a set of
+  layers in highlight.js hanging off it: about 250 lines, all of them serving
+  the half that taught less. One question, asked properly.
+
+- **Streets are found by name, not by what is nearest** (2026-08-04). Streets
+  highlighted strangely — asked to show Södergatan, the map would light up a
+  short stretch of something at right angles to it.
+
+  The reveal called "give me the named street nearest this point" with the
+  street's own point. That point comes from `representativePoint`
+  (scripts/lib/geo.mjs), which returns an existing *vertex* of the street — and
+  OSM ways are split at junctions, so a vertex is usually a crossroads. At
+  Södergatan's point, Skomakaregatan is 0.317 m away and Södergatan is 0.329 m
+  away. The cross street won, and was then drawn end to end: a short line,
+  crossways, which is exactly what "only part of the street highlighted" looks
+  like. 20 of the 174 streets in the quiz did this, and the same call in the
+  search dropped another fifth of the street index to a bare ring, because the
+  name check behind it quietly rejected the wrong answer without saying so.
+
+  Proximity is now only for fingers. A tap is a place and the name is what you
+  want out of it, so the grader still asks what is nearest. Anything that
+  already *has* the name asks by name, and uses the point only to pick which
+  Bruksvägen. While there, the clustering distance that joins tile-clipped
+  pieces into one street moved from 220 m to 500 m — the same number as
+  `CLUSTER_GAP_M` in build-streets.mjs, which is what decided that Almviksvägen
+  is one entry in the quiz rather than two. Two files disagreeing about that
+  meant the app drawing 508 m of a street the build called 1144 m long.
+
+  The reason this survived: nothing about streets can be checked by reading
+  `learn.json`, which is correct. It is only wrong once the name is looked up in
+  vector tiles at runtime. `test/streets.test.mjs` now does that lookup against
+  the real archive — see the README. Three of its six tests fail against the old
+  code.
+
+- **The round says "zooma in" on zoom, not on what it failed to draw**
+  (2026-08-04). Same warning, different trigger. It used to fire when the board
+  could not draw any street slots, which was a real measurement but only existed
+  in the mode that had a board. The fact underneath belongs to neither mode:
+  `transportation_name` carries motorways from z10 and the other three thousand
+  names only from z14, so below that a street question cannot be answered *or
+  graded* — the grader looks your tap up in the same tiles. A chunk framed to
+  fit a stadsdel opens well below it. `STREET_ZOOM` is now a named constant read
+  back out of the archive by a test, which is the honest form of the claim: it
+  is a fact about the tileset, not a preference.
+
 - **The panel is the question, not the prize** (2026-08-03). The card was the
   reward for a correct placement: place Sofielund, then find out what Sofielund
   is. It is now up for the whole question instead — name, what it is, its
