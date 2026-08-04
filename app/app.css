@@ -469,15 +469,32 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
   box-shadow: var(--shadow);
 }
 
-/* On a phone the card is a sheet along the bottom, over a map it is mostly
-   covering anyway. Given a wider window it moves to a column down the right,
-   which is the one edge nothing else uses: the prompt owns the top, the tray
-   the bottom, and the answer being revealed is in the middle where you can
-   still watch it happen while you read. */
+/* On a phone the card is a sheet along the bottom; given a wider window it
+   moves to a column down the right, which is the one edge nothing else uses —
+   the prompt owns the top, the nametag the bottom, and the map keeps the middle
+   where you can watch the answer appear while you read about it.
+
+   It is on the whole time now, which changes what it is allowed to cost. As a
+   card after an answer it could take half the screen for a moment; as the
+   question it is competing with the map for the entire round, so on a phone it
+   is capped harder and the picture is cropped shallower. */
 #factcard {
   max-height: 52vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 699px) {
+  #factcard.asking { max-height: 38vh; }
+  #factcard.asking #factimage { aspect-ratio: 16 / 9; }
+  /* The nametag and the sheet both want the bottom edge, and the sheet is the
+     taller of the two, so the tag goes above it. `--panel-h` is measured in
+     learn.js rather than guessed at here: the panel's height depends on whether
+     the name has a picture and a paragraph, which is not something a stylesheet
+     can know. */
+  #play[data-mode="tray"] #tray {
+    bottom: calc(var(--safe-bottom) + var(--gap) + var(--panel-h, 0px) + 8px);
+  }
 }
 
 @media (min-width: 700px) {
@@ -583,7 +600,13 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
    while invisible. In a quiz that is not a cosmetic bug — a hidden tray is a
    hidden answer sheet. */
 #learn[hidden], #play[hidden], #tray[hidden], #factcard[hidden], #summary[hidden],
-#layers[hidden], #searchbar[hidden], #tolearn[hidden], #playbar[hidden] { display: none; }
+#layers[hidden], #searchbar[hidden], #tolearn[hidden], #playbar[hidden],
+/* `#factsource` sets `display: inline-block` from an id, which beat the UA
+   sheet's rule for `hidden` outright — so "Källa" was drawn under every card,
+   linking nowhere, for every name with no source. Invisible while the card
+   only appeared for a moment after an answer; unmissable now that the panel is
+   the question and most of the streets have no source at all. */
+#factsource[hidden] { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   #boot { transition: none; }

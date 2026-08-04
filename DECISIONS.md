@@ -3,6 +3,101 @@
 Short log of the non-obvious choices, so they don't get relitigated. A dated
 bullet lands here only when something non-obvious was actually decided.
 
+- **The panel is the question, not the prize** (2026-08-03). The card was the
+  reward for a correct placement: place Sofielund, then find out what Sofielund
+  is. It is now up for the whole question instead — name, what it is, its
+  picture and what is known about it, sitting there while you look for it — and
+  a settled answer advances to the next name on a timer rather than through a
+  button.
+
+  Three things that bought. A question is never a blank: you are no longer asked
+  for a name you have been told nothing about, which for the hundred-odd streets
+  with no description was most of them. The picture gets the whole question to
+  work on you rather than two seconds after you have stopped needing it. And the
+  dismissal tap is gone — it only ever existed to admit you had finished
+  reading, and the reading is now done before you answer.
+
+  **The cost is that the text can give the answer away**, and it does: 47 of the
+  154 descriptions name another place, and the meta line names the delområde
+  outright — "Slussen · Delområde i Centrum · Där kanalen möter hamnbassängen i
+  öster, vid Slussbron" is most of a location before you have looked at the map.
+  Accepted on the grounds that the app is for learning Malmö rather than for
+  scoring you, and being told where Slussen is while being asked to point at it
+  is a worse quiz and a better lesson. If that turns out to be wrong, the
+  smallest fix is holding `about` and `meta` back until the answer is in, which
+  keeps the name and the picture as the question.
+
+- **The board is the run you are in** (2026-08-03). Everything placed used to
+  stay lit whatever was in hand, on the theory that the round so far is what you
+  eliminate against. But you eliminate *within a kind* — and once the areas were
+  done, that theory meant twenty green delområden sitting underneath the street
+  run, tinting half the city in a colour that had stopped meaning anything
+  there. A run starts clean and shows one kind: open slots dashed, filled ones
+  solid.
+
+- **The view moves only when the answer is off screen** (2026-08-03). Point mode
+  flew to every answer and tray mode never moved, and with pan and zoom now on,
+  both are wrong. Flying every time takes the view out from under someone who
+  panned there on purpose; never moving means being told "så här ligger det"
+  about a place off the edge of the screen. So the reveal checks first — against
+  the part of the canvas nothing is sitting on top of, because revealing an
+  answer *behind the card that explains it* is the exact failure worth avoiding.
+  Nothing re-frames between questions either: the opening view is a starting
+  point, not a cage to be returned to.
+
+- **A street round says "zooma in" when it means it** (2026-08-03). Street slots
+  are looked up in the vector tiles that happen to be loaded, and
+  `transportation_name` is not in them below about z14 — so at the zoom a whole
+  stadsdel is framed at, a street slot resolves to nothing. That was showing up
+  as roads that would not highlight, but the drawing was the lesser half: the
+  grader finds your answer through the *same* lookup, so a street question asked
+  at that zoom could not be got right either. `setBoard` now returns how many
+  slots it could actually draw, and a street run with none of them says the one
+  thing that fixes it. The layer chips already talk this way, for the same
+  reason.
+
+- **The rounds are listed outward from Stortorget** (2026-08-03). The picker was
+  in Swedish alphabetical order, which put Centrum third behind Fosie and Husie
+  above Kirseberg — facts about the alphabet, not about Malmö. Sorted by how far
+  out each stadsdel is, the list is a route: the part you already half-know,
+  then the ring around it, then Oxie nine kilometres down at the bottom where it
+  belongs.
+
+  The anchor is `Stortorget` looked up in the quiz's own items rather than a
+  coordinate pair in a constant, because "the middle of Malmö is Stortorget" is
+  a claim about the city that anyone can check and `13.0006, 55.6061` is a claim
+  about nothing. It lands 163 m from the Centrum chunk's own centroid, which is
+  as good a check as that idea is going to get. A test holds the build to it;
+  the runtime falls back to the centroid of everything, because a missing
+  landmark should cost you the ordering rather than the app.
+
+- **Pan and zoom stay on during a round** (2026-08-03). Tray mode used to
+  disable both, on the grounds that you cannot pan with a name in your hand.
+  That was true of the wall of nametags, where the map had to hold still for a
+  hundred drop targets, and stopped being true when the tray became one tag that
+  is placed as often by tapping as by dragging. Meanwhile the cost had gone up:
+  a chunk framed to fit Centrum on a phone is not a scale you can tell two canal
+  bridges apart at, and refusing to let someone zoom in was testing their
+  eyesight rather than their knowledge. Zooming in is not cheating when the
+  labels are gone — that is what the blinding is for.
+
+  It does mean the board has to follow the view: a street slot is found in the
+  tiles that happen to be loaded, so `moveend` redraws it. Nothing else in the
+  round moves the map on its own, because the board *is* the round so far and
+  taking it out from under you between questions would undo the pan you just
+  made on purpose.
+
+- **A slot is dashed until it is filled** (2026-08-03). The board said "empty"
+  in grey and "placed" in green and left it at that, which fell apart on the
+  streets: a grey stroke along a road drawn in grey casing, next to a green
+  stroke along a road that is not, is two muted colours to tell apart — and with
+  fifty street slots lit at once in Centrum, telling them apart *is* the task.
+  Dashed against solid is a difference that cannot be missed, holds over white,
+  yellow and orange road casings alike, and does not ask anyone to distinguish
+  two dark colours at a glance. Colour still carries the same meaning; it is
+  just no longer carrying it alone. Two layers rather than one expression,
+  because `line-dasharray` is not data-driven in MapLibre.
+
 - **The tray holds one name, and a round runs a kind at a time** (2026-08-03).
   Tray mode laid the whole chunk out as nametags along the bottom, and in
   Centrum that is 104 of them: a wall covering two thirds of the city it was

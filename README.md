@@ -13,17 +13,23 @@ in both directions:
 
 - **Dra ut alla** — one name at a time, dragged out onto the map, and the map
   shows you where it could go: every delområde in the chunk if it is an area,
-  every bridge if it is a bridge, every street if it is a street. A slot turns
-  green once something has landed in it, so you can see what is left and the
-  last few in a kind go by elimination. That is the easy direction, and it is
-  where you start.
+  every bridge if it is a bridge, every street if it is a street. A slot is
+  dashed until something lands in it and solid green after, so you can see what
+  is left and the last few in a kind go by elimination. That is the easy
+  direction, and it is where you start.
 - **Peka ut** — one name, no slots, tap where it is. Nothing to eliminate
   against, so this is the one that says whether you actually know it.
 
-Get it right and the map tells you something about the place: what Västra Hamnen
-was before it was Västra Hamnen, why Augustenborg is famous outside Sweden, what
-Suellsbron is named after. That card is the point; the placing is how it earns
-your attention.
+The board shows the run you are in and nothing else, so finishing the
+delområden clears them off before the gator start. Both modes leave the map
+yours — pan and zoom are on, because zooming in to be sure is not cheating when
+there is nothing left to read — and neither re-frames between questions. The
+reveal moves the view only when the answer is off screen.
+
+The panel alongside is the question rather than the reward for answering one:
+what Västra Hamnen was before it was Västra Hamnen, why Augustenborg is famous
+outside Sweden, what Suellsbron is named after — there while you look for it,
+with the picture. That is the point; the placing is what makes you read it.
 
 The old reference map is still here as **Utforska** — search, layer chips, tap
 anything to find out what it is. It is where you go to learn the names in the
@@ -107,6 +113,12 @@ unreachable from inside a round, for the obvious reason.
   small enough to be comfortable was too small to contain the things most worth
   knowing. Nothing has to fit on a screen now that the tray holds one name.
 
+  The picker lists them **outward from Stortorget**, nearest first, because that
+  is how a city is learned. It used to be A–Ö, which put Centrum third behind
+  Fosie and is a fact about the alphabet rather than about Malmö. The anchor is
+  a name looked up in the quiz's own data, not a pair of coordinates in a
+  constant: "the middle of Malmö is Stortorget" is a claim anyone can check.
+
 - **A round runs a kind at a time**, in the order the kinds are declared in
   `app/rounds.mjs`: every delområde, then every gata, then the broar, then the
   landmärken, shuffled inside each. Mixing them cost more than it looked like it
@@ -135,9 +147,15 @@ unreachable from inside a round, for the obvious reason.
   split of Centrum — without costing anyone what they had learned. Nothing
   leaves the device here either.
 
-- **What it says about a place.** The card after a correct placement is why the
-  app exists — a panel down the right of the map, a sheet along the bottom of a
-  phone. Its coverage is deliberately uneven: 44 of 136 delområden have real
+- **What it says about a place.** The panel is why the app exists — a column
+  down the right of the map, a sheet along the bottom of a phone — and it is
+  *the question* rather than the reward for answering one. The name you are
+  being asked for, what it is, its picture and what is known about it, all
+  sitting there while you look for it; place it and the next name arrives on
+  its own. So no question is a blank, and the picture has the whole question to
+  work on you instead of two seconds after you have stopped needing it. The
+  price is that a description often says roughly where the thing is, which is a
+  worse quiz and a better lesson. Its coverage is deliberately uneven: 44 of 136 delområden have real
   text, all 55 landmarks, all 19 bridges, 36 of 174 streets. The rest place
   perfectly well and fall back on what the build can prove — "Delområde i
   Fosie", "Bro över Malmö kanal". A place I know nothing about says nothing

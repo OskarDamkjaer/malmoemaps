@@ -174,6 +174,26 @@ test('the shuffle keeps every name and does not leave them where they were', () 
   assert.ok(moved > 45, `only ${moved} of 60 items moved — that is not a shuffle`);
 });
 
+test('the chunks are listed from the middle of town outward', { skip }, () => {
+  // The picker's order. A–Ö put Centrum third, behind Fosie, which is a fact
+  // about the alphabet rather than about Malmö.
+  const chunks = chunksOf(items);
+  const away = chunks.map((c) => c.away);
+
+  assert.deepEqual([...away].sort((a, b) => a - b), away, 'the list is not ordered outward');
+  assert.equal(chunks[0].label, 'Centrum', 'the middle of town is not first');
+  assert.equal(chunks.at(-1).label, 'Oxie', 'the furthest out is not last');
+});
+
+test('the anchor the order is measured from exists', { skip }, () => {
+  // chunksOf measures from Stortorget and falls back to the centroid of
+  // everything if it is gone — which would silently reorder the front door, so
+  // it fails here instead. If the landmark is ever removed on purpose, this
+  // test is the place that says what else has to change.
+  assert.ok(items.some((it) => it.name === 'Stortorget'),
+    'Stortorget is what "how far out is this" is measured from');
+});
+
 test('a chunk is one part of town', { skip }, () => {
   // The point of cutting by stadsdel: a chunk is somewhere, so it can be played
   // at one fixed view. A chunk drawn from two stadsdelar would be a map of the

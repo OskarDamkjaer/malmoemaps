@@ -243,20 +243,42 @@ function addBoardLayers(map) {
   // Both the outline of an area slot and the whole length of a street slot. A
   // street has to read as a stroke along the road rather than as a hairline, so
   // it is drawn several times wider than a boundary.
-  map.addLayer({
-    id: 'board-line',
+  //
+  // **An empty slot is dashed; a filled one is solid.** Colour alone was doing
+  // this job and could not, on the streets in particular: a grey stroke along a
+  // road drawn in grey casing, next to a green stroke along a road that is not,
+  // are two differences your eye has to go looking for — and with fifty street
+  // slots lit at once in Centrum, going looking is the whole task. Dashed
+  // against solid is a difference that cannot be missed, holds up over white,
+  // yellow and orange roads alike, and does not depend on telling two muted
+  // colours apart. It is two layers rather than one expression because
+  // `line-dasharray` is not data-driven in MapLibre.
+  const line = (id, placed) => ({
+    id,
     type: 'line',
     source: BOARD,
-    filter: ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'LineString']],
-    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    filter: ['all',
+      ['any', ['==', ['geometry-type'], 'Polygon'], ['==', ['geometry-type'], 'LineString']],
+      placed ? ['get', 'placed'] : ['!', ['get', 'placed']]],
+    layout: { 'line-join': 'round', 'line-cap': placed ? 'round' : 'butt' },
     paint: {
-      'line-color': ['case', ['get', 'placed'], FILLED, SLOT],
+      'line-color': placed ? FILLED : SLOT,
       'line-width': ['case',
-        ['==', ['geometry-type'], 'LineString'], ['case', ['get', 'placed'], 8, 6],
-        ['case', ['get', 'placed'], 2.5, 1.6]],
-      'line-opacity': ['case', ['get', 'placed'], 0.95, 0.6],
+        ['==', ['geometry-type'], 'LineString'], placed ? 8 : 6,
+        placed ? 2.5 : 1.6],
+      // The empty state is more opaque than it was as well as dashed. It used
+      // to sit at 0.6, which on a pale road is a suggestion, not a stroke.
+      'line-opacity': placed ? 0.95 : 0.85,
+      // In line widths, so the dash keeps its proportions between a 6 px street
+      // and a 1.6 px boundary rather than turning one of them into a dotted rule.
+      ...(placed ? {} : { 'line-dasharray': [1.6, 1.1] }),
     },
   });
+
+  map.addLayer(line('board-line', false));
+  // Filled on top: an answered street crossing an unanswered one should read as
+  // the answered one, since that is the thing that changed.
+  map.addLayer(line('board-line-placed', true));
 
   // A landmark or a bridge has no shape to tint, so its slot is a ring at the
   // spot. Deliberately not drawn at the grading tolerance: a 250 m disc is a
@@ -296,20 +318,34 @@ function zoneOf(map, { shape, covers = [], point }) {
 }
 
 /**
- * Draw the slots for a tray round.
+ * Draw the slots for a tray round, and say how many of them could be drawn.
  *
  * `slots` is `[{ name, shape, covers, point, placed }]`. What is in the list is
- * the caller's decision — learn.js shows the kind currently in hand plus
- * everything already placed — because "which slots are worth drawing right now"
- * is a question about the round, not about geometry.
+ * the caller's decision — learn.js shows the kind currently in hand — because
+ * "which slots are worth drawing right now" is a question about the round, not
+ * about geometry.
+ *
+ * The count is not bookkeeping. A street slot is looked up in the vector tiles
+ * that happen to be loaded, and `transportation_name` is not in them below
+ * about z14 — so at the zoom a whole stadsdel is framed at, a street slot
+ * resolves to nothing at all. That is not only a drawing problem: the grader
+ * finds your answer through the same lookup, so a street question asked at that
+ * zoom cannot be got right either. Returning the count lets the caller notice
+ * and say so, instead of showing a blank map and marking you wrong on it.
  */
 export function setBoard(map, slots) {
-  const features = slots.flatMap((slot) => zoneOf(map, slot).map((f) => ({
-    type: 'Feature',
-    geometry: f.geometry,
-    properties: { name: slot.name, placed: !!slot.placed },
-  })));
+  let drawn = 0;
+  const features = slots.flatMap((slot) => {
+    const zone = zoneOf(map, slot);
+    if (zone.length) drawn += 1;
+    return zone.map((f) => ({
+      type: 'Feature',
+      geometry: f.geometry,
+      properties: { name: slot.name, placed: !!slot.placed },
+    }));
+  });
   map.getSource(BOARD)?.setData({ type: 'FeatureCollection', features });
+  return drawn;
 }
 
 export function clearBoard(map) { map.getSource(BOARD)?.setData(EMPTY); }

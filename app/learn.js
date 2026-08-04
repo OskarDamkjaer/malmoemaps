@@ -22,12 +22,20 @@
 //   again sooner. Strikes are counted per session, not per name: replaying a
 //   chunk is meant to be a second chance, not a shorter fuse.
 //
-//   The card comes on success, not on failure. The point of the app is not to
-//   score you; it is that "Sofielund" ends up attached to a place *and* to
-//   something about the place. So a correct placement is the moment the app has
-//   your attention, and it spends it on the fact rather than on a tick.
+//   The panel is the question, not the prize. It used to be the reward for a
+//   correct placement — the app has your attention at that moment, spend it on
+//   the fact rather than on a tick — and it is now up the whole time, saying
+//   what the thing is and showing its picture while you look for it. The point
+//   of the app was never the scoring; it is that "Sofielund" ends up attached
+//   to a place *and* to something about the place, and a name you were told
+//   about and then had to go and find gets both halves in one go. It also means
+//   no question is a blank: you are never asked for a name you have been given
+//   nothing to hang on to.
+//
+//   Nothing waits for a button. A settled answer outlines itself on the map and
+//   the next name arrives a beat later, because the reading is already done.
 import {
-  KINDS, MODES, OUTLINE_LAYERS, byKind, chunksOf, graded, shuffled,
+  KINDS, MODES, OUTLINE_LAYERS, byKind, chunksOf, graded, metersBetween, shuffled,
 } from './rounds.mjs';
 import {
   forgetEverything, inAskingOrder, progressOf, record,
@@ -46,19 +54,18 @@ let leaveToExplore = null;
 // The chunk in progress, or null. Everything about a session lives here and
 // nowhere else, so quitting is one assignment.
 let session = null;
+// The beat between a settled answer and the next question, during which the map
+// is showing you where the thing actually was and taps are not guesses.
+let settleTimer = 0;
+// The panel is showing a name from the summary rather than the one being asked.
+// Only reachable once the round is over, and the one thing Escape backs out of.
+let reviewing = false;
 
 export const isPlaying = () => session !== null;
 
 const shapeOf = (item) => KINDS[item.kind].shape;
 
 // ---- geometry --------------------------------------------------------------
-const M_PER_DEG_LAT = 111320;
-const mPerDegLon = (lat) => M_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180);
-
-function metersBetween(a, b) {
-  return Math.hypot((a[0] - b[0]) * mPerDegLon(b[1]), (a[1] - b[1]) * M_PER_DEG_LAT);
-}
-
 // Tolerances are written in metres but felt in fingertips, so the grader needs
 // to know what a pixel is worth at the zoom you are actually playing at.
 //
@@ -100,12 +107,19 @@ function boundsOf(chunk) {
   return [[w, s], [e, n]];
 }
 
-// The tray sits along the bottom and the prompt along the top, and both are
-// over the map: padding is what keeps the board out from under them.
-function frame(chunk, mode, duration) {
+// The prompt sits along the top, the nametag along the bottom, and the panel
+// takes a whole column or a whole sheet depending on the window: padding is
+// what keeps the board out from under all of it.
+function frame(chunk, duration) {
+  // The #factcard breakpoint in app.css, asked of the canvas rather than the
+  // window because the canvas is the thing being padded.
+  const wide = map.getCanvas().clientWidth >= 700;
   map.fitBounds(boundsOf(chunk), {
     padding: {
-      top: 76, bottom: mode === 'tray' ? 112 : 96, left: 26, right: 26,
+      top: 76,
+      bottom: wide ? 96 : 320,
+      left: 26,
+      right: wide ? 360 : 26,
     },
     // A chunk of three things a hundred metres apart should not put you on a
     // rooftop; the point of the blind map is that you can still see the city
@@ -178,44 +192,55 @@ function startSession(chunk, mode) {
     // holds them — and "En gång till" would start you on your last strike.
     strikes: new Map(),
     armed: null,
+    // True between a settled answer and the next question, while the map is
+    // showing where the thing was. A tap then is looking, not guessing.
+    settling: false,
   };
+  reviewing = false;
+  clearTimeout(settleTimer);
+  // The panel sits along the bottom on a phone, and so does the nametag. Which
+  // of them has the bottom edge is a question about the mode, so the mode is on
+  // the element and app.css answers it there.
+  el('play').dataset.mode = mode;
   enterBlind(map, OUTLINE_LAYERS);
   clearHighlight(map);
-  frame(chunk, mode, 600);
-  // Tray mode is played on a fixed board: you cannot pan with a name in your
-  // hand, and a round where the answer can be scrolled off screen is a round
-  // about scrolling. (The board itself is drawn by renderRound, which is what
+  // The opening view, not a cage. Tray mode used to disable pan and zoom on the
+  // grounds that you cannot pan with a name in your hand — true of the old wall
+  // of nametags, where the map had to hold still for a hundred drop targets,
+  // and false now: there is one tag, it is placed as often by tapping as by
+  // dragging, and a chunk framed to fit Centrum on a phone is too small a scale
+  // to tell two canal bridges apart on. Zooming in is not cheating when there
+  // are no labels to read. (The board is drawn by renderRound, which is what
   // knows which name is in hand.)
-  if (mode === 'tray') lockMap(true); else clearBoard(map);
+  frame(chunk, 600);
+  if (mode !== 'tray') clearBoard(map);
   el('learn').hidden = true;
   el('play').hidden = false;
   renderRound();
 }
 
-function lockMap(locked) {
-  const handlers = ['dragPan', 'scrollZoom', 'boxZoom', 'doubleClickZoom', 'touchZoomRotate'];
-  for (const h of handlers) (locked ? map[h].disable() : map[h].enable());
-}
-
 /**
  * The slots, and which of them are filled.
  *
- * What is drawn depends on what you are holding: pick up a bridge and every
- * bridge in the chunk lights up, pick up a delområde and every delområde does.
- * Showing all four kinds at once would be a wall of rings and tints over a map
- * that is meant to still be readable, and would answer a question nobody asked
- * — you are not choosing between a bridge and a street, you are choosing
- * between the bridges.
+ * The board is the run you are in and nothing else: every item of the kind in
+ * hand, dashed where it is still open and solid green where something has
+ * landed. Showing all four kinds at once would be a wall of rings and tints
+ * over a map that is meant to still be readable, and would answer a question
+ * nobody asked — you are not choosing between a bridge and a street, you are
+ * choosing between the bridges.
  *
- * Everything already placed stays lit and green whatever is in hand, because
- * that is the round so far and it is the thing you eliminate against.
+ * That applies to what is *finished* too, which it did not use to. Everything
+ * placed stayed lit whatever was in hand, on the theory that the round so far
+ * is what you eliminate against — but you eliminate within a kind, and by the
+ * time the areas were done that theory meant twenty green delområden sitting
+ * under the street run, tinting half the city a colour that no longer meant
+ * anything. A run starts clean.
  */
 function drawBoard(inHand = session.armed) {
+  if (!inHand) { clearBoard(map); return 0; }
   const placed = new Set(session.done.map((d) => d.item.name));
-  const shown = session.chunk.items.filter(
-    (it) => placed.has(it.name) || (inHand && it.kind === inHand.kind),
-  );
-  setBoard(map, shown.map((it) => ({
+  const shown = session.chunk.items.filter((it) => it.kind === inHand.kind);
+  return setBoard(map, shown.map((it) => ({
     name: it.name,
     shape: shapeOf(it),
     covers: it.covers,
@@ -224,9 +249,28 @@ function drawBoard(inHand = session.armed) {
   })));
 }
 
+/**
+ * The board, and the prompt that goes with whether it could be drawn.
+ *
+ * Street slots come out of the loaded vector tiles, so both what you can see
+ * and what the grader can accept depend on the zoom you are at. Rather than
+ * leave a street round looking broken at the zoom a whole stadsdel is framed
+ * at, the prompt says the one thing that fixes it. The app already talks this
+ * way — the layer chips say "zooma in" for the same reason.
+ */
+function refreshBoard() {
+  const drawn = drawBoard();
+  const inHand = session.armed;
+  const blind = inHand && shapeOf(inHand) === 'line' && !drawn;
+  el('prompt').textContent = blind
+    ? `Zooma in för att se gatorna — ${session.chunk.label}`
+    : `Dra namnet dit det hör hemma — ${session.chunk.label}`;
+}
+
 function quitRound() {
   if (!session) return;
-  lockMap(false);
+  clearTimeout(settleTimer);
+  reviewing = false;
   leaveBlind(map);
   clearHighlight(map);
   clearBoard(map);
@@ -238,6 +282,18 @@ function quitRound() {
 }
 
 // ---- answering -------------------------------------------------------------
+/**
+ * Is a tap on the map a guess right now?
+ *
+ * It is not during the beat after a settled answer, when the map is showing you
+ * where the thing was and the next name has not arrived; and it is not while a
+ * name from the summary is on the panel, because that round is over. Both used
+ * to be covered by "is the card hidden", which stopped meaning anything when
+ * the card became the question.
+ */
+const answerable = () => !!session && !session.settling && !reviewing
+  && !!session.queue.length;
+
 /**
  * One attempt at one name. The only path from a tap to the store.
  */
@@ -279,23 +335,40 @@ function missText(verdict) {
  * take it out of the round.
  */
 function finish(item, outcome) {
-  const { mode } = session;
   session.done.push({ item, outcome });
   session.queue = session.queue.filter((q) => q.name !== item.name);
-
+  renderTally();
   reveal(item);
-  if (mode === 'tray') {
-    // Straight on to the next name: one gesture per question, and the board
-    // redraws around whatever is in hand now.
-    renderRound();
-    say(outcome === 'right' ? `Rätt — ${item.name}` : `${item.name} ligger här.`, outcome);
-    // The tray keeps its rhythm: a card per name would be 119 interruptions in
-    // a round of Centrum. The facts are all still there, one tap away in the
-    // summary, once the placing is over.
-    if (!session.queue.length) setTimeout(showSummary, 700);
-    return;
-  }
-  showFact(item, outcome);
+  say(outcome === 'right' ? `Rätt — ${item.name}` : `${item.name} ligger här.`, outcome);
+  // The panel already said everything there is to say about this name — it has
+  // been saying it since the question opened — so there is nothing to stop for
+  // and nothing to dismiss. The pause is for the outline that has just appeared
+  // on the map, and it is longer when the map is telling you something you did
+  // not know.
+  session.settling = true;
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(nextQuestion, outcome === 'right' ? 750 : 2200);
+}
+
+/**
+ * Is this spot somewhere you can actually see it?
+ *
+ * Not `getBounds().contains`, which counts the strip under the prompt bar, the
+ * nametag and — on a wide window — the whole column the fact card is about to
+ * open in. Revealing an answer *behind the card explaining it* is the failure
+ * this exists to avoid, so the test is against the part of the canvas nothing
+ * is sitting on top of.
+ */
+function inView(point) {
+  const canvas = map.getCanvas();
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  // Matches the #factcard breakpoint in app.css: below it the card is a sheet
+  // along the bottom, above it a column down the right.
+  const wide = w >= 700;
+  const { x, y } = map.project(point);
+  return x >= 24 && x <= w - (wide ? 350 : 24)
+    && y >= 86 && y <= h - (wide ? 24 : 240);
 }
 
 function reveal(item) {
@@ -303,9 +376,11 @@ function reveal(item) {
   if (shape === 'area') highlightCovers(map, item.covers ?? [item.name]);
   else if (shape === 'line') highlightStreet(map, { lng: item.point[0], lat: item.point[1] }, 60, true);
   else highlightPoint(map, item.point);
-  // Tray mode holds the board still — flying to each answer would undo the
-  // fixed view the mode is played on.
-  if (session.mode === 'point') map.easeTo({ center: item.point, duration: 500 });
+  // Move only when there is something to move for. Flying to every answer takes
+  // the view out from under someone who panned there on purpose; never moving
+  // means being told "så här ligger det" about a place off the edge of the
+  // screen. So: if you can already see it, stay put.
+  if (!inView(item.point)) map.easeTo({ center: item.point, duration: 500 });
 }
 
 // ---- chrome ----------------------------------------------------------------
@@ -318,9 +393,12 @@ function renderRound() {
   renderTally();
   el('tray').hidden = mode !== 'tray';
 
+  if (!queue.length) { hideFact(); showSummary(); return; }
+  // The panel is the question, so it is filled here rather than after an answer.
+  showFact(queue[0]);
+
   if (mode === 'point') {
-    el('prompt').textContent = queue.length ? `Var ligger ${queue[0].name}?` : 'Klart.';
-    if (!queue.length) showSummary();
+    el('prompt').textContent = `Var ligger ${queue[0].name}?`;
     return;
   }
 
@@ -329,9 +407,8 @@ function renderRound() {
   // tap that exists to be got out of the way. The board lights its kind's slots
   // straight away, which is what tray mode is *for*.
   session.armed = queue[0] ?? null;
-  el('prompt').textContent = `Dra namnet dit det hör hemma — ${session.chunk.label}`;
   renderTray();
-  drawBoard();
+  refreshBoard();
 }
 
 /**
@@ -433,7 +510,7 @@ function armDragging(chip, item) {
     const rect = map.getCanvas().getBoundingClientRect();
     const inside = e.clientX >= rect.left && e.clientX <= rect.right
       && e.clientY >= rect.top && e.clientY <= rect.bottom;
-    if (!inside) return;
+    if (!inside || !answerable()) return;
     answer(item, map.unproject([e.clientX - rect.left, e.clientY - rect.top]));
   });
 
@@ -480,12 +557,33 @@ function showPicture(item) {
   // A picture that will not load leaves no frame behind. The likeliest cause is
   // a first run that went offline before the service worker finished, which is
   // not worth a broken-image icon on the one card the app exists to show.
-  img.onerror = () => { figure.hidden = true; };
+  // Either way the panel has just changed height, and something is positioned
+  // off that height.
+  img.onerror = () => { figure.hidden = true; measurePanel(); };
+  img.onload = measurePanel;
   el('factcredit').textContent = item.credit ?? '';
   el('factcredit').hidden = !item.credit;
   figure.hidden = false;
 }
-function showFact(item, outcome) {
+/**
+ * The panel, in its two states.
+ *
+ * With no `outcome` it is **the question**: the name you are being asked for,
+ * what it is, its picture and what is known about it, sitting there the whole
+ * time you are looking for it. That is a different bargain from the one this
+ * card used to make — it was the reward for placing something, shown once the
+ * name had just become a place — and it is a deliberate trade. Read-then-place
+ * means you are never asked for a name you have been told nothing about, and
+ * the picture has the whole question to work on you rather than two seconds
+ * after you no longer need it.
+ *
+ * With an `outcome` it is **the review**, reached from the summary once the
+ * round is over: same contents, plus how it went and a way back. That is the
+ * only path that still has a button, because it is the only one where there is
+ * a decision to make about what happens next.
+ */
+function showFact(item, outcome = null) {
+  const asking = outcome === null;
   el('factname').textContent = item.name;
   el('factmeta').textContent = item.meta ?? '';
   el('factmeta').hidden = !item.meta;
@@ -496,26 +594,58 @@ function showFact(item, outcome) {
   const src = el('factsource');
   src.hidden = !item.source;
   if (item.source) src.href = item.source;
-  el('factverdict').textContent = outcome === 'right' ? 'Rätt' : 'Så här ligger det';
-  el('factverdict').dataset.tone = outcome;
-  // Reached two ways: as the reward at the end of a point-mode question, where
-  // it leads on to the next name, and from the summary, where the round is
-  // already over and there is nothing to go on to.
-  el('next').textContent = session?.queue.length ? 'Nästa' : 'Klart';
+
+  el('factverdict').hidden = asking;
+  if (!asking) {
+    el('factverdict').textContent = outcome === 'right' ? 'Rätt' : 'Så här ligger det';
+    el('factverdict').dataset.tone = outcome;
+  }
+  el('next').hidden = asking;
+  el('factcard').classList.toggle('asking', asking);
   el('factcard').hidden = false;
-  el('next').focus();
+  if (!asking) { el('next').textContent = 'Klart'; el('next').focus(); }
+  measurePanel();
+}
+
+/**
+ * How tall the panel ended up, for the one thing that has to know: on a phone
+ * the nametag sits above it, and how far above depends on whether this name
+ * came with a picture and a paragraph. A stylesheet cannot ask that, so the
+ * answer is measured and handed over as a custom property.
+ */
+function measurePanel() {
+  const card = el('factcard');
+  el('play').style.setProperty('--panel-h', card.hidden ? '0px' : `${card.offsetHeight}px`);
 }
 
 function hideFact() {
   el('factcard').hidden = true;
-  if (session) clearHighlight(map);
+  reviewing = false;
+  measurePanel();
 }
 
+/**
+ * On to the next name.
+ *
+ * Reached on a timer rather than by a button. The old flow put a card between
+ * every question and the next one and asked you to dismiss it, which is a tap
+ * that exists only to admit you have finished reading — and there is nothing
+ * left to read, because the panel said it all before you answered. What the
+ * pause is for is the map: the answer has just been outlined, and going
+ * straight on would take it away before it registered. Longer when you were
+ * shown the answer than when you found it, because those are different amounts
+ * of looking.
+ */
 function nextQuestion() {
-  hideFact();
+  clearTimeout(settleTimer);
   if (!session) return;
-  if (!session.queue.length) { showSummary(); return; }
-  frame(session.chunk, session.mode, 400);
+  session.settling = false;
+  clearHighlight(map);
+  if (!session.queue.length) { hideFact(); showSummary(); return; }
+  // No re-framing. The opening view is a starting point, and snapping back to
+  // it every question would hand the zoom control back with one hand and take
+  // it away with the other — including the zoom you needed to see a street at
+  // all.
   renderRound();
 }
 
@@ -532,8 +662,9 @@ function showSummary() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.append(item.name);
-    // The facts nobody stopped to read during a tray round are all here.
-    btn.addEventListener('click', () => { showFact(item, outcome); });
+    // Every card again, in one list: the round is over, and the one you want a
+    // second look at is rarely the one that was last on screen.
+    btn.addEventListener('click', () => { reviewing = true; showFact(item, outcome); });
     li.append(btn);
     list.append(li);
   }
@@ -617,7 +748,8 @@ export async function initLearn(mapInstance, { onExplore }) {
   items = await fetch(DATA).then((r) => r.json()).then((d) => d.items);
 
   el('quit').addEventListener('click', quitRound);
-  el('next').addEventListener('click', nextQuestion);
+  // Only ever the review card's way out, now that questions advance themselves.
+  el('next').addEventListener('click', hideFact);
   el('summaryagain').addEventListener('click', () => {
     const { chunk, mode } = session;
     el('summary').hidden = true;
@@ -636,26 +768,35 @@ export async function initLearn(mapInstance, { onExplore }) {
   map.on('click', (e) => {
     if (!session) return;
     e._handled = true;
-    if (session.mode === 'point') {
-      const item = session.queue[0];
-      if (item && el('factcard').hidden) answer(item, e.lngLat);
-      return;
-    }
-    if (session.armed) answer(session.armed, e.lngLat);
+    if (!answerable()) return;
+    const item = session.mode === 'point' ? session.queue[0] : session.armed;
+    if (item) answer(item, e.lngLat);
+  });
+
+  // A street slot is found in the tiles that are loaded (highlight.js asks the
+  // `transportation_name` source what is near the point), so the board is only
+  // true of the view it was built at. That did not matter while tray mode was
+  // played at a fixed view; now that you can pan and zoom, panning to a street
+  // that was off screen has to bring its slot with it — and zooming out past
+  // where the source has geometry has to be recoverable by zooming back in.
+  map.on('moveend', () => {
+    // Not while the card is up: the board behind it belongs to the question
+    // just answered, and the easeTo that revealed the answer is itself a move.
+    if (session?.mode === 'tray' && el('factcard').hidden) refreshBoard();
   });
 }
 
 /**
  * Escape, while a round is running.
  *
- * Backs out one layer at a time rather than quitting outright: the card over
- * the round, then the round itself. Quitting from a card you opened to read
- * would lose the round you were in the middle of.
+ * Backs out one layer at a time rather than quitting outright, and there is
+ * exactly one layer left to back out of: a name opened from the summary. The
+ * panel itself is no longer something you escape — it is the question, and
+ * escaping the question is escaping the round.
  */
 export function escapeLearn() {
   if (!session) return false;
-  if (!el('factcard').hidden) { hideFact(); return true; }
-  if (!el('summary').hidden) { quitRound(); return true; }
+  if (reviewing) { hideFact(); return true; }
   quitRound();
   return true;
 }

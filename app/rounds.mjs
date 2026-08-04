@@ -28,9 +28,9 @@
 //   'point' — one name and a bare map, tap where it is. Nothing to eliminate
 //             against, so this is the direction that says whether you know it.
 //
-// Tray mode is played at a fixed view (you cannot pan with a name in your
-// hand). Point mode leaves the map yours — zooming in to be sure is not
-// cheating when the labels are gone.
+// Both leave the map yours: pan and zoom are on, because zooming in to be sure
+// is not cheating when there are no labels to read, and a chunk framed to fit
+// Centrum on a phone is too small a scale to tell two canal bridges apart on.
 
 /**
  * The kinds of thing the quiz can ask about.
@@ -74,6 +74,23 @@ export const OUTLINE_LAYERS = [...new Set(
 )];
 
 export const MODES = ['tray', 'point'];
+
+// ---- distance ----------------------------------------------------------------
+// Equirectangular rather than haversine. Over a city fifteen kilometres across
+// the difference is centimetres, and every tolerance in this file is a round
+// number of metres chosen by feel — so the exact formula is not what decides
+// whether a drop counts.
+const M_PER_DEG_LAT = 111320;
+
+export function metersBetween(a, b) {
+  const mPerDegLon = M_PER_DEG_LAT * Math.cos((b[1] * Math.PI) / 180);
+  return Math.hypot((a[0] - b[0]) * mPerDegLon, (a[1] - b[1]) * M_PER_DEG_LAT);
+}
+
+const centroid = (items) => [
+  items.reduce((sum, it) => sum + it.point[0], 0) / items.length,
+  items.reduce((sum, it) => sum + it.point[1], 0) / items.length,
+];
 
 /**
  * A round runs one kind at a time: every delområde, then every gata, then the
@@ -133,7 +150,19 @@ export function shuffled(items) {
 export const MAX_CHUNK = 200;
 
 /**
- * The city, cut into playable pieces: one per stadsdel.
+ * The middle of Malmö, for the one thing that needs one: the order the picker
+ * lists the chunks in.
+ *
+ * A name out of the quiz's own data rather than a pair of coordinates in a
+ * constant, because "the middle of Malmö is Stortorget" is a claim about the
+ * city that anyone can check, and 13.0006, 55.6061 is a claim about nothing.
+ * `test/rounds.test.mjs` holds the build to it, so removing the landmark fails
+ * there instead of quietly reshuffling the front door.
+ */
+const CENTRE = 'Stortorget';
+
+/**
+ * The city, cut into playable pieces: one per stadsdel, ordered outward.
  *
  * A stadsdel is a line the city already has and a line people already think in,
  * and — the reason it is not cut any finer — it is big enough that a street
@@ -141,10 +170,19 @@ export const MAX_CHUNK = 200;
  * to end. Chunks are uneven as a result (Rosengård has 13 names, Centrum 120),
  * which is honest: those parts of town are not the same size either.
  *
+ * The order is how far out each one is, nearest first, because that is how a
+ * city is learned and it was previously A–Ö — which put Centrum third, behind
+ * Fosie, and Husie above Kirseberg. Neither of those is a fact about anything.
+ * Sorted outward, the list is a route: the part you already half-know, then the
+ * ring around it, and Oxie nine kilometres out at the bottom where it belongs.
+ * Distance is measured centre of chunk to Stortorget — the whole chunk, so a
+ * stadsdel is placed by where its names are rather than by its nearest corner.
+ *
  * Chunks are derived from the items, never listed: a delområde that moves
  * stadsdel moves chunk without anyone editing this file. Nothing is stored
- * against a chunk id (progress is per name — see progress.mjs), so the cut can
- * change between builds without costing anyone what they have learned.
+ * against a chunk id (progress is per name — see progress.mjs), so the cut and
+ * the order can change between builds without costing anyone what they have
+ * learned.
  */
 export function chunksOf(items) {
   const byStadsdel = new Map();
@@ -154,9 +192,24 @@ export function chunksOf(items) {
     byStadsdel.get(k).push(it);
   }
 
+  // Falling back to the middle of everything rather than throwing: a missing
+  // landmark should cost you the ordering, not the app. It is close enough to
+  // keep the list roughly outward, and the test says when it has happened.
+  const centre = items.find((it) => it.name === CENTRE)?.point ?? centroid(items);
+
   return [...byStadsdel]
-    .sort((a, b) => a[0].localeCompare(b[0], 'sv'))
-    .map(([stadsdel, all]) => ({ id: stadsdel, label: stadsdel, items: all }));
+    .map(([stadsdel, all]) => ({
+      id: stadsdel,
+      label: stadsdel,
+      items: all,
+      // Kept on the chunk rather than recomputed in the sort: it is what the
+      // order means, so it should be readable from the thing that was ordered.
+      away: Math.round(metersBetween(centroid(all), centre)),
+    }))
+    // Ties broken by name so the cut stays deterministic between calls, which
+    // the picker depends on — a list that reshuffles is one you lose your place
+    // in.
+    .sort((a, b) => a.away - b.away || a.label.localeCompare(b.label, 'sv'));
 }
 
 /**

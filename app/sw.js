@@ -8,7 +8,7 @@
 //
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
-const CODE = 'malmo-code-v8';
+const CODE = 'malmo-code-v11';
 const DATA = 'malmo-data-2026-08-03c';
 
 const CODE_FILES = [
