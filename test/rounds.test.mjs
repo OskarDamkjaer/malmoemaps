@@ -12,7 +12,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import {
-  KINDS, KIND_IDS, MAX_CHUNK, byKind, chunksOf, graded,
+  KINDS, KIND_IDS, MAX_CHUNK, TIERS, byKind, chunksOf, graded,
 } from '../app/rounds.mjs';
 
 const FILE = 'build/data/learn.json';
@@ -159,34 +159,62 @@ test('grouping by kind keeps every name and the order it was given inside a kind
   }
 });
 
-test('the chunks are listed from the middle of town outward', { skip }, () => {
-  // The picker's order. A–Ö put Centrum third, behind Fosie, which is a fact
-  // about the alphabet rather than about Malmö.
-  const chunks = chunksOf(items);
-  const away = chunks.map((c) => c.away);
-
-  assert.deepEqual([...away].sort((a, b) => a - b), away, 'the list is not ordered outward');
-  assert.equal(chunks[0].label, 'Centrum', 'the middle of town is not first');
-  assert.equal(chunks.at(-1).label, 'Oxie', 'the furthest out is not last');
-});
-
-test('the anchor the order is measured from exists', { skip }, () => {
-  // chunksOf measures from Stortorget and falls back to the centroid of
-  // everything if it is gone — which would silently reorder the front door, so
-  // it fails here instead. If the landmark is ever removed on purpose, this
-  // test is the place that says what else has to change.
-  assert.ok(items.some((it) => it.name === 'Stortorget'),
-    'Stortorget is what "how far out is this" is measured from');
-});
-
-test('a chunk is one part of town', { skip }, () => {
-  // The point of cutting by stadsdel: a chunk is somewhere, so it can be played
-  // at one fixed view. A chunk drawn from two stadsdelar would be a map of the
-  // whole city with eleven things scattered over it.
+test('a chunk is one half of the quiz and one kind', { skip }, () => {
+  // The whole point of the cut: a row on the front door is a single, sayable
+  // thing — "the gator you are expected to know" — so a chunk mixing halves or
+  // kinds would be a row whose label is a lie.
   for (const chunk of chunksOf(items)) {
-    const stadsdelar = new Set(chunk.items.map((it) => it.stadsdel));
-    assert.equal(stadsdelar.size, 1, `${chunk.label} spans ${[...stadsdelar].join(', ')}`);
+    const tier = TIERS.find((t) => t.id === chunk.tier);
+    assert.ok(tier, `${chunk.id} is in no half`);
+    assert.ok(KIND_IDS.includes(chunk.kind), `${chunk.id} is of no kind`);
+    for (const it of chunk.items) {
+      assert.equal(it.kind, chunk.kind, `${it.name} is a ${it.kind} in ${chunk.id}`);
+      assert.ok(tier.has(it), `${it.name} is in ${chunk.id} but not in that half`);
+    }
   }
+});
+
+test('the two halves are disjoint and together are the whole quiz', { skip }, () => {
+  // Resten is the remainder, not everything: a name asked of you under both
+  // headings would be one thing to learn wearing two hats, and the bars would
+  // add up to more than the city.
+  const chunks = chunksOf(items);
+  for (const kind of KIND_IDS) {
+    const of = chunks.filter((c) => c.kind === kind);
+    const counted = of.reduce((n, c) => n + c.items.length, 0);
+    assert.equal(counted, items.filter((it) => it.kind === kind).length,
+      `the halves of "${kind}" do not add up to every ${kind}`);
+  }
+});
+
+test('the core half is about a third of the quiz', { skip }, () => {
+  // The claim the split makes. Below a quarter Grunden is a sampler; above
+  // nearly half it is the quiz again under a smaller word. build-learn.mjs
+  // fails on the same band, so this is the second lock on the same door.
+  const core = items.filter((it) => it.core).length;
+  const share = core / items.length;
+  assert.ok(share >= 0.25 && share <= 0.45,
+    `core is ${core} of ${items.length} names (${Math.round(share * 100)} %)`);
+});
+
+test('every name knows which half it is in', { skip }, () => {
+  // `core` is stamped on every item by the build, true or false — never left
+  // undefined. A missing flag reads as "not core", which would quietly move a
+  // name to Resten rather than failing the build that lost it.
+  for (const it of items) {
+    assert.equal(typeof it.core, 'boolean', `${it.name} has no core flag`);
+  }
+});
+
+test('the core list is the only thing that decides the split', { skip }, () => {
+  // learn/core.json is hand-written and is the whole of the claim: every name
+  // it lists is core, and no name it does not list is. A build that started
+  // inferring core-ness from tier or rank would pass every other test here.
+  const doc = JSON.parse(readFileSync('learn/core.json', 'utf8'));
+  const listed = new Set(Object.values(doc.core).flat());
+  const stamped = new Set(items.filter((it) => it.core).map((it) => it.name));
+
+  assert.deepEqual([...stamped].sort(), [...listed].sort());
 });
 
 test('chunking is stable across calls', { skip }, () => {

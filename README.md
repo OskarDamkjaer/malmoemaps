@@ -5,10 +5,11 @@ tiles from my own origin, always north-up, installable and fully offline. Not
 navigation, and no longer even orientation — the map is the board you are tested
 on, not a thing to look something up in.
 
-There is **one quiz**, and it is the city rather than a category: a row per part
-of town, each holding whatever is in it — the delområden, the streets worth
-knowing, the bridges, the landmarks. A round asks them in that order, a kind at
-a time, one name at a time. There is one way to be asked:
+There is **one quiz**, cut in two by the question people actually arrive with:
+**Grunden**, the names Malmö expects of anyone who has lived here a few years,
+and **Resten**, everything else. Four kinds inside each half — delområden,
+gator, broar, landmärken — so eight rounds, asked a kind at a time, one name at
+a time. There is one way to be asked:
 
 - **Peka ut** — one name, no slots, tap where it is. Nothing to eliminate
   against, so it is the one that says whether you actually know it.
@@ -92,28 +93,46 @@ unreachable from inside a round, for the obvious reason.
   the kind you can stand *in* wins — and the survivor inherits the loser's
   description, which is usually the better written one.
 
-- **Chunks are parts of town, not categories.** 384 names is not a round, and
-  neither is "all the landmarks": standing on Föreningsgatan you want to know
+- **Grunden and Resten.** The front door's job is to answer the question people
+  actually arrive with, which is not "which part of town shall I practise" but
+  *which of these 384 names am I supposed to know at all*. So the quiz is cut in
+  two — **Grunden**, the names Malmö expects of anyone who has lived here a few
+  years, and **Resten**, everything else — and then by kind inside each half.
+  Eight rows: 48 delområden, 55 gator, 6 broar and 30 landmärken in the first,
+  the other 245 names in the second. The two are disjoint, so nothing is asked
+  of you under two headings.
+
+  The line between them is drawn in `learn/core.json`, **by hand and against a
+  sentence**: *if someone said "jag bor i X" or "vi ses vid X" on the phone,
+  would you have to ask where that is?* Not a formula — this is the one claim in
+  the repo that is about people rather than about data, and a threshold on
+  street class and landmark tier would be wrong in ways nobody could override.
+
+  What the shape of the answer is: core is not the top third of the city but the
+  **first** third, read outward from Stortorget, and what thins with distance is
+  the *grain* rather than the category. Inside the canal ring, nearly everything
+  — one square kilometre, and the part everybody shares. Out to Inre Ringvägen,
+  every area name that is its own and the through-roads but not the residential
+  grid. Inside Yttre Ringvägen, only names no grouping speaks for, and the
+  arteries that reach them. Beyond that, the place and the road that gets you
+  there, and nothing inside it.
+
+  `node scripts/propose-core.mjs` writes `learn/core-candidates.md`: every name
+  with its band, its distance from Stortorget and its own kind's evidence,
+  pre-sorted `ja` / `?` / `nej` by that rule — the same shape as
+  `areas/elevated.md`, and for the same reason. The rule shortlists; the
+  sentence decides; the file records where the two disagreed. The loudest
+  disagreement is the broar: the band rule says the old town is "nearly
+  everything", and there are fifteen named crossings of the canal ring inside
+  that kilometre. Nobody knows fifteen bridge names, so six are in Grunden.
+
+  The price of the cut is the mixing. It used to be one chunk per stadsdel, on
+  the argument — still true — that standing on Föreningsgatan you want to know
   that this is Möllevången, that the bridge is Petribron and that the park is
-  Pildammsparken, and that is three categories and one piece of knowledge. So
-  the quiz is cut by stadsdel: ten chunks, one per part of town, each holding
-  every delområde, street, bridge and landmark in it.
-
-  They are uneven — Rosengård has 13 names, Centrum 120 — and that is honest,
-  because those parts of town are not the same size either. An earlier cut
-  sliced them down to twenty apiece so a wall of nametags would fit a phone
-  screen without scrolling, and that turned out to be optimising the wrong
-  thing: a twenty-name slice of Centrum is a few blocks, and a few blocks cannot
-  hold a street. Amiralsgatan and Regementsgatan run the width of the city, so
-  every chunk small enough to be comfortable was too small to contain the things
-  most worth knowing. Nothing has to fit on a screen now that a round holds one
-  name at a time.
-
-  The picker lists them **outward from Stortorget**, nearest first, because that
-  is how a city is learned. It used to be A–Ö, which put Centrum third behind
-  Fosie and is a fact about the alphabet rather than about Malmö. The anchor is
-  a name looked up in the quiz's own data, not a pair of coordinates in a
-  constant: "the middle of Malmö is Stortorget" is a claim anyone can check.
+  Pildammsparken, and that is three categories and one piece of knowledge. A
+  round is one kind now. Inside a round that was already the case: the questions
+  have always been grouped by kind, because placing a delområde and placing a
+  bridge are different jobs. The cut has caught up with the order.
 
 - **A round runs a kind at a time**, in the order the kinds are declared in
   `app/rounds.mjs`: every delområde, then every gata, then the broar, then the
@@ -140,9 +159,9 @@ unreachable from inside a round, for the obvious reason.
   seconds. Point mode asks in the order of what you keep missing — inside each
   kind, since the kinds themselves run in a fixed order — and the bar on a chunk
   is just how many of its names are known. Keying by name rather than by
-  chunk is what lets the cut move — a new landmark shifting the west-to-east
-  split of Centrum — without costing anyone what they had learned. Nothing
-  leaves the device here either.
+  chunk is what lets the cut move — a name promoted from Resten to Grunden, a
+  new landmark — without costing anyone what they had learned. Nothing leaves
+  the device here either.
 
 - **What it says about a place.** The panel is why the app exists — a column
   down the right of the map, a sheet along the bottom of a phone — and it is
@@ -165,7 +184,8 @@ unreachable from inside a round, for the obvious reason.
   street's card said "Huvudgata · i Rönneholm", which was the answer in the
   subtitle, and a bridge's said what it crossed, which for the four that do not
   cross Malmö kanal was the same giveaway. A delområde still says its stadsdel,
-  because that is the chunk you picked before the round started.
+  which is coarse enough to give nothing away — "i Fosie" names a tenth of the
+  city.
 
   The price is paid in blank cards, and it is the right price: where a line had
   nothing in it but the position, the line is gone rather than reworded into
@@ -352,6 +372,7 @@ node scripts/build-landmarks.mjs    # landmarks.json → build/data/landmarks.ge
 node scripts/build-search.mjs       # everything above → build/data/search.json
 node scripts/build-learn.mjs        # areas + landmarks + learn/*.json → build/data/learn.json
 node scripts/build-images.mjs       # Wikipedia → learn/images/*.webp + learn/images.json
+node scripts/propose-core.mjs       # learn.json + evidence → learn/core-candidates.md (a hand sweep, not a build step)
 node scripts/poi-inventory.mjs      # reads the tileset back: which POI classes it holds
 ```
 
@@ -445,10 +466,11 @@ a question with two right answers, and the grader will mark you wrong for
 finding the second; a chunk over the length cap is a round nobody finishes; an
 area with no bbox frames its chunk too tight and pushes the polygon you are
 meant to tap in off the screen. `test/rounds.test.mjs` asks all of those, plus
-that a round asks a kind at a time, that a chunk is one part of town and that
-the cut is stable between calls, plus the grader's own rules — nearest-wins,
-per-kind tolerances, and the pixel floor that keeps 250 m from being a dare at a
-zoomed-out view.
+that a round asks a kind at a time, that a chunk is one half and one kind, that
+the two halves are disjoint and add up to the whole city, that nothing but
+`learn/core.json` decides which half a name is in, and that the cut is stable
+between calls — plus the grader's own rules: nearest-wins, per-kind tolerances,
+and the pixel floor that keeps 250 m from being a dare at a zoomed-out view.
 
 The fifth is the streets, and it needed a different kind of test. A street is
 the one kind with no geometry of its own: it is a *name* that has to be found

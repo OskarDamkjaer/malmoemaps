@@ -3,6 +3,66 @@
 Short log of the non-obvious choices, so they don't get relitigated. A dated
 bullet lands here only when something non-obvious was actually decided.
 
+- **The front door is Grunden and Resten, not ten parts of town** (2026-08-04).
+  The picker was a row per stadsdel, listed outward from Stortorget. It answered
+  "which part of town shall I practise", and the question people actually arrive
+  with is *which of these 384 names am I supposed to know at all*. Ten rows all
+  reading "23 av 41" cannot say that; two headings can, before anything is
+  pressed. So: two halves, four kinds each, eight rounds. Resten is the
+  remainder rather than the whole, so nothing is asked of you twice.
+
+  The cost is the mixing, and it was a real argument — a city is not learned a
+  category at a time, and the geographic cut existed because of it. Two things
+  make it payable. Inside a round the questions were already grouped by kind
+  (`byKind`), because placing a delområde and placing a bridge are different
+  jobs and alternating means starting over every question; the cut has only
+  caught up with the order. And the mixing was buying less than it looked like:
+  a chunk was a stadsdel, which is not the walk down Föreningsgatan the argument
+  describes, it is a tenth of the city.
+
+  Two smaller things went with it. `hitAt` now grades against every item of the
+  target's shape rather than the round's — with disjoint halves, a chunk-local
+  candidate list would have made Grunden quietly the easier half twice over.
+  And a street round is now framed to the whole city, so it opens well under
+  `STREET_ZOOM` and says "zooma in för att se gatorna" as its first word. It
+  always did that below z14 and a stadsdel was already below z14; it is the
+  ordinary case now rather than the awkward one. The honest fix, if it spoils
+  the streets rounds, is to carry simplified street geometry in `learn.json` and
+  stop grading off the loaded tiles at all.
+
+- **What counts as core is decided by hand, against a sentence** (2026-08-04).
+  Splitting the quiz needs a line through 384 names, and the tempting version is
+  arithmetic: landmark tier 1, street rank ≤ 3, delområden no grouping speaks
+  for, everything under 2.5 km. Every input is already in the repo and it would
+  have taken an afternoon.
+
+  It is the wrong instrument. Tier in `landmarks.json` is how prominently the
+  map draws an icon; rank is what class OSM gave a way; `areas.json` ruled on
+  which name *replaces* which on a map. None of them is an answer to "would you
+  have to ask where that is", and a formula built from them cannot be overruled
+  by anybody who knows the city. So `learn/core.json` is hand-written, its
+  `_doc` carries the sentence, and `build-learn.mjs` refuses to infer anything —
+  a name it lists that the quiz does not have is a hard failure, and so is a
+  core share outside 25–45 %.
+
+  The data is not wasted, it is just demoted: `scripts/propose-core.mjs` writes
+  `learn/core-candidates.md`, every name with its band and its evidence,
+  pre-sorted ja / ? / nej, the same shape as `areas/elevated.md`. The rule
+  shortlists, the sentence decides, and rerunning the script after the pass
+  marks every row where the two disagreed. The loudest one is the broar: the
+  band rule says the old town is "nearly everything" and there are fifteen named
+  crossings of the canal ring inside one square kilometre. Nobody knows fifteen
+  bridge names. Six are in Grunden.
+
+  The shape the sentence produced, worth writing down because it was not
+  designed: core is not the top third of the city but the **first** third, read
+  outward from Stortorget, and what thins with distance is the grain rather than
+  the category. Inside the canal ring, nearly everything. Out to Inre Ringvägen,
+  every area name that is its own and the through-roads but not the residential
+  grid. Inside Yttre Ringvägen, only names no grouping speaks for, and the
+  arteries that reach them. Beyond, the place and the road that gets you there.
+  139 of 384, 36 %.
+
 - **One mode: peka ut** (2026-08-04). "Dra ut alla" is gone. It lit up every
   slot the name could go in — every delområde in the chunk, every bridge, every
   street — and asked you to choose among them, on the theory that recognition is

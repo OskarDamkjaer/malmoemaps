@@ -8,7 +8,8 @@
 //   bridge    learn/bridges.json                  (curated)
 //   street    learn/streets.json ∩ data/cache/streets.json
 //
-// and joins each name to its text from learn/about.json or from its own file.
+// and joins each name to its text from learn/about.json or from its own file,
+// and to its half of the quiz from learn/core.json.
 //
 // The contract is the same one the rest of the pipeline keeps: **this script
 // never invents an entry.** It places, joins, merges and validates. A curated
@@ -34,11 +35,11 @@
 //   `point`     — where the map should centre, and what point-kind answers are
 //                 measured from. For an area it is the label point the map
 //                 already uses, so it is the same spot the name is written at.
-//   `stadsdel`  — which tenth of the city the thing is in, which is how the
-//                 quiz cuts itself up. Areas know theirs from the build;
-//                 landmarks and bridges are looked up by point-in-polygon,
-//                 because a quiz cut geographically has to be able to place
-//                 everything geographically.
+//   `stadsdel`  — which tenth of the city the thing is in. It used to be how
+//                 the quiz cut itself up; it now only feeds the `meta` line
+//                 ("Delområde · i Fosie"), which is the one place a coarse
+//                 where is safe to say. Areas know theirs from the build;
+//                 landmarks and bridges are looked up by point-in-polygon.
 //
 // Usage: node scripts/build-learn.mjs [--out FILE]
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -55,6 +56,7 @@ const json = async (f) => JSON.parse(await readFile(f, 'utf8'));
 
 const [
   stadsdelar, districts, landmarksDoc, bridgesDoc, streetsDoc, aboutDoc, streetIndex,
+  coreDoc,
 ] = await Promise.all([
   json('build/data/stadsdelar.geojson'),
   json('build/data/districts.geojson'),
@@ -63,6 +65,7 @@ const [
   json('learn/streets.json'),
   json('learn/about.json'),
   json('data/cache/streets.json'),
+  json('learn/core.json'),
 ]);
 
 const problems = [];
@@ -269,6 +272,48 @@ for (const it of items) {
   if (!it.source && pic.article) it.source = pic.article;
 }
 
+// ---- core --------------------------------------------------------------------
+// Which of these names Malmö expects you to know. Hand-written in
+// learn/core.json against a sentence rather than a formula (its `_doc` carries
+// both the sentence and the places the rule behind it lost), and applied here
+// the same way everything else in this file is: by name, never by invention.
+//
+// After the merge, because the merge is what decides which kind a name ends up
+// as — Öresundsbron is a bridge and not a landmark, so it is filed under
+// `bridges` and a copy under `landmarks` is a mistake worth failing on rather
+// than a synonym worth accepting.
+const CORE_KIND = { areas: 'area', streets: 'street', bridges: 'bridge', landmarks: 'landmark' };
+
+const byName = new Map(items.map((it) => [it.name, it]));
+const claimed = new Set();
+
+for (const [section, names] of Object.entries(coreDoc.core)) {
+  const kind = CORE_KIND[section];
+  if (!kind) { fail(`core.json has a section "${section}", which is not a kind`); continue; }
+  for (const name of names) {
+    const it = byName.get(name);
+    // The same contract as the rest of the pipeline: a curated name that
+    // matches nothing is a claim about a place the quiz cannot ask about, so it
+    // fails here rather than disappearing.
+    if (!it) { fail(`core.json: "${name}" is not in the quiz`); continue; }
+    if (it.kind !== kind) fail(`core.json: "${name}" is filed under ${section} but survived the merge as a ${it.kind}`);
+    if (claimed.has(name)) fail(`core.json: "${name}" is listed twice`);
+    claimed.add(name);
+    it.core = true;
+  }
+}
+
+for (const it of items) if (!it.core) it.core = false;
+
+// The split only says anything while the core half stays something you could
+// finish. Below a quarter it is a sampler; above nearly half it is the quiz
+// again with a smaller word on the button. A wide band on purpose — this is a
+// guard against drift, not a target to hit.
+const share = claimed.size / items.length;
+if (share < 0.25 || share > 0.45) {
+  fail(`core is ${claimed.size} of ${items.length} names (${Math.round(share * 100)} %), outside 25–45 %`);
+}
+
 // ---- validate ----------------------------------------------------------------
 // The app's kind table is the authority on which kinds exist. Reading it here
 // rather than repeating the list means a kind added there and forgotten here
@@ -313,6 +358,9 @@ for (const m of merged) console.log(`  merged  ${m}`);
 for (const kind of KIND_IDS) {
   const of = items.filter((it) => it.kind === kind);
   const withText = of.filter((it) => it.about).length;
-  console.log(`  ${kind.padEnd(9)} ${String(of.length).padStart(3)} namn, ${String(withText).padStart(3)} med text`);
+  const core = of.filter((it) => it.core).length;
+  console.log(`  ${kind.padEnd(9)} ${String(of.length).padStart(3)} namn, ${String(withText).padStart(3)} med text`
+    + `, ${String(core).padStart(3)} i Grunden`);
 }
+console.log(`  Grunden ${claimed.size} av ${items.length} (${Math.round(share * 100)} %)`);
 console.log(`  ${chunks.length} chunks, largest ${Math.max(...chunks.map((c) => c.items.length))}`);

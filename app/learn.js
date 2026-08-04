@@ -1,9 +1,9 @@
 // The quiz: the map as the thing you point at.
 //
-// One quiz, cut into chunks of one part of town each, and a chunk mixes
-// whatever is there — delområden, gator, broar, landmärken, asked a kind at a
-// time. One question, one name at a time: here is what this place is, now point
-// at it.
+// One quiz, cut in two by what Malmö expects of you (Grunden, Resten) and then
+// by kind, so the front door is eight rows and the choice on it is the one
+// people actually arrive with. One question, one name at a time: here is what
+// this place is, now point at it.
 //
 // What decides right and wrong is not in here: rounds.mjs holds the rule and
 // the tolerances, blind.js takes the words off the map, progress.mjs remembers
@@ -38,7 +38,8 @@
 // that had to be redrawn on every pan, and a `mode` threaded through every
 // function in this file.
 import {
-  KINDS, OUTLINE_LAYERS, STREET_ZOOM, byKind, chunksOf, graded, metersBetween,
+  KINDS, OUTLINE_LAYERS, STREET_ZOOM, TIERS, byKind, chunksOf, graded,
+  metersBetween,
 } from './rounds.mjs';
 import {
   forgetEverything, inAskingOrder, progressOf, record,
@@ -89,11 +90,12 @@ function metersPerPixel() {
 /**
  * The view a chunk is played at.
  *
- * Computed from what is in the chunk rather than read off a zoom ladder: chunks
- * are cut by stadsdel and then by size, so they are not all the same size and a
- * fixed zoom would show half of one and a tenth of another. Areas contribute
- * their whole extent (`bbox`), not their label point — you answer by tapping
- * inside the polygon, so the polygon is what has to be on screen.
+ * Computed from what is in the chunk rather than read off a zoom ladder. Most
+ * chunks now reach across the whole city and one (Grunden · Broar) is a single
+ * square kilometre, so a fixed zoom would show a tenth of one and put you on a
+ * rooftop in the other. Areas contribute their whole extent (`bbox`), not their
+ * label point — you answer by tapping inside the polygon, so the polygon is
+ * what has to be on screen.
  */
 function boundsOf(chunk) {
   let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
@@ -141,13 +143,17 @@ function frame(chunk, duration) {
  * Distance to the *answer* is carried separately, because "700 m fel" is the
  * useful thing to say even when what you actually hit was something else.
  *
- * Candidates are drawn from the chunk and filtered to the target's own kind, so
- * a bridge is never graded against the landmark standing next to it.
+ * Candidates are every item of the target's own shape — the whole quiz, not the
+ * round — so a bridge is never graded against the landmark standing next to it,
+ * and a tap that lands on something in the other half is told what it landed
+ * on. Grading against the round alone would quietly make Grunden the easier
+ * half twice over: fewer things to be nearest to, and no way to say "det där är
+ * Suellsbron" about a bridge this round does not contain.
  */
 function hitAt(target, lngLat) {
   const point = [lngLat.lng, lngLat.lat];
   const shape = shapeOf(target);
-  const candidates = session.chunk.items.filter((it) => shapeOf(it) === shape);
+  const candidates = items.filter((it) => shapeOf(it) === shape);
 
   if (shape === 'area') {
     const inside = districtAt(point);
@@ -198,9 +204,9 @@ function startSession(chunk) {
   enterBlind(map, OUTLINE_LAYERS);
   clearHighlight(map);
   // The opening view, not a cage: pan and zoom stay on, because zooming in to
-  // be sure is not cheating when there are no labels to read, and a chunk
-  // framed to fit Centrum on a phone is too small a scale to tell two canal
-  // bridges apart on.
+  // be sure is not cheating when there are no labels to read — and a round
+  // framed to the whole city is nowhere near a scale you could tell two canal
+  // bridges apart at, or read a street off the tiles at (see renderPrompt).
   frame(chunk, 600);
   el('learn').hidden = true;
   el('play').hidden = false;
@@ -353,11 +359,13 @@ function renderRound() {
  *
  * A street is graded by looking up what you tapped in the loaded vector tiles,
  * and `transportation_name` does not carry ordinary street names below
- * STREET_ZOOM. Framed to fit a stadsdel, a chunk opens below it: the map would
- * take a perfectly good tap on Södergatan and mark it wrong, having found no
- * street there at all. So the round says the one thing that fixes it, which is
- * a fact about the zoom and gives nothing away about the answer. The layer
- * chips already talk this way.
+ * STREET_ZOOM. A street round is framed to the whole city and so opens well
+ * below it — it always did, a stadsdel being under the floor too, but the two
+ * street rounds are the width of Malmö now and it is the ordinary case rather
+ * than the awkward one. Left alone, the map would take a perfectly good tap on
+ * Södergatan and mark it wrong, having found no street there at all. So the
+ * round says the one thing that fixes it, which is a fact about the zoom and
+ * gives nothing away about the answer. The layer chips already talk this way.
  */
 function renderPrompt() {
   const item = session.queue[0];
@@ -509,9 +517,13 @@ function showSummary() {
 }
 
 // ---- picker ----------------------------------------------------------------
-// The front door. One row per part of town, with a bar saying how much of it
-// you can already place, because "what should I do next" should be answerable
-// by looking rather than by remembering.
+// The front door: two sections, four rows each.
+//
+// The first thing it has to answer is not "which part of town" but "which of
+// these names am I supposed to know" — so the sections are Grunden and Resten,
+// and each says in a line what it is claiming. The split is an opinion about
+// Malmö (learn/core.json holds it, and the reasoning), and a page that acts on
+// an opinion should say what the opinion is.
 function renderPicker() {
   const list = el('roundlist');
   list.replaceChildren();
@@ -520,25 +532,37 @@ function renderPicker() {
   const all = progressOf(items);
   el('learnsub').textContent = `${all.known} av ${all.total} namn sitter.`;
 
-  for (const chunk of chunks) list.append(chunkRow(chunk));
+  for (const tier of TIERS) {
+    const of = chunks.filter((c) => c.tier === tier.id);
+    if (!of.length) continue;
+    list.append(tierSection(tier, of));
+  }
 }
 
-// What a chunk is made of, said in the order the kinds are declared: "14
-// delområden · 3 landmärken · 2 gator". A chunk is a part of town rather than a
-// category, so what is in it is not guessable from its name.
-function composition(chunk) {
-  const counts = new Map();
-  for (const it of chunk.items) counts.set(it.kind, (counts.get(it.kind) ?? 0) + 1);
-  return Object.keys(KINDS)
-    .filter((k) => counts.has(k))
-    .map((k) => {
-      const n = counts.get(k);
-      return `${n} ${n === 1 ? KINDS[k].label : KINDS[k].plural}`;
-    })
-    .join(' · ');
+function tierSection(tier, chunks) {
+  const section = document.createElement('section');
+  section.className = 'tier';
+
+  const head = document.createElement('h2');
+  head.append(tier.label);
+  // How far through this half you are, on the heading rather than only on the
+  // rows: the half is the thing you chose, so it is the thing with a total.
+  const { known, total } = progressOf(chunks.flatMap((c) => c.items));
+  const count = document.createElement('span');
+  count.className = 'count';
+  count.textContent = `${known} / ${total}`;
+  head.append(count);
+
+  const blurb = document.createElement('p');
+  blurb.className = 'blurb';
+  blurb.textContent = tier.blurb;
+
+  section.append(head, blurb);
+  for (const chunk of chunks) section.append(chunkRow(chunk, tier));
+  return section;
 }
 
-function chunkRow(chunk) {
+function chunkRow(chunk, tier) {
   const { known, total } = progressOf(chunk.items);
   const row = document.createElement('div');
   row.className = 'chunk';
@@ -551,10 +575,6 @@ function chunkRow(chunk) {
   count.textContent = `${known} / ${total}`;
   label.append(count);
 
-  const what = document.createElement('p');
-  what.className = 'what';
-  what.textContent = composition(chunk);
-
   const bar = document.createElement('div');
   bar.className = 'bar';
   const fill = document.createElement('i');
@@ -565,10 +585,12 @@ function chunkRow(chunk) {
   start.type = 'button';
   start.className = 'start';
   start.textContent = 'Peka ut';
-  start.setAttribute('aria-label', `Peka ut i ${chunk.label}`);
+  // The row's own label is one word out of context — there are two rows called
+  // Gator — so the button spells out which half it belongs to.
+  start.setAttribute('aria-label', `Peka ut: ${chunk.label}, ${tier.label}`);
   start.addEventListener('click', () => startSession(chunk));
 
-  row.append(label, what, bar, start);
+  row.append(label, bar, start);
   return row;
 }
 

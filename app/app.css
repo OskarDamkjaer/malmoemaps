@@ -329,32 +329,44 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 
 #roundlist { flex: 1; overflow-y: auto; padding: 4px 16px 12px; -webkit-overflow-scrolling: touch; }
 
-/* One row per part of town: what it is called, what is in it, how much of it
-   you know, and the two ways to be asked. The bar is the only number that
-   matters here — a chunk is never "done", it is only as known as its least
-   known name. */
+/* The two halves of the quiz. The heading carries the claim the split makes and
+   the line under it says what the claim is, because a page that sorts the city
+   into "expected" and "not" owes the reader that sentence. */
+.tier { margin-bottom: 18px; }
+.tier h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.tier h2 .count { color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 400; }
+.tier .blurb { margin: 3px 0 8px; font-size: 12px; line-height: 1.4; color: var(--ink-soft); max-width: 46ch; }
+
+/* One row per kind: what it is called, how much of it you know, and the way to
+   be asked. The bar is the only number that matters here — a chunk is never
+   "done", it is only as known as its least known name. */
 .chunk {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 6px 10px;
   align-items: center;
   padding: 10px 12px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   background: var(--panel);
   border-radius: var(--radius);
   box-shadow: 0 1px 2px rgb(32 29 25 / 6%);
 }
 .chunkname { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
 .chunkname .count { color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: 13px; }
-/* A chunk is a part of town, not a category, so what is in it does not follow
-   from its name and has to be said. */
-.chunk .what { grid-column: 1; margin: 0; font-size: 12px; line-height: 1.35; color: var(--ink-soft); }
 .chunk .bar { grid-column: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .chunk .bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
 /* One button, in the cell that used to hold a choice of two. */
 .chunk .start {
   grid-column: 2;
-  grid-row: 1 / span 3;
+  grid-row: 1 / span 2;
   align-self: center;
   padding: 8px 12px;
   font-size: 13px;
