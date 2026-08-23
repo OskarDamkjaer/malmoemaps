@@ -1,4 +1,4 @@
-// Phase 1b — street names for the search index, extracted from the local .pbf.
+// Phase 1b — street names and their geometry, extracted from the local .pbf.
 //
 // Not via Overpass: asking for every named highway in the bbox is a slow,
 // rate-limited remote query for data already sitting on disk. osmium does it
@@ -15,11 +15,12 @@
 //      dropped.
 //   2. One name is not one street. `Bruksvägen` exists several times inside
 //      Malmö alone (Oxie, Klagshamn, …), so ways are grouped by name and then
-//      split into spatially separate clusters; each cluster is its own search
-//      entry, disambiguated by district.
+//      split into spatially separate clusters; each cluster is asked about on
+//      its own, disambiguated by district.
 //
-// Output is an intermediate consumed by build-search.mjs, so it lands in
-// data/cache/ rather than build/data/ (which holds deployed artifacts only).
+// Output is an intermediate consumed by build-learn.mjs, which resolves the
+// curated street names against it, so it lands in data/cache/ rather than
+// build/data/ (which holds deployed artifacts only).
 //
 // Usage: node scripts/build-streets.mjs [--pbf FILE] [--districts FILE] [--out FILE]
 import { execFileSync } from 'node:child_process';
@@ -36,11 +37,11 @@ const districtsFile = arg('--districts', 'build/data/districts.geojson');
 const outFile = arg('--out', 'data/cache/streets.json');
 const tmp = 'data/cache';
 
-// Highway values that are not streets a person would search for. Platforms are
-// already covered by the transit overlay; the rest are not navigable ways.
+// Highway values that are not streets a person would be asked to place: a
+// station platform is not a street, and the rest are not navigable ways.
 const SKIP = new Set(['platform', 'construction', 'proposed', 'raceway']);
 
-// Rank drives search-result ordering: a hit on a secondary road should outrank
+// Rank orders the candidates: a hit on a secondary road should outrank
 // a hit on a footpath of the same name. Lower is more prominent. A street's
 // rank comes from the class carrying most of its length, not its most
 // prominent class — Annetorpsvägen is 46 secondary ways and one motorway_link

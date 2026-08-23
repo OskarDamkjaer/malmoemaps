@@ -40,14 +40,16 @@ const DROP = {
   'building-3d': 'extrusions need pitch; this map is flat and north-up',
   road_one_way_arrow: 'direction of travel is navigation, not orientation',
   road_one_way_arrow_opposite: 'direction of travel is navigation, not orientation',
-  poi_z14: 'prominence at z14 is the curated landmark list, not OSM POI rank',
-  poi_transit: 'no chip draws stops or stations; the rail lines already say where they are',
-  // The same POIs are still drawn — by app/categories.mjs, one layer per
-  // category, and only when a chip asks for them. Drawing them here as well
-  // would mean every café appearing twice the moment you tapped "Mat", and
-  // rank 1–6 (which poi_z14 held) never appearing at all.
-  poi_z15: 'POIs are categories now: off by default, drawn by the app when asked for',
-  poi_z16: 'POIs are categories now: off by default, drawn by the app when asked for',
+  // This map has no pins on it. What it points at is the curated landmark list
+  // (app/layers.js draws it from landmarks.geojson), which is a few dozen fixed
+  // points you navigate a mental map by — not four thousand cafés, shops and
+  // dentists, which at this grain are texture rather than places you are
+  // learning. Stops and stations go with them: the rail lines already say where
+  // they are.
+  poi_z14: 'the map points at the curated landmark list, not at OSM POI rank',
+  poi_z15: 'the map has no pins; the landmark list is what it points at',
+  poi_z16: 'the map has no pins; the landmark list is what it points at',
+  poi_transit: 'the rail lines already say where the stations are',
   // The names themselves are wanted — Slottsstaden and Limhamn are not
   // delområden and exist nowhere else — but they are redrawn by the app
   // (addAreaNameLayers), which can filter them against the district names so

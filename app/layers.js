@@ -1,13 +1,15 @@
-// Everything drawn on top of the basemap: districts, landmarks, categories.
+// Everything drawn on top of the basemap: districts and landmarks.
 //
 // These files are the parts of the map that are mine rather than
-// OpenStreetMap's rendering conventions — a hand-curated landmark list, the
-// city's own administrative division, and the cycle network. They are GeoJSON
-// rather than tiles because together they are under 2 MB, which is cheaper to
-// ship whole than to tile.
+// OpenStreetMap's rendering conventions — a hand-curated landmark list and the
+// city's own administrative division. They are GeoJSON rather than tiles
+// because together they are under 2 MB, which is cheaper to ship whole than to
+// tile.
 //
-// The other thing here is the category machinery: no pin is drawn until a chip
-// asks for it, and which pins a chip stands for is decided in categories.mjs.
+// There is nothing here to turn on or off. Everything this file adds is drawn
+// from the moment the map loads, which is why it is a short file: what used to
+// be a menu of fourteen kinds of pin is now the landmark list and the area
+// names, and both are the map's own voice rather than an overlay on it.
 //
 // One rule shows up repeatedly below: *zoom is compared to a per-feature
 // property by splitting into buckets, not by an expression.* MapLibre will not
@@ -15,9 +17,6 @@
 // appear at z12 lives in the z12 layer. Hence the small layer factories.
 
 import { areaLayers } from './area-levels.mjs';
-import {
-  CATEGORIES, DEFAULT_ON, categoryLayers, isCarRoadLayer,
-} from './categories.mjs';
 import {
   addHighlightLayers, clearHighlight, describeHit, highlight, pickFeature,
   setDistrictFeatures, setNeighbourhoods, setStadsdelar, stadsdelNames,
@@ -133,43 +132,11 @@ function districtLabels(geojson) {
   return { type: 'FeatureCollection', features: districtLabelPoints([...al9, ...al10]) };
 }
 
-// ---- categories --------------------------------------------------------------
-// Every pin on this map belongs to a category, and every category is off until
-// asked for — the table, the colours and the reasons live in categories.mjs.
-// What lives here is the plumbing: which layer ids belong to which category,
-// and flipping them.
-//
-// The three shapes a category can take (basemap POIs by class, a GeoJSON file
-// of our own, layers style.json already draws) all end up in the same registry,
-// so the chip row does not have to know which is which.
-const categoryLayerIds = new Map(CATEGORIES.map((c) => [c.id, []]));
-const on = new Set(DEFAULT_ON);
-// The ladder's own name layers, the ones no chip owns: always drawn, so always
-// tappable. Collected as the ladder is added rather than listed here, because a
-// list would be area-levels.mjs written down twice.
+// ---- what the app draws ----------------------------------------------------
+// Every name layer the ladder produces, collected as the ladder is added rather
+// than listed here, because a list would be area-levels.mjs written down twice.
+// They are all always drawn, so they are all always tappable.
 const ladderLabels = [];
-
-const register = (catId, ...ids) => categoryLayerIds.get(catId).push(...ids);
-
-/** Turn a category on or off. The one thing the chip row does. */
-export function setCategoryVisible(map, catId, visible) {
-  if (visible) on.add(catId); else on.delete(catId);
-  for (const id of categoryLayerIds.get(catId) ?? []) {
-    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
-  }
-}
-
-export const isCategoryOn = (catId) => on.has(catId);
-
-/**
- * Put back what was on last time, before any layer exists — so a restored
- * category is drawn visible rather than added hidden and then flipped, which
- * would show as a flash of the wrong map on every load.
- */
-export function restoreCategories(ids) {
-  on.clear();
-  for (const cat of CATEGORIES) if (ids.includes(cat.id)) on.add(cat.id);
-}
 
 // ---- assembly --------------------------------------------------------------
 export async function addDataLayers(map) {
@@ -217,11 +184,10 @@ export async function addDataLayers(map) {
     },
   });
   map.addSource('landmarks', { type: 'geojson', data: landmarks });
-  for (const cat of CATEGORIES) {
-    if (cat.geojson && cat.geojson !== 'landmarks') {
-      map.addSource(cat.geojson, { type: 'geojson', data: `${DATA}/${cat.geojson}.geojson` });
-    }
-  }
+  // The finest rung of the ladder (Gamla Väster, Erikslust, Seved) is a file of
+  // its own; the layer that draws it belongs to area-levels.mjs, the source to
+  // here, like every other source on this map.
+  map.addSource('parts', { type: 'geojson', data: `${DATA}/parts.geojson` });
 
   // The whole ladder, in two passes, because the selection wash belongs between
   // them: above the outlines and the roads it covers, below every label, so
@@ -236,35 +202,23 @@ export async function addDataLayers(map) {
   });
   for (const layer of ladder) if (layer.metadata.role === 'outline') map.addLayer(layer);
   addHighlightLayers(map);
-  // A ladder layer may answer to a chip — the parts do. It is still the ladder
-  // that draws it, so it goes in here in draw order rather than with the
-  // categories; all the registry needs is the id and the initial visibility.
   for (const layer of ladder) {
     if (layer.metadata.role !== 'name') continue;
-    const cat = layer.metadata.category;
-    if (!cat) { map.addLayer(layer); ladderLabels.push(layer.id); continue; }
-    register(cat, layer.id);
-    map.addLayer({ ...layer, layout: { ...layer.layout, visibility: on.has(cat) ? 'visible' : 'none' } });
+    map.addLayer(layer);
+    ladderLabels.push(layer.id);
   }
 
-  addCategoryLayers(map);
-
-  // Landmarks sit above every other category: they are the fixed points you
-  // navigate your mental map by, and they should never be hidden by a café dot.
-  const landmarksOn = on.has('landmarks');
+  // Landmarks sit above everything else: they are the fixed points you navigate
+  // your mental map by, and nothing on this map should be allowed to cover them.
   const icon = iconExpression();
   for (const zoom of [...new Set(landmarks.features.map((f) => f.properties.min_zoom))].sort((a, b) => a - b)) {
-    const id = `landmark-${zoom}`;
-    register('landmarks', id);
     map.addLayer({
-      id,
+      id: `landmark-${zoom}`,
       type: 'symbol',
       source: 'landmarks',
       filter: ['==', ['get', 'min_zoom'], zoom],
       minzoom: zoom,
-      metadata: { category: 'landmarks' },
       layout: {
-        visibility: landmarksOn ? 'visible' : 'none',
         'icon-image': icon,
         'icon-size': ['interpolate', ['linear'], ['zoom'], zoom, 0.8, zoom + 3, 1],
         'icon-allow-overlap': false,
@@ -319,58 +273,26 @@ function notADistrictFilter(districts, neighbourhoods) {
   return ['!', ['in', ['downcase', ['get', 'name']], ['literal', known]]];
 }
 
-// Every category's own layers, plus the one category that has none of its own:
-// "Bilvägar" is the basemap's road layers, found by rule rather than listed, so
-// the registry can flip them like anything else.
-function addCategoryLayers(map) {
-  for (const cat of CATEGORIES) {
-    if (cat.basemap) {
-      const ids = map.getStyle().layers.map((l) => l.id).filter(isCarRoadLayer);
-      register(cat.id, ...ids);
-      // The style ships them visible, so only the unusual case needs applying.
-      if (!on.has(cat.id)) setCategoryVisible(map, cat.id, false);
-      continue;
-    }
-    for (const layer of categoryLayers({ ...cat, on: on.has(cat.id) })) {
-      register(cat.id, layer.id);
-      map.addLayer(layer);
-    }
-  }
-}
-
 // ---- selection -------------------------------------------------------------
-// The app's own layers, which win any tie against the basemap beneath them.
-// Only what is actually on screen is tappable: a category you turned off is not
-// a hidden answer waiting to be found. The names count as well as the dots —
-// a café's label is a bigger target than its 5 px circle, and both answer with
-// the same card.
-//
-// The list comes from the registry rather than from the shape of a layer id, so
-// "is this drawn?" has one answer and the chips are it. A category's basemap
-// layers (the roads) are left out on purpose: they are picked further down in
-// pickFeature, as streets, not as pins.
+// The app's own layers, which win any tie against the basemap beneath them: the
+// landmark icons and every name the ladder draws. Asked of the live style
+// rather than assembled from a list, so a layer that failed to be added is not
+// a target that answers with nothing.
 function appLayerIds(map) {
-  const drawn = new Set([
-    ...[...on].flatMap((id) => categoryLayerIds.get(id) ?? [])
-      .filter((id) => id.startsWith('landmark-') || id.startsWith('cat-') || id.startsWith('area-label-')),
-    ...ladderLabels,
-  ]);
-  return map.getStyle().layers.map((l) => l.id).filter((id) => drawn.has(id));
+  const drawn = new Set(ladderLabels);
+  return map.getStyle().layers
+    .map((l) => l.id)
+    .filter((id) => drawn.has(id) || id.startsWith('landmark-'));
 }
 
-// Streets are picked from the source rather than from the screen (see
-// pickFeature), which is the one kind of hit that visibility cannot hide — so
-// the chip that draws them has to be asked directly.
-const pickOptions = () => ({ streets: on.has('roads') });
-
-// `busy` is the learning mode saying "this tap is mine". Selection is the study
-// map's reason to exist and the one thing a round cannot allow: tapping the map
-// to be told what is under your finger is the answer to the question you are
-// being asked.
+// `busy` is the quiz saying "this tap is mine". Selection is the study map's
+// reason to exist and the one thing a round cannot allow: tapping the map to be
+// told what is under your finger is the answer to the question you are being
+// asked.
 export function onFeatureClick(map, show, busy = () => false) {
   map.on('click', (e) => {
     if (busy()) return;
-    const hit = pickFeature(map, e, appLayerIds(map), pickOptions());
+    const hit = pickFeature(map, e, appLayerIds(map));
     if (!hit) { clearHighlight(map); return; }
     e._handled = true;
     highlight(map, hit);
