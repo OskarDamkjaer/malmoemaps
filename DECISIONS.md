@@ -3,6 +3,96 @@
 Short log of the non-obvious choices, so they don't get relitigated. A dated
 bullet lands here only when something non-obvious was actually decided.
 
+- **Förr keeps score, and it is the only thing here that does** (2026-08-04).
+  A third mode: a photograph from Malmö Museers samlingar, and two questions —
+  what year, and where was the camera. Five a day, seeded on the date so there is
+  nothing to serve.
+
+  The argument against was that this app grades right or wrong on purpose. Öva
+  does that because "is Sofielund there" has an answer and a near miss is still
+  not knowing, and a points total would turn a test of knowledge into a thing you
+  farm. But a photograph does not work that way. Being nine years and four
+  hundred metres out is a real answer — it is most of the answer — and there is
+  no honest way to call it wrong. So Förr scores, and the scoring is quarantined
+  in its own store (`malmo:photos:v1`) rather than going through `progress.mjs`.
+  That store asks one question, *can you place this two times running*, and
+  filing a photograph under "Södergatan" would quietly claim you had learned
+  Södergatan because you dated a picture of it.
+
+  What the mode is actually made of is the data problem, not the game. TimeGuessr
+  buys part of its corpus from Alamy; there is nothing to buy here and nothing to
+  copy — the best open-source clone on GitHub has two stars and is a bot that
+  *plays* the real site. Malmö Museer publish 360 000 photographs through
+  K-samsök, of which ~11 000 are Malmö, dated and openly licensed. They carry no
+  coordinates whatsoever, so the pin comes from matching the record's description
+  against names the quiz already holds geometry for. That the app *already knew
+  where 384 things in Malmö are* is the only reason this was a week's work
+  rather than a year's.
+
+  Three traps in that data, all of which failed silently and all of which are
+  now the reason `propose-photos.mjs` is longer than a query. The year is not the
+  first year in the record — Förvärvad is when the museum bought it, and taking
+  the first context found was off by a median of 84 years. The place is in
+  `description` and not in `content`, which is credit boilerplate — matching
+  against both made every photograph a photograph of Malmö Museer, 208 times per
+  2 000 records. And the image URL as published returns an HTML error page under
+  HTTP 200, so the content type is the only thing that says it failed.
+
+  Two choices inside the game are worth writing down because they were not
+  obvious. The cap on how many photographs one place may contribute is **per
+  place and decade**, not per place: Stortorget in 1890 and Stortorget in 1960
+  are not the same question, and capping per place alone kept three of Stortorget
+  and all of them from the 1890s, because the archive is deepest where it is
+  oldest. And the daily deals the whole deck in order rather than sampling five —
+  everything is seen once before anything is seen twice — because with 197
+  photographs random sampling would repeat inside a fortnight while leaving
+  others unseen for a year.
+
+  The cost is the payload, and it is real: 23.5 MB to 39.6 MB, all of it
+  precached, because "practising on a train with no signal is the normal case"
+  has to keep being true for the new mode too. 900 px rather than 1000 is what
+  bought the last two megabytes. The honest fallback, if it ever gets too big, is
+  a separate cache tier fetched on first play — but that is a retreat from the
+  principle rather than a plan, so the budget is a hard check in the build
+  instead.
+
+- **Förr takes two archives, and the join is at the year 2000** (2026-08-04).
+  The first version was Malmö Museer alone and it was a quiz about a city with no
+  cars in it: 1880 to 1974, thickest around 1900, and every photograph an empty
+  street. Public Domain Mark and age are the same fact, so an open museum archive
+  is structurally a nineteenth-century archive, and "historical photograph" had
+  quietly come to mean "before living memory".
+
+  Wikimedia Commons is the exact complement and it is almost eerie how cleanly it
+  splits: seven usable photographs from before 2000, then hundreds a year, every
+  one geotagged by the camera. So K-samsök owns everything up to 1999 and Commons
+  everything after, and the two never overlap or have to be reconciled.
+
+  Commons comes from geosearch and never from walking categories, which was
+  tempting and wrong. "People of Malmö" at depth two reaches individual people
+  and then photographs of them taken anywhere in the world; "Eurovision Song
+  Contest 2024" returns files from 2004. A coordinate inside the bbox is a fact
+  and a category is somebody's filing decision, so categories are read as a label
+  — *what is this a photograph of* — and never as evidence of where.
+
+  Two things this cost. The distribution is now a declared `QUOTA` per decade
+  rather than a flat cap, because with two archives of wildly different depth
+  "balanced" stopped being a property that emerges and became one you have to
+  state: the 120 years before 2000 get about one photograph each, the 26 after
+  get about four. And the 1970s to the 1990s turned out to be a hole that neither
+  archive fills — 19 placeable photographs from the 1970s, **1** from the 1980s,
+  12 from the 1990s. That is a fact about what Malmö has digitised and released,
+  not a bug, so the quota is set to what can be had and the candidates table
+  prints supply beside quota. A thin row should read as a fact about the archives.
+
+  Worth recording because it cost an hour and would have shipped silently:
+  K-samsök's `fromTime`/`toTime` **do not mean what they say**. A query for
+  1980–1989 returns records whose own timeLabel reads 1943, so the counts that
+  suggested ~750 photographs per five-year band through the 1980s and 1990s were
+  counting 1940s material. The real distribution can only be measured after
+  parsing the year out of each record. Nothing about the API says this; the query
+  succeeds and the number looks plausible.
+
 - **The front door is Grunden and Resten, not ten parts of town** (2026-08-04).
   The picker was a row per stadsdel, listed outward from Stortorget. It answered
   "which part of town shall I practise", and the question people actually arrive

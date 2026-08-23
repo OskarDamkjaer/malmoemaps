@@ -23,6 +23,14 @@
 <div id="learn" hidden>
   <header id="learnhead">
     <div>
+      <!-- Two ways to be asked about the same city, so the choice sits above the
+           heading rather than inside one of them. Duplicated in #photostart
+           because the two front doors are siblings and neither contains the
+           other; one handler in app.js wires every .modetab there is. -->
+      <nav class="modetabs" aria-label="Läge">
+        <button class="modetab" type="button" data-mode="learn" aria-current="page">Öva</button>
+        <button class="modetab" type="button" data-mode="photos">Förr</button>
+      </nav>
       <h1>Lär dig Malmö</h1>
       <p>Placera namnen på kartan. Kartan är avskalad från text medan du gissar —
          annars vore det ett lästest.</p>
@@ -34,6 +42,80 @@
   <footer id="learnfoot">
     <button id="forget" type="button">Glöm allt jag lärt mig</button>
   </footer>
+</div>
+
+<!-- The other front door. Öva asks where a name is; this asks when a photograph
+     was taken and where the photographer stood, which is the same city read the
+     other way round. -->
+<div id="photostart" hidden>
+  <header id="photohead">
+    <div>
+      <nav class="modetabs" aria-label="Läge">
+        <button class="modetab" type="button" data-mode="learn">Öva</button>
+        <button class="modetab" type="button" data-mode="photos" aria-current="page">Förr</button>
+      </nav>
+      <h1>Förr</h1>
+      <p>Fem fotografier ur Malmö Museers samlingar. Gissa vilket år de togs och
+         var fotografen stod. Samma fem för alla, hela dagen.</p>
+      <p id="photosub"></p>
+    </div>
+    <button id="photoexplore" type="button">Utforska kartan</button>
+  </header>
+  <div id="photobody">
+    <p id="photoday"></p>
+    <p id="photostats"></p>
+    <button id="photobegin" type="button">Spela dagens fem</button>
+  </div>
+</div>
+
+<!-- A day in progress. The map underneath is blind, for the reason it is blind
+     in a round: recognising the crane and knowing where it stands are two
+     different things, and a labelled map only tests the first. -->
+<div id="photoplay" hidden>
+  <div id="photobar">
+    <button id="photoquit" type="button" aria-label="Avsluta dagen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <p id="photoprompt"></p>
+    <span id="phototally"></span>
+  </div>
+
+  <!-- The photograph and the two controls that answer it. On a phone the picture
+       and the map want the same screen, so the picture folds away to a strip. -->
+  <div id="shot">
+    <button id="shottoggle" type="button" aria-label="Visa eller dölj fotografiet">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <figure id="shotfigure">
+      <img id="shotimage" alt="">
+    </figure>
+
+    <div id="shotask">
+      <label for="yearpick">Vilket år?</label>
+      <output id="yearvalue" for="yearpick"></output>
+      <input id="yearpick" type="range" step="1">
+      <button id="photoguess" type="button" disabled>Peka på kartan först</button>
+    </div>
+
+    <div id="shotresult" role="status" hidden>
+      <p id="resultyear"></p>
+      <p id="resultplace"></p>
+      <p id="resultpoints"></p>
+      <h2 id="resultplacename"></h2>
+      <p id="resultcaption"></p>
+      <p id="resultcredit"></p>
+      <a id="resultsource" target="_blank" rel="noopener">Källa</a>
+      <button id="photonext" type="button">Nästa bild</button>
+    </div>
+  </div>
+</div>
+
+<!-- The day, once all five are done. -->
+<div id="photosummary" hidden>
+  <p id="summaryday"></p>
+  <h2 id="summaryscore"></h2>
+  <ul id="photosummarylist"></ul>
+  <button id="photosummarydone" type="button">Klart</button>
 </div>
 
 <!-- A round in progress. The map underneath is blind: no labels anywhere, only

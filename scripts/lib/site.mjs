@@ -20,6 +20,11 @@ export const MOUNTS = [
   // network round trip, and re-downloading them from Wikimedia on every build
   // would be rude to someone else's servers.
   { url: '/images/', dir: 'learn/images' },
+  // The photographs Förr asks about, kept alongside the list that curates them
+  // for the same reasons — and one more: re-downloading two hundred plates from
+  // Malmö stad's server on every build would be rude to a municipal archive that
+  // is doing us a favour by being open at all.
+  { url: '/photos/', dir: 'game/photos' },
   { url: '/malmo.pmtiles', file: 'data/cache/malmo.pmtiles' },
 ];
 

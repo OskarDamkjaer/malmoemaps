@@ -8,8 +8,8 @@
 //
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
-const CODE = 'malmo-code-v12';
-const DATA = 'malmo-data-2026-08-03c';
+const CODE = 'malmo-code-v13';
+const DATA = 'malmo-data-2026-08-04a';
 
 const CODE_FILES = [
   '/',
@@ -26,6 +26,8 @@ const CODE_FILES = [
   '/rounds.mjs',
   '/progress.mjs',
   '/blind.js',
+  '/photos.js',
+  '/photos.mjs',
   '/manifest.webmanifest',
   '/style.json',
   '/vendor/maplibre-gl.css',
@@ -63,6 +65,9 @@ const DATA_FILES = [
   // placed it. Without this the front door is empty, so it is the least
   // optional file here after the tiles themselves.
   '/data/learn.json',
+  // The photographs Förr asks about — the list of them, that is; the pictures
+  // themselves come through pictureFiles below.
+  '/data/game.json',
   '/data/search.json',
   // The one category that is not in the tiles. food, culture and transit are
   // still built — the search index is made from them, and a station is worth
@@ -85,18 +90,29 @@ async function fillCache(name, urls) {
   if (failed.length) console.warn(`sw: ${failed.length} of ${urls.length} failed`, failed.map((f) => f.reason?.message));
 }
 
-// The photographs on the fact cards. Not in DATA_FILES because there are a
-// hundred-odd of them and the list is a build output, not something to keep in
-// sync by hand — so it is read from the one place that already knows, which is
-// the quiz itself. A picture that fails here is not worth failing the install
-// over: the card hides its frame and says the same words it always did.
+// The photographs, from both places that hold them. Not in DATA_FILES because
+// there are several hundred and the lists are build outputs, not something to
+// keep in sync by hand — so they are read from the two files that already know.
+//
+// The two are not equally optional. A missing fact-card picture costs a frame on
+// a card that says the same words either way; a missing Förr photograph costs
+// the question itself, because the photograph *is* the question. Neither is
+// worth failing the install over — a day that cannot be played offline still
+// beats a map that will not install — but that is why Förr's are precached at
+// all rather than left to be fetched when their day comes round.
 async function pictureFiles() {
-  try {
-    const items = await fetch('/data/learn.json').then((r) => r.json()).then((d) => d.items);
-    return [...new Set(items.map((it) => it.image).filter(Boolean))];
-  } catch {
-    return [];
-  }
+  const from = async (url, pick) => {
+    try {
+      return pick(await fetch(url).then((r) => r.json()));
+    } catch {
+      return [];
+    }
+  };
+  const [facts, photos] = await Promise.all([
+    from('/data/learn.json', (d) => d.items.map((it) => it.image)),
+    from('/data/game.json', (d) => d.photos.map((p) => p.image)),
+  ]);
+  return [...new Set([...facts, ...photos].filter(Boolean))];
 }
 
 self.addEventListener('install', (event) => {

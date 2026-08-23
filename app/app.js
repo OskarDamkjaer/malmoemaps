@@ -32,6 +32,9 @@ import { initSearch } from './search.js';
 import {
   escapeLearn, hidePicker, initLearn, isPlaying, showPicker,
 } from './learn.js';
+import {
+  escapePhotos, hidePhotoStart, initPhotos, isPlayingPhotos, showPhotoStart,
+} from './photos.js';
 
 const boot = document.getElementById('boot');
 const bootmsg = document.getElementById('bootmsg');
@@ -197,30 +200,63 @@ map.on('load', async () => {
     fail('Övningarna kunde inte laddas', err);
     return;
   }
+  try {
+    await initPhotos(map, { onExplore: () => setMode('explore') });
+  } catch (err) {
+    // Unlike the quiz, this one is survivable: Förr is a second thing to do
+    // rather than the thing the app is for, so a missing game.json costs you the
+    // tab and nothing else. The tab is hidden rather than left to throw when
+    // pressed.
+    console.error('photos', err);
+    for (const tab of document.querySelectorAll('.modetab[data-mode="photos"]')) tab.hidden = true;
+  }
   setMode('learn');
 });
 
-// ---- the two modes ---------------------------------------------------------
-// Study chrome and learning chrome are never both on screen. The search bar is
-// the reason this is a hard switch rather than a soft one: a text box that
+// ---- the three modes -------------------------------------------------------
+// Study chrome and being-asked chrome are never both on screen. The search bar
+// is the reason this is a hard switch rather than a soft one: a text box that
 // answers "var ligger Sofielund?" is not a feature you leave within reach of
-// someone being asked exactly that.
+// someone being asked exactly that — and it would date a photograph for them
+// too, so Förr wants it gone for the same reason Öva does.
 //
-// Every panel either mode owns is named here, including the picker itself —
-// splitting "which mode are we in" across two files is how the two of them
-// eventually end up both on screen.
+// Every panel every mode owns is named here, including both front doors —
+// splitting "which mode are we in" across three files is how two of them
+// eventually end up on screen together. The two asking modes are the same case
+// as far as the explore chrome is concerned, which is what `asking` is: there is
+// nothing here that is true of Öva and not of Förr.
 function setMode(mode) {
-  const learning = mode === 'learn';
-  document.getElementById('searchbar').hidden = learning;
-  document.getElementById('layers').hidden = learning;
-  document.getElementById('tolearn').hidden = learning;
-  if (!learning) { hidePicker(); return; }
+  const asking = mode !== 'explore';
+  document.getElementById('searchbar').hidden = asking;
+  document.getElementById('layers').hidden = asking;
+  document.getElementById('tolearn').hidden = asking;
+  // Both front doors go down first, so the one being opened is the only one that
+  // can be up regardless of which one we came from.
+  hidePicker();
+  hidePhotoStart();
+  if (!asking) return;
   hideCard();
   showLayers(false);
-  showPicker();
+  // Both front doors carry the tab strip, so both have to agree about which one
+  // is current — the one you are looking at and the one you are not.
+  for (const tab of document.querySelectorAll('.modetab')) {
+    if (tab.dataset.mode === mode) tab.setAttribute('aria-current', 'page');
+    else tab.removeAttribute('aria-current');
+  }
+  if (mode === 'photos') showPhotoStart();
+  else showPicker();
 }
 
+// The way back from studying. It returns you to Öva rather than to whichever
+// front door you left from: leaving for the map is a study trip, and the quiz is
+// what the app is for.
 document.getElementById('tolearn').addEventListener('click', () => setMode('learn'));
+
+// One handler for every tab in either front door — the markup is duplicated
+// because the two panels are siblings, but the behaviour is not.
+for (const tab of document.querySelectorAll('.modetab')) {
+  tab.addEventListener('click', () => setMode(tab.dataset.mode));
+}
 
 // ---- layer chips -----------------------------------------------------------
 // One chip per category, in the order categories.mjs lists them, stacked in a
@@ -318,17 +354,21 @@ export function hideCard() {
 
 document.getElementById('cardclose').addEventListener('click', hideCard);
 // Identifying what you tapped is the study mode's whole trick, and it is the
-// one thing a round must never do: during a round the same tap is an answer,
-// and the map is not allowed to grade it by naming it.
-onFeatureClick(map, showCard, isPlaying);
-map.on('click', (e) => { if (!e._handled && !isPlaying()) hideCard(); });
+// one thing an asking mode must never do: there the same tap is an answer, and
+// the map is not allowed to grade it by naming it. Förr needs this at least as
+// badly as Öva — a card reading "Södergatan" under your pin would answer half
+// the question outright.
+const busy = () => isPlaying() || isPlayingPhotos();
+onFeatureClick(map, showCard, busy);
+map.on('click', (e) => { if (!e._handled && !busy()) hideCard(); });
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  // A round in progress owns Escape outright: it has its own stack of things to
-  // back out of, and dismissing the explore card underneath it would be
-  // dismissing something that is not on screen.
-  if (escapeLearn()) return;
+  // A round or a day in progress owns Escape outright: it has its own stack of
+  // things to back out of, and dismissing the explore card underneath it would
+  // be dismissing something that is not on screen. Only one of these can be
+  // running, so the order between them decides nothing.
+  if (escapeLearn() || escapePhotos()) return;
   hideCard();
   // Escape out of the layer panel lands back on the button that opened it,
   // rather than at the top of the page.

@@ -23,6 +23,23 @@ what Västra Hamnen was before it was Västra Hamnen, why Augustenborg is famous
 outside Sweden, what Suellsbron is named after — there while you look for it,
 with the picture. That is the point; the placing is what makes you read it.
 
+Alongside it is **Förr**, which asks the same city the other way round: a
+photograph of Malmö, and two questions about it — what year was this taken, and
+where was the photographer standing. Five a day, the same five for everybody,
+scored out of 50 000. It is TimeGuessr narrowed from the world to one
+municipality, which is what makes the placing half hard: "somewhere in Sweden" is
+not an answer here.
+
+252 photographs from 1881 to 2026, out of two archives that each cover half a
+century and neither of which covers both — Malmö Museer through K-samsök for
+everything before 2000, Wikimedia Commons after it. The spread is deliberately
+tilted towards the recent: the 120 years before 2000 get about a photograph a
+year, the 26 since get about four, because there is far more of Malmö that people
+actually remember in the second. Most of them have people or an event in them —
+the 1 May demonstration filling Gustav Adolfs torg in 1894, the handball world
+championship in Malmö Arena in 2011 — rather than an empty street, because a
+crowd gives you far more to date a picture by than a facade does.
+
 The old reference map is still here as **Utforska** — search, layer chips, tap
 anything to find out what it is. It is where you go to learn the names in the
 first place, so it is study material rather than a leftover. It is also
@@ -37,9 +54,10 @@ unreachable from inside a round, for the obvious reason.
 - **No external tile or API calls at runtime.** Everything served from my origin.
 - **Always north-up.** Rotation and pitch disabled — a fixed orientation builds a
   stable mental map.
-- **Offline PWA.** The whole payload is 23.5 MB (basemap 13.3 MB, photographs 5.7 MB), so the service
-  worker just caches all of it. Practising on a train with no signal is the
-  normal case, not a degraded one.
+- **Offline PWA.** The whole payload is 39.6 MB (basemap 13.3 MB, fact-card
+  photographs 5.7 MB, Förr's photographs 16.1 MB), so the service worker just
+  caches all of it. Practising on a train with no signal is the normal case, not
+  a degraded one.
 - **Nothing is invented to fill a field.** The rule the area names already
   obeyed now covers the facts too: a place with nothing known about it gets a
   card with nothing on it but what the data can prove. See *What it says about
@@ -342,6 +360,9 @@ landmarks/  hand-curated landmark list + SVG icons
 areas/      the in-between names, hand-written with a source each
 learn/      what can be asked about and what is said back:
             about.json (area text), bridges.json, streets.json
+game/       Förr's photographs: photos.json (hand-ruled) + photos/*.webp,
+            and photo-candidates.md, the sweep they were chosen from
+            (K-samsök before 2000, Wikimedia Commons after)
 ```
 
 The app is twelve files. The map: `index.html`, `app.css`, `app.js` (map,
@@ -352,9 +373,16 @@ shape — and what the quiz is graded against and reveals),
 `kinds.js` (what an icon means, in Swedish), `search.js`. The learning:
 `rounds.mjs` (what can be asked and what counts as knowing it),
 `learn.js` (the loop and its chrome),
-`progress.mjs` (what you know), `blind.js` (taking the words off the map). Plus
+`progress.mjs` (what you know), `blind.js` (taking the words off the map). Förr:
+`photos.mjs` (what a photograph is worth and which five you get today),
+`photos.js` (the loop and its chrome). Plus
 `sw.js`. No framework, no bundler, no `node_modules`: the browser loads the ES
 modules as written.
+
+The two asking modes are deliberately the same shape — a pure `.mjs` holding the
+rules so the tests can ask them without a browser, and a `.js` holding the map,
+the DOM and the timers. `photos.js` reuses `blind.js` outright rather than having
+its own opinion about what a blind map is.
 
 ## Building the data
 
@@ -372,9 +400,116 @@ node scripts/build-landmarks.mjs    # landmarks.json → build/data/landmarks.ge
 node scripts/build-search.mjs       # everything above → build/data/search.json
 node scripts/build-learn.mjs        # areas + landmarks + learn/*.json → build/data/learn.json
 node scripts/build-images.mjs       # Wikipedia → learn/images/*.webp + learn/images.json
+node scripts/propose-photos.mjs     # K-samsök + Commons → game/photo-candidates.md + photos.draft.json (a hand sweep, not a build step)
+node scripts/build-game.mjs         # game/photos.json → build/data/game.json + game/photos/*.webp
+node scripts/apply-review.mjs       # game/review.json → prunes game/photos.json and marks the rest reviewed
 node scripts/propose-core.mjs       # learn.json + evidence → learn/core-candidates.md (a hand sweep, not a build step)
 node scripts/poi-inventory.mjs      # reads the tileset back: which POI classes it holds
 ```
+
+### Where Förr's photographs come from
+
+Two archives, because neither one is a century.
+
+**K-samsök** — Riksantikvarieämbetet's aggregator, and through it Malmö Museer —
+holds Malmö before 2000 and nothing after it. Filtered to Malmö and to licences
+that permit this (Public Domain Mark, CC BY, CC0), it yields ~35 000 records, of
+which ~3 400 can be placed. `#inc` and `#by-nc-nd` are refused: NC is not our
+call to make on someone else's behalf, and ND makes a resized photograph a
+problem. It has **no coordinates at all** — `geoDataExists=j` returns zero across
+the whole collection — so records are placed by matching the description against
+names the quiz already holds geometry for.
+
+**Wikimedia Commons** is the mirror image: seven usable photographs from before
+2000, then hundreds a year, every one geotagged by the camera that took it. No
+geocoding, no name matching. It is also where the things that *happened* are, and
+where the photographs with people in them are, which the museum's street views
+mostly are not.
+
+Commons is taken from **geosearch only**, never by walking categories. The
+category graph leaks: "People of Malmö" at depth two reaches individual people
+and then photographs of them taken anywhere in the world, and "Eurovision Song
+Contest 2024" returns files from 2004. A coordinate inside the bbox is a fact;
+category membership is somebody's filing decision. Categories are read as a
+*label* — what a photograph is of — and never as evidence that it is of Malmö.
+
+Five things about this data are traps, and every one fails silently. They are why
+`scripts/lib/ksamsok.mjs` and `scripts/lib/commons.mjs` are longer than two URLs:
+
+- **The year is not the first year in the record.** K-samsök records carry
+  several `pres:context` blocks — Fotograferad, Tillverkad, Förvärvad — and
+  Förvärvad is when the museum bought it. Across 2 000 records, taking the first
+  found was off by a median of 84 years and a maximum of 124. Only Fotograferad
+  is read; an unlabelled context is accepted only when it is the record's *only*
+  one, which is what makes RAÄ's 1 854 records usable without reintroducing the
+  bug.
+- **`fromTime`/`toTime` do not mean what they say.** A query for 1980–1989
+  returns records whose own timeLabel reads 1943. So the year range cannot be
+  trusted as a filter, only as a hint — the real distribution has to be measured
+  after parsing, which is how the 1980s turned out to hold sixteen photographs
+  rather than the seven hundred the query claimed.
+- **The place is in the description, not in `pres:content`.** Content is mostly
+  accession numbers and the credit boilerplate "Foto: X / Malmö museum", so
+  matching place names against it makes every photograph a photograph of Malmö
+  Museer: 208 false hits per 2 000 records, against 9 when only the description
+  is read.
+- **The Carlotta image URL does not work as given.** It arrives as `http://` with
+  `+` for spaces, and fetched that way returns *HTTP 200 with an HTML error
+  page*. See `scripts/lib/carlotta.mjs`; the content type is the only thing that
+  says it failed.
+- **A Commons coordinate says where the camera was, not what it was pointed at.**
+  A photograph of a seed-vault storage box, taken in an office in Malmö and
+  geotagged there, is a good file and an impossible question.
+
+**The 1970s to the 1990s are a hole, and it is the archives' rather than the
+pipeline's.** Placeable supply runs to hundreds a decade until 1970 and then
+falls off a cliff: 19 from the 1970s, **1** from the 1980s, 12 from the 1990s.
+Malmö Museer's open material is old because Public Domain Mark and age are the
+same fact, and Commons barely existed before digital cameras. `QUOTA` in
+`propose-photos.mjs` is set to what can actually be had, and the candidates table
+prints supply beside quota so a thin row reads as a fact about Malmö's archives
+instead of a bug.
+
+`game/photos.json` is the hand-ruled list and the only file in that pipeline that
+decides anything. Full provenance — every query, every licence, every trap — is
+in **`game/SOURCES.md`**.
+
+### Reviewing them
+
+The metadata cannot tell you whether a photograph is any good as a question. The
+archives are full of interiors, trade-fair stands, copy work and files geotagged
+where the photographer was sitting rather than where they were pointing, and none
+of that is visible in a catalogue record. It is instantly visible in the picture.
+So there is a page for looking at them:
+
+```
+node scripts/serve.mjs              # then open http://127.0.0.1:8080/review/
+```
+
+One photograph at a time, as large as the window allows, with the year and the
+place beside it and a locator showing the pin against every other pin in the set.
+<kbd>→</kbd> keeps, <kbd>←</kbd> throws away, <kbd>↓</kbd> looks without judging,
+<kbd>U</kbd> undoes. Decisions go to `game/review.json` after every keystroke, so
+it is resumable and closing the tab loses nothing — five hundred photographs is
+more than one sitting.
+
+```
+node scripts/apply-review.mjs       # kept rows get "reviewed": true, dropped rows are cut
+node scripts/build-game.mjs         # rebuilds, and deletes the webp of anything cut
+```
+
+Two steps rather than one on purpose: a page in a browser should not be able to
+rewrite the file that decides what the game asks about. The tool records an
+opinion; applying it is something you run deliberately and can read the diff of.
+
+The review page is served only by the dev server (`scripts/review/`), never built
+into the site. `scripts/serve.mjs` grows one write endpoint for it — the only one
+in this repo — bound to 127.0.0.1 and accepting one shape of one file.
+
+While anything is still unreviewed, `build-game.mjs` treats the size budget as a
+warning rather than a failure: the point of proposing five hundred is to throw
+half of them away, and a candidate pool is allowed to be bigger than the set that
+ships.
 
 `build-learn.mjs` is the one that will stop the build. It joins every curated
 name to geometry that exists and to its text, and a name it cannot place is a
@@ -497,7 +632,7 @@ built yet.
 ## Hosting
 
 ```
-node scripts/build-site.mjs         # → build/site (23.5 MB, 244 files) — upload as-is
+node scripts/build-site.mjs         # → build/site (39.6 MB, 499 files) — upload as-is
 ```
 
 Any static host over HTTPS (geolocation and service workers need it). The only
