@@ -1,123 +1,34 @@
 # Decisions
 
 Short log of the non-obvious choices, so they don't get relitigated. A dated
-bullet lands here only when something non-obvious was actually decided.
+bullet lands here only when something non-obvious was actually decided, and it
+leaves when its subject does — this is the current state, argued, not an
+archive.
 
-- **Förr keeps score, and it is the only thing here that does** (2026-08-04).
-  A third mode: a photograph from Malmö Museers samlingar, and two questions —
-  what year, and where was the camera. Five a day, seeded on the date so there is
-  nothing to serve.
-
-  The argument against was that this app grades right or wrong on purpose. Öva
-  does that because "is Sofielund there" has an answer and a near miss is still
-  not knowing, and a points total would turn a test of knowledge into a thing you
-  farm. But a photograph does not work that way. Being nine years and four
-  hundred metres out is a real answer — it is most of the answer — and there is
-  no honest way to call it wrong. So Förr scores, and the scoring is quarantined
-  in its own store (`malmo:photos:v1`) rather than going through `progress.mjs`.
-  That store asks one question, *can you place this two times running*, and
-  filing a photograph under "Södergatan" would quietly claim you had learned
-  Södergatan because you dated a picture of it.
-
-  What the mode is actually made of is the data problem, not the game. TimeGuessr
-  buys part of its corpus from Alamy; there is nothing to buy here and nothing to
-  copy — the best open-source clone on GitHub has two stars and is a bot that
-  *plays* the real site. Malmö Museer publish 360 000 photographs through
-  K-samsök, of which ~11 000 are Malmö, dated and openly licensed. They carry no
-  coordinates whatsoever, so the pin comes from matching the record's description
-  against names the quiz already holds geometry for. That the app *already knew
-  where 384 things in Malmö are* is the only reason this was a week's work
-  rather than a year's.
-
-  Three traps in that data, all of which failed silently and all of which are
-  now the reason `propose-photos.mjs` is longer than a query. The year is not the
-  first year in the record — Förvärvad is when the museum bought it, and taking
-  the first context found was off by a median of 84 years. The place is in
-  `description` and not in `content`, which is credit boilerplate — matching
-  against both made every photograph a photograph of Malmö Museer, 208 times per
-  2 000 records. And the image URL as published returns an HTML error page under
-  HTTP 200, so the content type is the only thing that says it failed.
-
-  Two choices inside the game are worth writing down because they were not
-  obvious. The cap on how many photographs one place may contribute is **per
-  place and decade**, not per place: Stortorget in 1890 and Stortorget in 1960
-  are not the same question, and capping per place alone kept three of Stortorget
-  and all of them from the 1890s, because the archive is deepest where it is
-  oldest. And the daily deals the whole deck in order rather than sampling five —
-  everything is seen once before anything is seen twice — because with 197
-  photographs random sampling would repeat inside a fortnight while leaving
-  others unseen for a year.
-
-  The cost is the payload, and it is real: 23.5 MB to 39.6 MB, all of it
-  precached, because "practising on a train with no signal is the normal case"
-  has to keep being true for the new mode too. 900 px rather than 1000 is what
-  bought the last two megabytes. The honest fallback, if it ever gets too big, is
-  a separate cache tier fetched on first play — but that is a retreat from the
-  principle rather than a plan, so the budget is a hard check in the build
-  instead.
-
-- **Förr takes two archives, and the join is at the year 2000** (2026-08-04).
-  The first version was Malmö Museer alone and it was a quiz about a city with no
-  cars in it: 1880 to 1974, thickest around 1900, and every photograph an empty
-  street. Public Domain Mark and age are the same fact, so an open museum archive
-  is structurally a nineteenth-century archive, and "historical photograph" had
-  quietly come to mean "before living memory".
-
-  Wikimedia Commons is the exact complement and it is almost eerie how cleanly it
-  splits: seven usable photographs from before 2000, then hundreds a year, every
-  one geotagged by the camera. So K-samsök owns everything up to 1999 and Commons
-  everything after, and the two never overlap or have to be reconciled.
-
-  Commons comes from geosearch and never from walking categories, which was
-  tempting and wrong. "People of Malmö" at depth two reaches individual people
-  and then photographs of them taken anywhere in the world; "Eurovision Song
-  Contest 2024" returns files from 2004. A coordinate inside the bbox is a fact
-  and a category is somebody's filing decision, so categories are read as a label
-  — *what is this a photograph of* — and never as evidence of where.
-
-  Two things this cost. The distribution is now a declared `QUOTA` per decade
-  rather than a flat cap, because with two archives of wildly different depth
-  "balanced" stopped being a property that emerges and became one you have to
-  state: the 120 years before 2000 get about one photograph each, the 26 after
-  get about four. And the 1970s to the 1990s turned out to be a hole that neither
-  archive fills — 19 placeable photographs from the 1970s, **1** from the 1980s,
-  12 from the 1990s. That is a fact about what Malmö has digitised and released,
-  not a bug, so the quota is set to what can be had and the candidates table
-  prints supply beside quota. A thin row should read as a fact about the archives.
-
-  Worth recording because it cost an hour and would have shipped silently:
-  K-samsök's `fromTime`/`toTime` **do not mean what they say**. A query for
-  1980–1989 returns records whose own timeLabel reads 1943, so the counts that
-  suggested ~750 photographs per five-year band through the 1980s and 1990s were
-  counting 1940s material. The real distribution can only be measured after
-  parsing the year out of each record. Nothing about the API says this; the query
-  succeeds and the number looks plausible.
-
-- **The front door is Grunden and Resten, not ten parts of town** (2026-08-04).
-  The picker was a row per stadsdel, listed outward from Stortorget. It answered
-  "which part of town shall I practise", and the question people actually arrive
-  with is *which of these 384 names am I supposed to know at all*. Ten rows all
-  reading "23 av 41" cannot say that; two headings can, before anything is
+- **The front door is Grunden and Resten** (2026-08-04). The question people
+  arrive with is not "which part of town shall I practise" but *which of these
+  384 names am I supposed to know at all*. A row per part of town cannot say
+  that — ten rows all reading "23 av 41"; two headings can, before anything is
   pressed. So: two halves, four kinds each, eight rounds. Resten is the
   remainder rather than the whole, so nothing is asked of you twice.
 
-  The cost is the mixing, and it was a real argument — a city is not learned a
-  category at a time, and the geographic cut existed because of it. Two things
-  make it payable. Inside a round the questions were already grouped by kind
-  (`byKind`), because placing a delområde and placing a bridge are different
-  jobs and alternating means starting over every question; the cut has only
-  caught up with the order. And the mixing was buying less than it looked like:
-  a chunk was a stadsdel, which is not the walk down Föreningsgatan the argument
-  describes, it is a tenth of the city.
+  The cost is the mixing. A city is not learned a category at a time — standing
+  on Föreningsgatan you want to know that this is Möllevången, that the bridge
+  is Petribron and that the park is Pildammsparken, and that is three categories
+  and one piece of knowledge. Two things make it payable. Inside a round the
+  questions are grouped by kind anyway, because placing a delområde and placing
+  a bridge are different jobs and alternating means starting over every
+  question; the cut only catches up with the order. And a chunk the size of a
+  stadsdel was buying less mixing than the argument promised — a stadsdel is a
+  tenth of the city, not the walk down Föreningsgatan.
 
-  Two smaller things went with it. `hitAt` now grades against every item of the
+  Two smaller things went with it. `hitAt` grades against every item of the
   target's shape rather than the round's — with disjoint halves, a chunk-local
   candidate list would have made Grunden quietly the easier half twice over.
-  And a street round is now framed to the whole city, so it opens well under
-  `STREET_ZOOM` and says "zooma in för att se gatorna" as its first word. It
-  always did that below z14 and a stadsdel was already below z14; it is the
-  ordinary case now rather than the awkward one. The honest fix, if it spoils
-  the streets rounds, is to carry simplified street geometry in `learn.json` and
+  And a street round is framed to the whole city, so it opens well under
+  `STREET_ZOOM` and says "zooma in för att se gatorna" as its first word — the
+  ordinary case rather than the awkward one. The honest fix, if that spoils the
+  streets rounds, is to carry simplified street geometry in `learn.json` and
   stop grading off the loaded tiles at all.
 
 - **What counts as core is decided by hand, against a sentence** (2026-08-04).
@@ -153,76 +64,46 @@ bullet lands here only when something non-obvious was actually decided.
   arteries that reach them. Beyond, the place and the road that gets you there.
   139 of 384, 36 %.
 
-- **One mode: peka ut** (2026-08-04). "Dra ut alla" is gone. It lit up every
-  slot the name could go in — every delområde in the chunk, every bridge, every
-  street — and asked you to choose among them, on the theory that recognition is
-  the easy direction you start with before you can recall.
-
-  What it actually was, once the slots were drawn, was a matching exercise. With
-  the delområden outlined and the streets stroked, the map had already narrowed
-  the answer to a dozen shapes, and the round became about telling those shapes
-  apart rather than about knowing where anything is. You can finish a chunk that
-  way having learned the shape of the board. "The board is the run you are in",
-  below, was the third attempt in a week to keep the easy half honest, which is
-  its own kind of evidence.
-
-  It also cost more than it looked like it did. Every chunk offered a choice
-  nobody had the information to make — nothing on the picker says which mode you
-  should be in, and the honest answer was "the hard one". And in the code, a
-  `mode` was threaded through every function in learn.js, with a tray, a drag
-  ghost, a board of slots that had to be redrawn on every pan, and a set of
-  layers in highlight.js hanging off it: about 250 lines, all of them serving
-  the half that taught less. One question, asked properly.
-
-- **Streets are found by name, not by what is nearest** (2026-08-04). Streets
-  highlighted strangely — asked to show Södergatan, the map would light up a
-  short stretch of something at right angles to it.
-
-  The reveal called "give me the named street nearest this point" with the
-  street's own point. That point comes from `representativePoint`
-  (scripts/lib/geo.mjs), which returns an existing *vertex* of the street — and
-  OSM ways are split at junctions, so a vertex is usually a crossroads. At
-  Södergatan's point, Skomakaregatan is 0.317 m away and Södergatan is 0.329 m
-  away. The cross street won, and was then drawn end to end: a short line,
-  crossways, which is exactly what "only part of the street highlighted" looks
-  like. 20 of the 174 streets in the quiz did this, and the same call in the
-  search dropped another fifth of the street index to a bare ring, because the
-  name check behind it quietly rejected the wrong answer without saying so.
+- **Streets are found by name, not by what is nearest** (2026-08-04). Asked to
+  show Södergatan, the map lit up a short stretch of something at right angles
+  to it. The reveal called "give me the named street nearest this point" with
+  the street's own point — which comes from `representativePoint`
+  (scripts/lib/geo.mjs) and is an existing *vertex* of the street, and OSM ways
+  are split at junctions, so a vertex is usually a crossroads. At Södergatan's
+  point, Skomakaregatan is 0.317 m away and Södergatan is 0.329 m away. The
+  cross street won, and was then drawn end to end. 20 of the 174 streets did
+  this.
 
   Proximity is now only for fingers. A tap is a place and the name is what you
   want out of it, so the grader still asks what is nearest. Anything that
   already *has* the name asks by name, and uses the point only to pick which
-  Bruksvägen. While there, the clustering distance that joins tile-clipped
-  pieces into one street moved from 220 m to 500 m — the same number as
-  `CLUSTER_GAP_M` in build-streets.mjs, which is what decided that Almviksvägen
-  is one entry in the quiz rather than two. Two files disagreeing about that
-  meant the app drawing 508 m of a street the build called 1144 m long.
+  Bruksvägen. The clustering distance that joins tile-clipped pieces into one
+  street is 500 m — the same number as `CLUSTER_GAP_M` in build-streets.mjs,
+  which is what decides that Almviksvägen is one entry in the quiz rather than
+  two. Two files disagreeing about that meant the app drawing 508 m of a street
+  the build called 1144 m long.
 
   The reason this survived: nothing about streets can be checked by reading
-  `learn.json`, which is correct. It is only wrong once the name is looked up in
-  vector tiles at runtime. `test/streets.test.mjs` now does that lookup against
-  the real archive — see the README. Three of its six tests fail against the old
-  code.
+  `learn.json`, which is correct — it is only wrong once the name is looked up
+  in vector tiles at runtime. `test/streets.test.mjs` does that lookup against
+  the real archive.
 
 - **The round says "zooma in" on zoom, not on what it failed to draw**
-  (2026-08-04). Same warning, different trigger. It used to fire when the board
-  could not draw any street slots, which was a real measurement but only existed
-  in the mode that had a board. The fact underneath belongs to neither mode:
-  `transportation_name` carries motorways from z10 and the other three thousand
-  names only from z14, so below that a street question cannot be answered *or
-  graded* — the grader looks your tap up in the same tiles. A chunk framed to
-  fit a stadsdel opens well below it. `STREET_ZOOM` is now a named constant read
-  back out of the archive by a test, which is the honest form of the claim: it
-  is a fact about the tileset, not a preference.
+  (2026-08-04). `transportation_name` carries motorways from z10 and the other
+  three thousand names only from z14, so below that a street question cannot be
+  answered *or graded* — the grader looks your tap up in the same tiles. A round
+  framed to fit a part of town opens well below it, so the warning fires on the
+  zoom itself. `STREET_ZOOM` is a named constant read back out of the archive by
+  a test, which is the honest form of the claim: it is a fact about the tileset,
+  not a preference.
 
-- **A description says what a thing is, never where it is** (2026-08-04). Moving
-  the panel from *after* the answer to *alongside the question* changed what its
-  text is allowed to contain, and every line in the repo was written under the
-  old rule. "Genom Seved i Södra Sofielund" was a fine reward and is a free
-  answer; so were "öster om Möllevången", "mellan Slottsstaden och Mellanheden"
-  and the forty-odd others like them. Audited all 184 curated lines against one
-  rule — what it is, when it was built, what happened there, what it is known
-  for, and nothing about position — and changed 141 of them.
+- **A description says what a thing is, never where it is** (2026-08-04). The
+  panel is up for the whole question, so its text is not allowed to contain the
+  answer: "öster om Möllevången", "mellan Slottsstaden och Mellanheden" and the
+  forty-odd others like them were fine rewards and are free answers. All 184
+  curated lines audited against one rule — what it is, when it was built, what
+  happened there, what it is known for, and nothing about position — and 141 of
+  them changed.
 
   Two judgement calls inside that rule. **A name may say what it already says:**
   Limhamns kyrka can mention Limhamn and Petribron can say it is named after
@@ -233,169 +114,73 @@ bullet lands here only when something non-obvious was actually decided.
   there the containment is a coordinate.
 
   Twenty-six lines had nothing left once the position came out, and those are
-  now empty rather than reworded into a sentence that says nothing — the same
-  bargain the rest of the pipeline makes. Coverage drops from 44/136 delområden,
-  36/174 streets and 19/19 bridges to 40, 22 and 13. The derived `meta` line went
-  the same way in `build-learn.mjs`: a street no longer prints the delområde it
-  runs through, and a bridge no longer prints what it crosses. A delområde still
-  prints its stadsdel, which is the chunk you chose before the round began.
+  empty rather than reworded into a sentence that says nothing — the same
+  bargain the rest of the pipeline makes. Coverage is 40 of 136 delområden, 22
+  of 174 streets and 13 of 19 bridges. The derived `meta` line obeys the same
+  rule in `build-learn.mjs`: a street does not print the delområde it runs
+  through, and a bridge does not print what it crosses. A delområde still prints
+  its stadsdel, which is coarse enough to give nothing away.
 
 - **A picture per name, not per Wikipedia article** (2026-08-04). The picture
-  rule was "prove it is the right place" and coordinates do prove that — but
-  they say nothing about whether the picture is worth showing, and the audit
-  found three ways it wasn't. Seven pairs of names were sharing one file, because
-  Wikipedia illustrates two articles with the same photograph: Norra and Södra
-  Sofielund were the same picture of the same building, which is the failure the
-  coordinate check was built to prevent, arriving through the front door. One
-  name (Malmö universitet) had a *logotype* rather than a photograph. Three had
-  photographs from before 1920, of which Regementsgatan's is a canal that was
-  filled in — a card that sends you looking for water.
+  rule is "prove it is the right place", and coordinates do prove that — but
+  they say nothing about whether the picture is worth showing. Seven pairs of
+  names were sharing one file, because Wikipedia illustrates two articles with
+  the same photograph: Norra and Södra Sofielund were the same picture of the
+  same building, which is the failure the coordinate check was built to prevent,
+  arriving through the front door. One name (Malmö universitet) had a
+  *logotype* rather than a photograph. Three had photographs from before 1920,
+  of which Regementsgatan's is a canal that was filled in — a card that sends
+  you looking for water.
 
   Fixed by hand-pinning thirteen entries, using the mechanism `images.json`
   already had. Nine got a new picture chosen from Commons **geosearch**, which
   is per-file coordinates rather than per-article ones and so is a strictly
-  stronger proof than the build's own; four are pinned to `null`. Not
-  automated: picking between six photographs of the same street is a judgement
-  about what a place looks like, and the build has no business making it. What
-  the build should do is stop handing the same file to two names, which is a
-  check worth adding when it next runs.
+  stronger proof than the build's own; four are pinned to `null`. Not automated:
+  picking between six photographs of the same street is a judgement about what a
+  place looks like, and the build has no business making it.
 
-- **The panel is the question, not the prize** (2026-08-03). The card was the
-  reward for a correct placement: place Sofielund, then find out what Sofielund
-  is. It is now up for the whole question instead — name, what it is, its
-  picture and what is known about it, sitting there while you look for it — and
-  a settled answer advances to the next name on a timer rather than through a
-  button.
+- **The panel is the question, not the prize** (2026-08-03). The card is up for
+  the whole question — name, what it is, its picture and what is known about it,
+  sitting there while you look for it — and a settled answer advances to the
+  next name on a timer rather than through a button. Three things that bought. A
+  question is never a blank: you are not asked for a name you have been told
+  nothing about, which for the hundred-odd streets with no description is most
+  of them. The picture gets the whole question to work on you rather than two
+  seconds after you have stopped needing it. And the dismissal tap is gone — it
+  only ever existed to admit you had finished reading, and the reading is done
+  before you answer. What the text may say while it sits there is its own
+  decision, above.
 
-  Three things that bought. A question is never a blank: you are no longer asked
-  for a name you have been told nothing about, which for the hundred-odd streets
-  with no description was most of them. The picture gets the whole question to
-  work on you rather than two seconds after you have stopped needing it. And the
-  dismissal tap is gone — it only ever existed to admit you had finished
-  reading, and the reading is now done before you answer.
+- **The view moves only when the answer is off screen** (2026-08-03). Flying to
+  every answer takes the view out from under someone who panned there on
+  purpose; never moving means being told "så här ligger det" about a place off
+  the edge of the screen. So the reveal checks first — against the part of the
+  canvas nothing is sitting on top of, because revealing an answer *behind the
+  card that explains it* is the exact failure worth avoiding. Nothing re-frames
+  between questions either: the opening view is a starting point, not a cage to
+  be returned to.
 
-  **The cost is that the text can give the answer away**, and it does: 47 of the
-  154 descriptions name another place, and the meta line names the delområde
-  outright — "Slussen · Delområde i Centrum · Där kanalen möter hamnbassängen i
-  öster, vid Slussbron" is most of a location before you have looked at the map.
-  Accepted on the grounds that the app is for learning Malmö rather than for
-  scoring you, and being told where Slussen is while being asked to point at it
-  is a worse quiz and a better lesson. If that turns out to be wrong, the
-  smallest fix is holding `about` and `meta` back until the answer is in, which
-  keeps the name and the picture as the question.
+- **A round runs a kind at a time** (2026-08-03). Every delområde, then every
+  gata, then the broar, then the landmärken — because placing a delområde and
+  placing a bridge are not the same job (*which of these outlines is it* versus
+  *where on the water is it*), and alternating between them means starting over
+  on every question. The order is the declaration order of `KINDS`, which is
+  also what the picker counts a chunk in, so there is one answer to "what comes
+  first". Inside a kind, the round asks what you keep missing.
 
-  *It turned out to be wrong the next day, and the fix was neither of those: the
-  text was rewritten rather than withheld. See "A description says what a thing
-  is, never where it is" above.*
-
-- **The board is the run you are in** (2026-08-03). Everything placed used to
-  stay lit whatever was in hand, on the theory that the round so far is what you
-  eliminate against. But you eliminate *within a kind* — and once the areas were
-  done, that theory meant twenty green delområden sitting underneath the street
-  run, tinting half the city in a colour that had stopped meaning anything
-  there. A run starts clean and shows one kind: open slots dashed, filled ones
-  solid.
-
-- **The view moves only when the answer is off screen** (2026-08-03). Point mode
-  flew to every answer and tray mode never moved, and with pan and zoom now on,
-  both are wrong. Flying every time takes the view out from under someone who
-  panned there on purpose; never moving means being told "så här ligger det"
-  about a place off the edge of the screen. So the reveal checks first — against
-  the part of the canvas nothing is sitting on top of, because revealing an
-  answer *behind the card that explains it* is the exact failure worth avoiding.
-  Nothing re-frames between questions either: the opening view is a starting
-  point, not a cage to be returned to.
-
-- **A street round says "zooma in" when it means it** (2026-08-03). Street slots
-  are looked up in the vector tiles that happen to be loaded, and
-  `transportation_name` is not in them below about z14 — so at the zoom a whole
-  stadsdel is framed at, a street slot resolves to nothing. That was showing up
-  as roads that would not highlight, but the drawing was the lesser half: the
-  grader finds your answer through the *same* lookup, so a street question asked
-  at that zoom could not be got right either. `setBoard` now returns how many
-  slots it could actually draw, and a street run with none of them says the one
-  thing that fixes it. The layer chips already talk this way, for the same
-  reason.
-
-- **The rounds are listed outward from Stortorget** (2026-08-03). The picker was
-  in Swedish alphabetical order, which put Centrum third behind Fosie and Husie
-  above Kirseberg — facts about the alphabet, not about Malmö. Sorted by how far
-  out each stadsdel is, the list is a route: the part you already half-know,
-  then the ring around it, then Oxie nine kilometres down at the bottom where it
-  belongs.
-
-  The anchor is `Stortorget` looked up in the quiz's own items rather than a
-  coordinate pair in a constant, because "the middle of Malmö is Stortorget" is
-  a claim about the city that anyone can check and `13.0006, 55.6061` is a claim
-  about nothing. It lands 163 m from the Centrum chunk's own centroid, which is
-  as good a check as that idea is going to get. A test holds the build to it;
-  the runtime falls back to the centroid of everything, because a missing
-  landmark should cost you the ordering rather than the app.
-
-- **Pan and zoom stay on during a round** (2026-08-03). Tray mode used to
-  disable both, on the grounds that you cannot pan with a name in your hand.
-  That was true of the wall of nametags, where the map had to hold still for a
-  hundred drop targets, and stopped being true when the tray became one tag that
-  is placed as often by tapping as by dragging. Meanwhile the cost had gone up:
-  a chunk framed to fit Centrum on a phone is not a scale you can tell two canal
-  bridges apart at, and refusing to let someone zoom in was testing their
-  eyesight rather than their knowledge. Zooming in is not cheating when the
-  labels are gone — that is what the blinding is for.
-
-  It does mean the board has to follow the view: a street slot is found in the
-  tiles that happen to be loaded, so `moveend` redraws it. Nothing else in the
-  round moves the map on its own, because the board *is* the round so far and
-  taking it out from under you between questions would undo the pan you just
-  made on purpose.
-
-- **A slot is dashed until it is filled** (2026-08-03). The board said "empty"
-  in grey and "placed" in green and left it at that, which fell apart on the
-  streets: a grey stroke along a road drawn in grey casing, next to a green
-  stroke along a road that is not, is two muted colours to tell apart — and with
-  fifty street slots lit at once in Centrum, telling them apart *is* the task.
-  Dashed against solid is a difference that cannot be missed, holds over white,
-  yellow and orange road casings alike, and does not ask anyone to distinguish
-  two dark colours at a glance. Colour still carries the same meaning; it is
-  just no longer carrying it alone. Two layers rather than one expression,
-  because `line-dasharray` is not data-driven in MapLibre.
-
-- **The tray holds one name, and a round runs a kind at a time** (2026-08-03).
-  Tray mode laid the whole chunk out as nametags along the bottom, and in
-  Centrum that is 104 of them: a wall covering two thirds of the city it was
-  asking about. The mode's whole argument is that you can *see what is left* —
-  and the seeing was supposed to happen on the map, between the slots filling up
-  green, not in a list of words on top of it. So the tray is one tag now, in
-  hand from the moment it appears, and the map is a map again.
-
-  What went with it: arming. A tap used to pick a name up out of the wall and a
-  second tap put it down, which was the right gesture when there were a hundred
-  to choose between and is pure ceremony when there is one. The name is in hand,
-  the map takes the tap, and `renderArmed`, the `dragged` click-suppression flag
-  and the escape-key rung that disarmed all went with it. Dragging stays, though
-  nothing needs it: it is the affordance that says a nametag is a thing you put
-  somewhere.
-
-  And the order stopped being one shuffle over everything. A round now asks a
-  kind at a time — every delområde, then every gata, then the broar, then the
-  landmärken — because placing a delområde and placing a bridge are not the same
-  job (*which of these outlines is it* versus *where on the water is it*), and
-  alternating between them means starting over on every question. The order is
-  the declaration order of `KINDS`, which is also what the picker counts a chunk
-  in, so there is one answer to "what comes first". Inside a kind each mode
-  keeps its own idea: tray shuffles, point asks what you keep missing. Tray
-  cannot use the spaced-repetition order, because with the slots on screen
-  "here is the one you always get wrong" is a hint about which slot it is.
-
-  With nothing having to fit on a screen, `MAX_CHUNK` stopped meaning what it
-  said. It is now a ceiling on how long a sitting is (200), and the honest fix
-  for a chunk that reaches it is cutting the chunks finer, not raising it again.
+- **Pan and zoom stay on during a round** (2026-08-03). A chunk framed to fit
+  Centrum on a phone is not a scale you can tell two canal bridges apart at, and
+  refusing to let someone zoom in tests their eyesight rather than their
+  knowledge. Zooming in is not cheating when the labels are gone — that is what
+  the blinding is for. Nothing in the round moves the map on its own: taking the
+  view out from under you between questions would undo the pan you just made on
+  purpose.
 
 - **The streets are the yellow ones** (2026-08-03). The curated list was 65
   hand-picked names and the taste behind them was real but narrow: the ring
   roads, the arteries, the old streets inside the canal, the addresses people
   meet on — which is Centrum and Söder, and almost nothing in Husie, Oxie or
-  Tygelsjö. A quiz cut by stadsdel notices that immediately; Rosengård was ten
-  names.
+  Tygelsjö; Rosengård was ten names.
 
   So the second half of the list is a rule instead of a taste: **every road the
   basemap paints yellow.** Yellow is `#fea`, which `road_trunk_primary` and
@@ -413,76 +198,31 @@ bullet lands here only when something non-obvious was actually decided.
   card is allowed to say so.
 
 - **The app is for learning the city, not for looking things up** (2026-08-03).
-  The reference map was a good map that nobody needed: everything it answered,
-  a phone already answers. What it was *unusually* good at was the thing it
-  built as a side effect — a mental model of how Malmö is put together, from the
-  one-level-at-a-time area ladder and the curated names. So the app now asks
-  instead of tells. The map, the ladder, the names and the landmark list are
-  unchanged and are now the material; the round picker is the front door.
+  Everything a reference map answers, a phone already answers. What this one is
+  unusually good at is the thing it builds as a side effect — a mental model of
+  how Malmö is put together, from the one-level-at-a-time area ladder and the
+  curated names. So the app asks instead of tells; the map, the ladder, the
+  names and the landmark list are the material.
 
-  The reference map survives as **Utforska** rather than being deleted, because
-  the rounds are only worth playing if there is somewhere to learn the names in
-  the first place, and that is exactly what search + tap-to-identify is. It is
-  unreachable while a round is running for the obvious reason: a text box that
-  answers "var ligger Sofielund?" is not a feature you leave within reach of
-  someone being asked exactly that.
+  The labelled map survives as an escape hatch — everything the quiz asks
+  about, drawn and tappable — because the rounds are only worth playing if
+  there is somewhere to learn the names in the first place. It is unreachable
+  while a round is running for the obvious reason: a map that answers "var
+  ligger Sofielund?" is not a feature you leave within reach of someone being
+  asked exactly that.
 
 - **Blinding is total, not selective** (2026-08-03). During a round, every layer
   that draws text is hidden — not just the names of the category being asked
-  about. Selective blinding was the first design and is wrong twice: names leak
-  sideways (Petribron is a bridge *and* a street name; Möllevångstorget is a
-  square, a POI label and half a delområde), so the rule would have to know all
-  of that and would be wrong quietly; and "which symbol layers are visible
-  during a round" has one testable answer only if the answer is *none*. The cost
-  is real — placing a landmark with no street names to triangulate from is
-  harder — and is accepted, because the alternative is a quiz you can pass by
-  reading. What is left is coastline, water, parks, roads and buildings, plus
-  the outlines of whatever is being asked about, forced on at every zoom rather
-  than only inside their band of the ladder.
-
-- **One quiz, cut by geography rather than by category** (2026-08-03). The first
-  build had six rounds — a round per category, each with its own shape, its own
-  tolerance and its own idea of how to cut itself up. That is a menu of six
-  things to practise rather than one thing to learn, and it teaches the taxonomy
-  instead of the city: you end up able to recite the ten stadsdelar and still
-  unable to say what you are standing in. A city is not learned a category at a
-  time. Standing on Föreningsgatan you want to know that this is Möllevången,
-  that the bridge down there is Petribron and that the park is Pildammsparken,
-  and that is three categories and one piece of knowledge.
-
-  So there is one quiz, cut by stadsdel — ten chunks — and a chunk holds
-  whatever is in that part of town. What used to be a round is now a *kind* — a property of the item
-  saying how it is placed and how close counts. Two levels were cut outright:
-  the ten stadsdelar (learnable in one sitting, and mostly already known) and
-  the 97 names in between (the same ground as the delområden, asked at a coarser
-  grain, so answering both was answering twice). What is left is 275 names, one
-  level of area, and nineteen chunks of at most twenty.
-
-  Three things fell out of that, all of them simplifications. Progress is keyed
-  by name alone, because "Limhamn the name in between" and "Limhamn the
-  delområde" was the only reason it could not be — which means the cut can move
-  without anyone losing what they learned. The view is computed from the chunk's
-  own extent rather than read off a zoom ladder, because chunks are no longer
-  all the same size. And the tray cap stopped being a rule about which rounds
-  get tray mode and became a rule about how big a chunk may be, checked in the
-  build: every chunk is playable both ways.
-
-- **A chunk is a whole stadsdel, however uneven that is** (2026-08-03). The
-  first cut sliced any stadsdel over twenty names into contiguous west-to-east
-  strips, so a tray would fit a phone screen without scrolling. That optimised
-  the wrong thing. A twenty-name slice of Centrum is a few blocks, and a few
-  blocks cannot hold a street: Amiralsgatan and Regementsgatan run the width of
-  the city, so every chunk small enough to be comfortable was too small to
-  contain the things most worth knowing, and the streets that did fit were the
-  short ones nobody needs teaching. So the strips are gone, the tray scrolls,
-  and chunks range from Oxie's 8 names to Centrum's 104 — which is honest,
-  because those parts of town are not the same size either.
-
-  Streets carry a bounding box for the same reason. A street's label point says
-  where to write the name; it says nothing about the five kilometres the street
-  runs, and a chunk framed on label points alone puts the answer off the screen
-  in the one mode where the map is not allowed to move. `build-streets.mjs` now
-  emits the extent of each cluster it already computed.
+  about. Selective blinding is wrong twice: names leak sideways (Petribron is a
+  bridge *and* a street name; Möllevångstorget is a square, a landmark and half
+  a delområde), so the rule would have to know all of that and would be wrong
+  quietly; and "which symbol layers are visible during a round" has one testable
+  answer only if the answer is *none*. The cost is real — placing a landmark
+  with no street names to triangulate from is harder — and is accepted, because
+  the alternative is a quiz you can pass by reading. What is left is coastline,
+  water, parks, roads and buildings, plus the outlines of whatever is being
+  asked about, forced on at every zoom rather than only inside their band of the
+  ladder.
 
 - **The quiz is graded through the selection code, not beside it** (2026-08-03).
   An area is graded by asking the 136 delområde polygons which one the tap
@@ -495,9 +235,9 @@ bullet lands here only when something non-obvious was actually decided.
   `highlightCovers` and `highlightStreet` are exported from the selection code
   rather than reimplemented next door.
 
-- **One name is one thing** (2026-08-03). Merging the categories put six names
-  in the quiz twice: Pildammsparken, Augustenborg, Södervärn, Rosengård Centrum
-  and Ribersborgsstranden are each both a park-ish landmark and a delområde, and
+- **One name is one thing** (2026-08-03). Six names exist as two kinds of thing
+  at once: Pildammsparken, Augustenborg, Södervärn, Rosengård Centrum and
+  Ribersborgsstranden are each both a park-ish landmark and a delområde, and
   Öresundsbron is both a bridge and a landmark. Asked as two questions they are
   one question with two right answers, and the grader picks the first and marks
   you wrong for finding the second. So the build keeps one: the kind you can
@@ -508,85 +248,42 @@ bullet lands here only when something non-obvious was actually decided.
   landmark list is written to say what things are and a delområde list is not —
   so the survivor inherits any text it lacks. Nothing is invented, only moved.
 
-- **The tray board shows the slots for the name in your hand** (2026-08-03).
-  Tray mode drops names onto a blinded map, and a blinded map does not say where
-  anything goes. The delområde boundaries are forced on, but all 136 of them
-  are, so a chunk was dragged onto a mesh of identical cells with no way to tell
-  a candidate from a bystander; for a bridge nothing was drawn at all, and "drag
-  this name onto the city" is not a question with a visible answer set. Either
-  way the one thing tray mode is *for* — seeing what is left, getting the last
-  few by elimination — was missing.
-
-  So picking a name up lights the slots it could go in, and a slot turns green
-  once something has landed in it. The kind in hand decides what is drawn:
-  bridges when you are holding a bridge, delområden when you are holding an
-  area. Drawing all four kinds at once would be a wall of rings over a map that
-  still has to be readable, and would answer a question nobody asked — you are
-  not choosing between a bridge and a street, you are choosing between the
-  bridges.
-
-  The cost is real and accepted: with the drop zones drawn, tray mode is closer
-  to matching names against slots than to placing them from memory. That is what
-  the easy direction is for, and it is the reason every chunk is also playable
-  the other way. Point mode — the direction that says whether you actually know
-  it — gets no board at all.
-
-  Slots are found by the same route the grader takes to them: an area's
-  `covers`, a street by proximity to `transportation_name`, a point as itself.
-  Drawing a candidate any other way would eventually light up something the
-  grader would not accept, which is the worst bug this app could have.
-
 - **Pictures are fetched by the build, never by the browser** (2026-08-03). The
   fact card wanted a photograph, and the obvious way to get one — point an
-  `<img>` or an `<iframe>` at Wikimedia — would have struck three principles in
-  one line: no third-party requests at runtime, nothing leaves the device, works
-  offline. It would also have been worst exactly where the app is most used,
-  since a card on a train would have been a blank frame. So
-  `scripts/build-images.mjs` downloads them when I ask it to, they are served
-  from this origin, and the service worker caches them like everything else.
-  Cost: 5.7 MB on a payload that was 17.9. Accepted — a picture of the place
-  does more for "Sofielund is *there*" than another sentence would.
+  `<img>` at Wikimedia — would have struck three principles in one line: no
+  third-party requests at runtime, nothing leaves the device, works offline. It
+  would also have been worst exactly where the app is most used, since a card on
+  a train would have been a blank frame. So `scripts/build-images.mjs` downloads
+  them when I ask it to, they are served from this origin, and the service
+  worker caches them like everything else. Cost: 5.7 MB of payload. Accepted —
+  a picture of the place does more for "Sofielund is *there*" than another
+  sentence would.
 
   A picture is only kept if the article's own coordinates land near the point
   the quiz already grades against. A wrong picture is worse than none, because
   it teaches you something false about somewhere real, and title matching alone
   would happily have put Stockholm's Västerbron on Malmö's. An article with no
   coordinates is not rejected as wrong but as *unproven*, which is the same
-  standard this repo has always held names to. That leaves 184 of 275 with a
-  picture and 91 with none, including seventeen of the nineteen bridges, whose
-  canal crossings simply have no article. They say nothing rather than showing
-  something that might be somewhere else.
+  standard this repo has always held names to. That leaves 180 of 384 with a
+  picture and 204 with none — mostly the through-roads, which have no article
+  and should not. They say nothing rather than showing something that might be
+  somewhere else.
 
   Every picture carries who took it and under what licence, in the card itself.
   That is a condition of use, not a courtesy, and this repo already shows its
   attributions rather than burying them.
 
-- **The pixel floor had never fired** (2026-08-03). `graded` widens every
-  distance tolerance to whatever 26 screen pixels are worth, so that 120 m is
-  not a dare at a zoomed-out view. The metres-per-pixel it was given was wrong
-  by a factor of 128 — the 256-pixel tile constant against MapLibre's 512-pixel
-  tiles — which made a pixel worth about four centimetres and the floor
-  unreachable, so the tolerance was always just the flat metre figure. It is now
-  measured by projecting two points and asking how far apart they are, which
-  cannot be wrong in that way. Worth recording because the failure was invisible
-  from both sides: the tests exercise `graded` with the number passed in, and
-  the app looked like it was merely being strict.
+- **Two strikes, then the answer** (2026-08-03). A third guess at a name you
+  have no idea about is stabbing at the map. The first miss says what you *did*
+  hit, which is what makes the second guess informed; the second reveals, and is
+  recorded as `helped` — neither right nor wrong, but it pulls the item forward
+  in the asking order.
 
-- **Two strikes, then the answer; and the card is the reward, not the score**
-  (2026-08-03). A third guess at a name you have no idea about is stabbing at
-  the map. The second miss reveals, and is recorded as `helped` — neither right
-  nor wrong, but it pulls the item forward in the asking order. And a correct
-  placement is the moment the app has your attention, so it spends it on what
-  the place *is* rather than on a tick: the fact card is the product, the
-  placing is the pretext. In tray mode the card is deferred to the summary,
-  because nineteen interruptions in a round of twenty is not a rhythm.
-
-  Strikes are counted per session rather than per name. The first build kept the
-  count on the item, which is the fetched data and is shared by every chunk that
-  holds it, so the count outlived the round: replaying a chunk started you on
-  your last strike, and "En gång till" — whose whole purpose is a second go at
-  the names you just fumbled — revealed them on the first miss instead of the
-  second. A second chance is not a shorter fuse.
+  Strikes are counted per session rather than per name. Kept on the item, the
+  count outlives the round: replaying a chunk starts you on your last strike,
+  and "En gång till" — whose whole purpose is a second go at the names you just
+  fumbled — reveals them on the first miss instead of the second. A second
+  chance is not a shorter fuse.
 
 - **Mastery is per item, and easy to lose** (2026-08-03). Progress is stored per
   name rather than per chunk — "Sofielund" is a thing you either can or cannot
@@ -596,31 +293,23 @@ bullet lands here only when something non-obvious was actually decided.
   considered and dropped: it is the right tool for 136 delområden and the wrong
   tone for an app you open when you feel like it.
 
-  The key is the bare name, which the merge is what made possible: there used to
-  be two Limhamns on two rungs, and one flat key would have given them each
-  other's streak. It is also what makes the chunking free to change — a new
-  landmark shifting the west-to-east split of Centrum moves names between chunks
-  without touching what is stored against them.
+  The key is the bare name, which one-name-one-thing is what made possible — and
+  it is what makes the cut free to move: a name promoted from Resten to Grunden,
+  or a landmark added, shifts no streaks.
 
 - **Facts are partial on purpose** (2026-08-03). The card says something real or
   it says nothing. `learn/about.json` covers the areas I actually know something
-  about (44 of 136 delområden); the rest fall back on what the build can prove
-  from the data — "Delområde i Fosie", "Bro över Malmö kanal". Writing 136
-  paragraphs would have meant inventing most of them, which is the one thing
-  this repo has consistently refused to do about names and had no reason to
-  start doing about facts. Every line that *is* there is a draft marked
-  `verified: false`, the same bargain `landmarks.json` makes about coordinates.
+  about (40 of 136 delområden); the rest fall back on what the build can prove
+  from the data — "Delområde i Fosie", "Bro". Writing 136 paragraphs would have
+  meant inventing most of them, which is the one thing this repo has
+  consistently refused to do about names and had no reason to start doing about
+  facts. Every line that *is* there is a draft marked `verified: false`, the
+  same bargain `landmarks.json` makes about coordinates.
 
   One consequence worth writing down: the bridge list was read off OSM rather
   than out of memory — nineteen named crossings, and the half-dozen canal
   bridges I was sure existed but which OSM does not name are simply not in the
   app.
-
-  `about.json` still keeps two maps, `stadsdelar` and `areas`, because five
-  names sat on two levels at two sizes and one flat map would have given the big
-  one the little one's description. With the stadsdel level cut, only `areas` is
-  read. The other map is kept rather than deleted: those ten paragraphs are
-  about real places and are the obvious material if that level ever comes back.
 
 - **Source is whole-Sweden, clipped** (2026-07-17). Geofabrik has no Skåne extract
   (missing regions 302-redirect to the homepage, masquerading as a tiny "download").
@@ -628,10 +317,9 @@ bullet lands here only when something non-obvious was actually decided.
   Planetiler (pinned v0.10.2) → 13.3 MB pmtiles. Tiling: ~2 GB peak RAM, ~18 s wall
   with cached sources.
 
-- **Fully offline PWA** (2026-07-17). The original plan ruled offline out, assuming
-  a huge tileset. Reality: 13.3 MB basemap, ~15 MB total payload — small enough to
-  load the pmtiles as one in-memory ArrayBuffer and cache everything in a service
-  worker.
+- **Fully offline PWA** (2026-07-17). Offline looked ruled out by tileset size.
+  Reality: a 13.3 MB basemap, ~24 MB total payload — small enough to load the
+  pmtiles as one in-memory ArrayBuffer and cache everything in a service worker.
 
 - **Attribution includes OpenMapTiles** (2026-07-17). Planetiler's default profile
   emits the OpenMapTiles schema (CC-BY), which requires the visible credit on top
@@ -645,13 +333,11 @@ bullet lands here only when something non-obvious was actually decided.
   would only add a fragile dependency. Only reclaimed-harbour polygons differ
   (shoreline survey vintage).
 
-- **Street names from the local pbf; search clipped to Malmö kommun** (2026-07-26).
+- **Street names from the local pbf, clipped to Malmö kommun** (2026-07-26).
   Overpass would be a slow remote query for data already on disk; osmium does it in
   ~0.4 s. The bbox margin (Arlöv, Åkarp, …) reuses common Swedish street names, so
-  the index is clipped to the municipality — streets *and* POIs (an index that knows
-  half of Arlöv's stops but none of its streets is worse than neither); hand-curated
-  landmarks are exempt (some sit offshore). The 136 delområden tile the kommun
-  exactly, so the same point-in-polygon clips and assigns each entry's district.
+  the extraction is clipped to the municipality. The 136 delområden tile the kommun
+  exactly, so the same point-in-polygon clips and assigns each street its district.
   One name ≠ one street: same-name ways >500 m apart become separate entries,
   disambiguated by district. A street's rank comes from its dominant highway class
   by length — not its most prominent way, which made one slip road turn
@@ -663,13 +349,6 @@ bullet lands here only when something non-obvious was actually decided.
   `bounded=1` to the bbox — else Stortorget matches Stockholm), writes them back as
   `"verified": false`, and unresolved entries ship without geometry rather than
   with a plausible wrong point. Build-time only; runtime makes no external calls.
-  **Caveat: the 63-entry list was seeded from general Malmö knowledge, not the
-  owner's original list (lost context) — owner review pending.**
-
-- **Transit overlay is rail only** (2026-07-26). `bus_stop` and
-  `public_transport=platform` were cut: the two tags largely duplicate the same
-  physical stop, and ~2k bus pins are clutter on a reference map. 2,071 → 20
-  features (train stations + the museum tramway).
 
 - **The style is carved from OSM Liberty, by script, from a pinned commit**
   (2026-07-26). `scripts/build-style.mjs` fetches `osm-liberty@649d12a`, then
@@ -689,7 +368,7 @@ bullet lands here only when something non-obvious was actually decided.
 
 - **Two service-worker caches, versioned separately** (2026-07-26). Code is
   stale-while-revalidate (edits appear on the next load, and dev isn't fighting
-  a cache); data is cache-first and only re-fetched when `DATA` in `app/sw.js`
+  a cache); data is cache-first and only re-fetches when `DATA` in `app/sw.js`
   changes. One cache would mean every CSS tweak re-downloads the basemap.
 
 - **z6–9 exist in the tileset but are unreachable in the app** (2026-07-26). The
@@ -701,22 +380,14 @@ bullet lands here only when something non-obvious was actually decided.
 
 - **One level of area at a time, at hard zoom boundaries** (2026-07-26). The
   area hierarchy is the part of this map meant to teach the city's structure, so
-  zooming steps through it rather than blending it:
-
-  | zoom | what is named |
-  | --- | --- |
-  | < 11 | Malmö, and nothing else |
-  | 11 – 12.8 | the ten stadsdelar, all of them, whatever their size |
-  | ≥ 12.8 | the 136 delområden, all of them, and their boundaries |
-
-  Two earlier attempts failed this and are worth not repeating. Rationing the
-  136 names into zoom buckets by polygon area buried exactly the famous small
-  central ones (Gamla Staden, Möllevången) until z13.5. Letting both levels
-  compete on collision instead made *which level you were looking at* depend on
-  where you happened to be panned. The handover is now a cut, not a fade, and
-  the stadsdel labels are `text-allow-overlap` so all ten are unconditional.
-  Neighbouring towns (Arlöv, Oxie) are level-3 grain and wait for z12.8 too, so
-  the widest view really is one name.
+  zooming steps through it rather than blending it. Two approaches failed this
+  and are worth not repeating: rationing the 136 names into zoom buckets by
+  polygon area buried exactly the famous small central ones (Gamla Staden,
+  Möllevången) until deep in the ladder, and letting the levels compete on
+  collision made *which level you were looking at* depend on where you happened
+  to be panned. The handover is a cut, not a fade, and the stadsdel labels are
+  `text-allow-overlap` so all ten are unconditional. The current rungs are the
+  table in the README.
 
 - **District labels come from computed points** (2026-07-26). A district is one
   name but several polygons — Västra Hamnen is cut into four by the docks — and
@@ -724,34 +395,18 @@ bullet lands here only when something non-obvious was actually decided.
   render from a separate point layer, one centroid-of-largest-part per district,
   computed in the app: a display concern, not data.
 
-- **The ten stadsdelar come from Malmö stad, reversing D "keep OSM only"**
-  (2026-07-26). Counted against `opendata-api.malmo.se`: the city publishes
-  **10 stadsdelar** (stadsdelsförvaltningarna, 1996–2013), **5 stadsområden**
-  (2013–2017) and **136 delområden**. Our OSM data matches the last two exactly
-  — admin_level 9 is those same five names, admin_level 10 those same 136 — but
-  OSM has **no stadsdel equivalent at all**: only 9 informal `place=suburb`
-  nodes and 37 suburb polygons, and the polygons are mostly small central areas
-  that duplicate delområden. So the names people actually use for large parts of
-  town (Limhamn, Rosengård, Kirseberg, Centrum) had no boundary anywhere in the
-  pipeline. The earlier decision not to depend on the city feed was about
-  delområden, where OSM already had the same data; here it is the only source,
-  it is CC0, and it is fetched once and cached. All 136 delområden fall inside
-  exactly one stadsdel, which is checked on every build.
+- **The ten stadsdelar come from Malmö stad** (2026-07-26). OSM has the 136
+  delområden and the 5 stadsområden exactly (above), but **no stadsdel
+  equivalent at all**: only 9 informal `place=suburb` nodes and 37 suburb
+  polygons, and the polygons are mostly small central areas that duplicate
+  delområden. So the names people actually use for large parts of town (Limhamn,
+  Rosengård, Kirseberg, Centrum) had no boundary anywhere in the pipeline. Here
+  the city feed is the only source, it is CC0, and it is fetched once and
+  cached. All 136 delområden fall inside exactly one stadsdel, which is checked
+  on every build.
 
-  The stadsområden are consequently no longer drawn: Norr/Söder/Väster/Öster was
-  an administrative division nobody said out loud, and the stadsdelar occupy the
-  same zooms better. They stay in the data and in search.
-
-- **Area names come from two sources, deduplicated in the app** (2026-07-26).
-  The administrative division does not contain Slottsstaden, Limhamn, Kirseberg,
-  Rosengård or Hyllie — those are `place=suburb` nodes in OSM, and they are
-  precisely how people say where something is. So the basemap's place labels are
-  dropped from the style and redrawn by the app instead, filtered against the
-  136 district names (case-insensitively: "Gamla staden" the node and "Gamla
-  Staden" the delområde are one place spelled twice). One styling for area
-  names, one place to tune them. **Erikslust is in neither source** — it is not
-  in OSM at all inside this bbox, in any form; showing it would need a
-  hand-curated area list.
+  The stadsområden are kept in the data but not drawn:
+  Norr/Söder/Väster/Öster is a division nobody said out loud.
 
 - **Everything named is tappable, and says its shape** (2026-07-26). Tapping
   answers "what is that?" in two ways at once: a card with the name and what
@@ -773,97 +428,60 @@ bullet lands here only when something non-obvious was actually decided.
   twist. No dependency, and the mark is defined in the same 24-unit grid as the
   landmark icons.
 
-- **The area ladder is unit-tested, not eyeballed** (2026-07-26). Every previous
-  zoom-threshold bug was found by being at exactly the wrong zoom on a phone —
-  two levels overlapping for half a step looks like clutter, not like a fault,
-  so it survives casual use. The fix is that the ladder is now *data*
-  (`app/area-levels.mjs`: one array of layer specs, each tagged with the level
-  and role it belongs to) rather than a sequence of `map.addLayer` calls with
-  numbers inlined. That makes "which levels are on at z12.35?" a pure function
-  of no map, no DOM and no tiles, so `node --test` answers it for every tenth of
-  a zoom from 6 to 18. Cost: the app now imports a module whose only job is to
-  be inspectable. Worth it — the same file is what `build-style.mjs` reads to
-  cap the basemap's "Malmö" at the top rung, which was the one seam no test
-  could have covered while the numbers lived in two files. Deliberately *not*
-  tested: anything about how it looks. Collision, halo, letter-spacing and
-  whether Slottsstaden's label sits in the water are eye questions.
+- **The area ladder is unit-tested, not eyeballed** (2026-07-26). Two levels
+  overlapping for half a zoom step looks like clutter, not like a fault, so it
+  survives casual use; every such bug was found by being at exactly the wrong
+  zoom on a phone. The fix is that the ladder is *data* (`app/area-levels.mjs`:
+  one array of layer specs, each tagged with the level and role it belongs to)
+  rather than a sequence of `map.addLayer` calls with numbers inlined. That
+  makes "which levels are on at z12.35?" a pure function of no map, no DOM and
+  no tiles, so `node --test` answers it for every tenth of a zoom from 6 to 18.
+  Cost: the app now imports a module whose only job is to be inspectable. Worth
+  it — the same file is what `build-style.mjs` reads to cap the basemap's
+  "Malmö" at the top rung, which was the one seam no test could have covered
+  while the numbers lived in two files. Deliberately *not* tested: anything
+  about how it looks. Collision, halo, letter-spacing and whether
+  Slottsstaden's label sits in the water are eye questions.
 
-- **Level 3 is 19 names with gaps between them** (2026-07-27, reversed the same
-  day — see below). The in-between level was first built complete — the curated
-  groupings plus every delområde no grouping claimed — on the theory that a
-  level with holes teaches nothing. That was wrong in a way that took a test to
-  see: 93 of the 136 delområden then appeared at level 3 *and* level 4, so
-  zooming past 13.4 changed the type size and nothing else. A level that repeats
-  the level below is not a level. So level 3 is now only the names that actually
-  exist between "Västra Innerstaden" and "Rönneholm", and most of the map is
-  blank at that zoom — which is the honest answer, because most of Malmö has no
-  such name.
-
-- **…and then it isn't: a delområde with no name above it is elevated**
-  (2026-07-27). The decision above was right about the mechanism and wrong about
-  which half was the lie. Standing at z12.8 over Rörsjöstaden, the map said
-  nothing at all — and "nothing" is not what that place is called. Rörsjöstaden
-  is. So the 66 delområden no curated name covers are drawn at level 3 under
-  their own names and their own outlines, and level 3 tiles the city.
-
-  What that costs is the thing the earlier entry measured: those 66 names are on
-  two rungs. What it buys is that the 13.4 cut now *means* something everywhere
-  instead of only over the 31 curated names — it is the zoom at which those 31
-  break into the 70 delområden they were hiding. Where nothing breaks, nothing
-  changes, because in that part of the city there is nothing to break: the
-  in-between name does not exist. A repeat that says "this place has one name"
-  is honest; a blank that says "there is nothing here" is not. The old test
-  ("level 3 is allowed to have holes, and does") asserted the wrong invariant
-  and is now the partition test — grouped or elevated, never both, never
-  neither.
+- **A delområde no grouping covers is elevated to level 3** (2026-07-27). Level
+  3 is the 31 curated in-between names — and most of Malmö has no such name.
+  Rather than leave that blank, the 66 delområden no curated name covers stand
+  in for themselves at that zoom, under their own names and their own outlines,
+  so level 3 tiles the city. The cost is that those 66 are on two rungs. What it
+  buys is that the 13.4 cut *means* something everywhere instead of only over
+  the 31 curated names — it is the zoom at which those 31 break into the 70
+  delområden they were hiding. Where nothing breaks, nothing changes, because in
+  that part of the city there is nothing to break: the in-between name does not
+  exist. A repeat that says "this place has one name" is honest; a blank that
+  says "there is nothing here" is not. The invariant the test asserts is the
+  partition: grouped or elevated, never both, never neither.
 
   Elevated names are set in the same face, size and ink as the curated ones: at
   that zoom "Rörsjöstaden" and "Slottsstaden" answer the same question, and
   typing one smaller would be the map hedging about which it means. Only
   collision differs — the 31 curated names always draw (they are the level's
-  spine) and now block rather than overprint, the 66 elevated ones take their
-  turn around them, largest first. No name was invented to make this work, which
-  was the whole reason for refusing to fill the gaps in the first place.
+  spine) and block rather than overprint, the 66 elevated ones take their turn
+  around them, largest first. No name was invented to make this work.
 
-  It also paid for a fix that had been too expensive to make: **Bellevue no
-  longer covers Bellevuegården** (2026-07-27). The grouping's only source was
-  `"delområdesnamnen själva"` — three delområden sharing a word — and both
-  independent checks disliked it: Bellevuegården is in the stadsdel Hyllie next
-  to Lorensborg while Bellevue and Nya Bellevue are adjacent in
-  Limhamn-Bunkeflo 1.2 km away, and Malmö stad counts it to a different
-  statistikområde. A sixties estate that borrowed a villa district's name.
-  Removing it used to mean punching a hole in level 3; now it means
-  Bellevuegården says its own name there, so the honest reading costs nothing.
-  Exactly three groupings cross a stadsdel, and the other two are Slottsstaden
-  and Sorgenfri — the same two the statistics test already forgives by name,
-  which is the strongest evidence that the two divisions agree and Bellevue was
-  the outlier. That check is now its own test rather than a thing someone
-  noticed once.
-
-- **The parts are drawn inside level 4, behind a chip** (2026-07-27). Gamla
-  Väster was in the data from the start and had never once appeared on the map:
-  parts.geojson was built and searchable but not drawn, because a fifth level of
-  names with no boundaries was noise. Both halves of that were right — the names
-  are worth having, a fifth rung is not — so they are drawn *within* level 4
-  from z13.4, in italic condensed at a size under the delområde names, with
-  `text-optional` so the delområde's own name wins when only one can fit. The
-  ladder is still four levels and `area-levels.test.mjs` still asserts it.
-  Because 14 boundary-less names may yet turn out to be clutter, the layer
-  answers to a chip of its own ("Kvarter") in the layer menu — the first chip
-  that is neither a pin nor basemap, and the second that starts on. Turning it
-  off restores the four levels exactly.
+- **The parts are drawn inside level 4** (2026-07-27). Gamla
+  Väster, Erikslust, Seved, Fullriggaren — 14 names finer than a delområde, with
+  no boundary anywhere in Malmö. They cannot be a level of their own (an outline
+  is what makes a level a division rather than a scatter of words), so they are
+  drawn *with* the delområden from z13.4, in italic condensed at a size under
+  the delområde names, with `text-optional` so the delområde's own name wins
+  when only one can fit.
 
 - **A one-member grouping is allowed, as a promotion** (2026-07-27). The level
   had a hole where the city's most-named places are: Västra Hamnen, Gamla
   Staden, Möllevången, Bunkeflostrand, Klagshamn are all single delområden, so
-  the old rule ("a grouping is made of several") left the medium zoom blank over
-  the old town and the harbour. But "promote a delområde" is one step from
-  promoting all 136, which is the mistake above. So the bar is a source *outside*
-  the delområde register — Malmö stad's own områden pages, `place=suburb` in OSM,
-  a Skånetrafiken stop, a tätort of its own, estate agents selling by the name —
-  and the question "would you answer *var bor du?* with it". Five passed;
-  Ribersborg, Hyllievång, Lönngården and the rest of the 136 did not. The
-  precedent was already there: Stadionområdet covers only Stadion.
+  "a grouping is made of several" left the medium zoom blank over the old town
+  and the harbour. But "promote a delområde" is one step from promoting all 136.
+  So the bar is a source *outside* the delområde register — Malmö stad's own
+  områden pages, `place=suburb` in OSM, a Skånetrafiken stop, a tätort of its
+  own, estate agents selling by the name — and the question "would you answer
+  *var bor du?* with it". Five passed; Ribersborg, Hyllievång, Lönngården and
+  the rest of the 136 did not. The precedent was already there: Stadionområdet
+  covers only Stadion.
 
 - **Five level-3 names repeat the stadsdel above them, over less ground**
   (2026-07-27). Searching Wikipedia, Malmö stad, Skånetrafiken's stop names and
@@ -882,17 +500,12 @@ bullet lands here only when something non-obvious was actually decided.
   (`narrowerThanStadsdel`), and the test allows those five by name and still
   fails on a sixth.
 
-  **Fosie is the one that could not be done**: its core is already spoken for.
-  The OSM Fosie node lands in Gullviksborg, which `Gullvik` holds, and the stops
-  named for it scatter across Fosieby, Lindängen, Holma and Lindeborg — Fosieby,
-  the village and church the name comes from, is a grouping already. Malmö's
-  historic in-between division (Västra Förstaden = Fridhem + Mellanheden +
-  Västervång, Mellersta Förstaden, Södra Förstaden, Östra Förstaden,
-  Pildammsstaden) is the right grain and would fill much of what is still blank,
-  but Wikipedia has all five in the past tense, nobody says them, and they
-  predate the stadsdelar so they cross them. Rejected candidates and their
-  reasons live in `areas/areas.json` under `_doc.rejected`, so the next person
-  does not research them again.
+  **Fosie is the one that could not be done**: its core is already spoken for —
+  the OSM Fosie node lands in Gullviksborg, which `Gullvik` holds, and the stops
+  named for it scatter across Fosieby, Lindängen, Holma and Lindeborg. Rejected
+  candidates and their reasons — including Malmö's historic in-between division,
+  the right grain that nobody says — live in `areas/areas.json` under
+  `_doc.rejected`, so the next person does not research them again.
 
 - **Skånetrafiken's stop names are a source for area names** (2026-07-27). A stop
   is named after the place it serves, which makes the network an index of what
@@ -915,94 +528,13 @@ bullet lands here only when something non-obvious was actually decided.
   straddles two of them has to be justified in the test or it fails. Two are
   justified: Slottsstaden takes a corner of Malmö Hus, Sorgenfri takes Norra
   Sorgenfri from Kirseberg's statistical area — in both the vernacular name is
-  the right one. **Bellevue is not justified and is currently failing**: it
-  groups Bellevue and Nya Bellevue (villa areas by Ribersborg) with
-  Bellevuegården, 1.8 km away, which shares no boundary with either and which
-  the city counts to Lorensborg. Left red on purpose — it is a data decision.
-
-- **Every pin is opt-in, and the pins come from the tiles** (2026-07-27). The
-  map now opens with nothing point-shaped on it — no cafés, no shops, not even
-  the landmark icons — and a chip row along the bottom tacks categories on. Two
-  choices inside that are worth writing down.
-
-  *Where the pins come from.* The four Overpass overlays became thirteen
-  categories without a single new fetch, because the POIs were already on disk:
-  the pmtiles archive holds 4,227 of them with an OpenMapTiles `class` each, so
-  a category is a filter over `source-layer: poi`. The basemap's own `poi_z15`
-  and `poi_z16` are consequently dropped from the style — drawn as well, they
-  would double every café the moment you tapped "Mat", and their rank filters
-  had a hole in them anyway (`poi_z14` was dropped long ago, so ranks 1–6 were
-  never drawn at all — the most prominent POIs in each tile, invisible). One
-  overlay stays GeoJSON because the tiles do it worse: the cycle network, which
-  is lines and includes named routes the tiles don't carry. `food.geojson`,
-  `culture.geojson` and `transit.geojson` are still built for the search index
-  but no longer drawn or precached.
-
-  *The table is checked against the archive, not against the schema.* Writing
-  the class → category table from the OpenMapTiles documentation would have
-  given "bakery" a chip of its own and missed that plain `shop` is 536 places,
-  an eighth of every POI in Malmö. So `scripts/lib/pmtiles.mjs` reads the
-  archive back (PMTiles directory + just enough MVT to get feature properties;
-  ~120 lines, no dependency), `scripts/poi-inventory.mjs` prints what is in
-  there, and the test fails on a class that no category claims and no written
-  reason excuses — and on an excuse for a class the extract no longer has. 103
-  classes, all accounted for.
-
-  The one category that starts on is **Bilvägar**, the drivable network: a
-  reference map you cannot find a street on is not one. It is found by rule
-  (`road_`/`bridge_`/`tunnel_`, minus rail, footways and pedestrian areas)
-  rather than by listing 45 layer ids that Liberty would rot the first time it
-  added a casing — so turning the cars off leaves you the city you can walk.
-
-- **The layer menu is a closed panel, and a chip keeps its promise**
-  (2026-07-27). Four changes to the chips, one week after they were built, all
-  from the same complaint: a row of fourteen categories along the bottom is
-  something you read past every time you look at the map.
-
-  *A column behind one button, closed by default.* Fourteen chips in a row is a
-  row you have to scroll to read, and a menu you scroll is a menu you stop
-  reading; stacked in a panel, the whole list is one glance. It opens closed
-  every time — not remembered — because the map is the app and the menu is a
-  detour. Closed means `hidden`, not scrolled away or faded out: the chips leave
-  the tab order with the pixels, which is the same rule the map obeys.
-
-  *Kollektivtrafik is cut.* Rail stations at z11 were the argument for a chip of
-  their own, but the rail lines are drawn at those zooms anyway, and a station
-  pin on top of the line it sits on says nothing the map wasn't already saying.
-  The stations stay in the search index, which is where you actually reach for
-  one by name — so `transit.geojson` is still built, just no longer drawn or
-  precached. Bus stops were cut a day earlier for a different reason (427 of
-  them is texture, not detail).
-
-  *An icon per chip.* Path data in `categories.mjs` beside the colour, not
-  thirteen files: the chip row is the only thing that draws them, they are ~200
-  bytes each, and a category cannot be added without one because the test says
-  so. Drawn in the category's own colour, so the chip is still the legend.
-
-  *A chip that is on shows its pins.* POIs exist in the tiles from z14 and
-  nowhere earlier, so turning on "Mat" at z12 used to grey the chip out and wait
-  for you to work out why nothing happened. Now the map goes to where the data
-  is — and the names arrive with the dots instead of a zoom and a half later.
-  The greyed-out state survives for one case only: a category restored from last
-  time, where the saved view outranks the chip. The alternative — extracting the
-  4,227 POIs to GeoJSON so they have no floor at all — buys a genuinely
-  floorless category at the price of a new build step, another precached file,
-  and every café in Malmö as one mass of dots at z11 with no rank to thin it by.
-  Not worth it yet.
-
-  *And what is hidden is not tappable.* Selection reads the layer registry
-  rather than the shape of a layer id, so a category you turned off cannot be a
-  hidden answer waiting to be found. The one hit that could survive its layers
-  being hidden was the street fallback, which searches the *source* (a tap
-  within 14 px of a named way, not of its label) and so ignores visibility
-  entirely: it is now off when "Bilvägar" is.
+  the right one.
 
 - **Toolchain: Homebrew + Node, no Docker** (2026-07-17). `osmium-tool`, keg-only
-  `openjdk@21`, `tools/planetiler.jar`; all scripts in Node so the search-index
-  shape is defined once, where the app consumes it.
+  `openjdk@21`, `tools/planetiler.jar`; all scripts in Node so the data shapes
+  are defined once, where the app consumes them.
 
-- **Hosting simplified to plain static files** (2026-07-26). The earlier design
-  (cron regeneration on a server, content-hash filenames, manifest.json, atomic
-  deploys, nginx tuning) was machinery for a server that doesn't exist. Cut; no
-  deploy tooling written. This is a personal map: rebuild locally, upload. Only
-  hard requirements: HTTPS + Range support for `.pmtiles`.
+- **Hosting is plain static files** (2026-07-26). No cron regeneration,
+  content-hash filenames or deploy tooling — machinery for a server that doesn't
+  exist. This is a personal map: rebuild locally, upload. Only hard
+  requirements: HTTPS + Range support for `.pmtiles`.

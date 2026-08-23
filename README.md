@@ -2,8 +2,8 @@
 
 A way to **learn Malmö by heart**. Static, self-hosted, mobile-first: vector
 tiles from my own origin, always north-up, installable and fully offline. Not
-navigation, and no longer even orientation — the map is the board you are tested
-on, not a thing to look something up in.
+navigation — the map is the board you are tested on, not a thing to look
+something up in.
 
 There is **one quiz**, cut in two by the question people actually arrive with:
 **Grunden**, the names Malmö expects of anyone who has lived here a few years,
@@ -11,7 +11,7 @@ and **Resten**, everything else. Four kinds inside each half — delområden,
 gator, broar, landmärken — so eight rounds, asked a kind at a time, one name at
 a time. There is one way to be asked:
 
-- **Peka ut** — one name, no slots, tap where it is. Nothing to eliminate
+- **Peka ut** — one name at a time, tap where it is. Nothing to eliminate
   against, so it is the one that says whether you actually know it.
 
 The map is yours while you answer: pan and zoom are on, because zooming in to be
@@ -23,27 +23,10 @@ what Västra Hamnen was before it was Västra Hamnen, why Augustenborg is famous
 outside Sweden, what Suellsbron is named after — there while you look for it,
 with the picture. That is the point; the placing is what makes you read it.
 
-Alongside it is **Förr**, which asks the same city the other way round: a
-photograph of Malmö, and two questions about it — what year was this taken, and
-where was the photographer standing. Five a day, the same five for everybody,
-scored out of 50 000. It is TimeGuessr narrowed from the world to one
-municipality, which is what makes the placing half hard: "somewhere in Sweden" is
-not an answer here.
-
-252 photographs from 1881 to 2026, out of two archives that each cover half a
-century and neither of which covers both — Malmö Museer through K-samsök for
-everything before 2000, Wikimedia Commons after it. The spread is deliberately
-tilted towards the recent: the 120 years before 2000 get about a photograph a
-year, the 26 since get about four, because there is far more of Malmö that people
-actually remember in the second. Most of them have people or an event in them —
-the 1 May demonstration filling Gustav Adolfs torg in 1894, the handball world
-championship in Malmö Arena in 2011 — rather than an empty street, because a
-crowd gives you far more to date a picture by than a facade does.
-
-The old reference map is still here as **Utforska** — search, layer chips, tap
-anything to find out what it is. It is where you go to learn the names in the
-first place, so it is study material rather than a leftover. It is also
-unreachable from inside a round, for the obvious reason.
+Outside a round the map keeps its labels, and everything the quiz asks about is
+drawn on it — tap anything to find out what it is. That is the escape hatch for
+inspecting the data, and where you go to learn the names in the first place. It
+is unreachable from inside a round, for the obvious reason.
 
 ## Principles
 
@@ -54,14 +37,12 @@ unreachable from inside a round, for the obvious reason.
 - **No external tile or API calls at runtime.** Everything served from my origin.
 - **Always north-up.** Rotation and pitch disabled — a fixed orientation builds a
   stable mental map.
-- **Offline PWA.** The whole payload is 39.6 MB (basemap 13.3 MB, fact-card
-  photographs 5.7 MB, Förr's photographs 16.1 MB), so the service worker just
-  caches all of it. Practising on a train with no signal is the normal case, not
-  a degraded one.
-- **Nothing is invented to fill a field.** The rule the area names already
-  obeyed now covers the facts too: a place with nothing known about it gets a
-  card with nothing on it but what the data can prove. See *What it says about
-  a place*, below.
+- **Offline PWA.** The whole payload is about 24 MB (basemap 13.3 MB, fact-card
+  photographs 5.7 MB), so the service worker just caches all of it. Practising
+  on a train with no signal is the normal case, not a degraded one.
+- **Nothing is invented to fill a field.** A place with nothing known about it
+  gets a card with nothing on it but what the data can prove. See *What it says
+  about a place*, below.
 - **Attribution, always visible:** `© OpenMapTiles © OpenStreetMap contributors`
   (OSM part links to openstreetmap.org/copyright), plus a credit for Malmö
   stad's stadsdelar — CC0, so given because it is theirs, not because it is owed.
@@ -74,7 +55,7 @@ unreachable from inside a round, for the obvious reason.
   where Sofielund is, it is a test of whether you can read "SOFIELUND", and the
   reading test is so much easier that it hides the fact that you failed the
   other one. The rule is blunt on purpose: names leak sideways (Petribron is
-  also a street, Möllevångstorget is also a POI label), so anything subtler
+  also a street, Möllevångstorget is also a landmark), so anything subtler
   would have to know all of that and would be wrong quietly. `app/blind.js`
   applies it, `test/blind.test.mjs` asks the real style whether anything
   survived. What is left to reason from is coastline, water, parks, roads,
@@ -144,23 +125,14 @@ unreachable from inside a round, for the obvious reason.
   everything", and there are fifteen named crossings of the canal ring inside
   that kilometre. Nobody knows fifteen bridge names, so six are in Grunden.
 
-  The price of the cut is the mixing. It used to be one chunk per stadsdel, on
-  the argument — still true — that standing on Föreningsgatan you want to know
-  that this is Möllevången, that the bridge is Petribron and that the park is
-  Pildammsparken, and that is three categories and one piece of knowledge. A
-  round is one kind now. Inside a round that was already the case: the questions
-  have always been grouped by kind, because placing a delområde and placing a
-  bridge are different jobs. The cut has caught up with the order.
-
 - **A round runs a kind at a time**, in the order the kinds are declared in
   `app/rounds.mjs`: every delområde, then every gata, then the broar, then the
-  landmärken, worst-remembered first inside each. Mixing them cost more than it
-  looked like it would — placing a delområde ("which of these outlines is it")
-  and placing a bridge ("where on the water is it") are different jobs, and
-  alternating means starting over on every question. Grouped, a run builds: a
-  dozen questions in a row are the same act, and by the end of the delområden
-  you are reading the city's outlines rather than working out afresh what you
-  are being asked to do.
+  landmärken, worst-remembered first inside each. Placing a delområde ("which of
+  these outlines is it") and placing a bridge ("where on the water is it") are
+  different jobs, and alternating means starting over on every question.
+  Grouped, a run builds: a dozen questions in a row are the same act, and by the
+  end of the delområden you are reading the city's outlines rather than working
+  out afresh what you are being asked to do.
 
 - **Two strikes, then the answer.** A third guess at a name you have no idea
   about is stabbing at the map, not learning. The first miss says what you *did*
@@ -171,47 +143,42 @@ unreachable from inside a round, for the obvious reason.
 
 - **What it knows about you** (`app/progress.mjs`) is one localStorage key of
   small integers, keyed by *name*: "Sofielund" is a thing you either can or
-  cannot place, and there is now exactly one Sofielund. Knowing is hard to reach
+  cannot place, and there is exactly one Sofielund. Knowing is hard to reach
   and easy to lose — two right in a row, and one miss takes it away — because
   placing something correctly once is mostly evidence about the last ten
-  seconds. Point mode asks in the order of what you keep missing — inside each
-  kind, since the kinds themselves run in a fixed order — and the bar on a chunk
-  is just how many of its names are known. Keying by name rather than by
-  chunk is what lets the cut move — a name promoted from Resten to Grunden, a
-  new landmark — without costing anyone what they had learned. Nothing leaves
-  the device here either.
+  seconds. Rounds ask in the order of what you keep missing — inside each kind,
+  since the kinds themselves run in a fixed order — and the bar on a chunk is
+  just how many of its names are known. Keying by name rather than by chunk is
+  what lets the cut move — a name promoted from Resten to Grunden, a new
+  landmark — without costing anyone what they had learned. Nothing leaves the
+  device here either.
 
 - **What it says about a place.** The panel is why the app exists — a column
   down the right of the map, a sheet along the bottom of a phone — and it is
-  *the question* rather than the reward for answering one. The name you are
-  being asked for, what it is, its picture and what is known about it, all
-  sitting there while you look for it; place it and the next name arrives on
-  its own. So no question is a blank, and the picture has the whole question to
-  work on you instead of two seconds after you have stopped needing it.
+  *the question*: the name you are being asked for, what it is, its picture and
+  what is known about it, all sitting there while you look for it; place it and
+  the next name arrives on its own. So no question is a blank, and the picture
+  has the whole question to work on you.
 
-  **And it never says where.** That is the one rule the text obeys, and it is
-  new: the panel used to be the reward for a correct placement, so a line like
-  "öster om Möllevången" or "vid Sankt Petri kyrka" cost nothing. Now the panel
-  *is* the question — up the whole time you are hunting — and the same line
-  hands over the answer with the question. So a description says what the thing
-  is, when it was built, what happened there and what it is known for, and
-  nothing about its position: no compass directions, no "mellan X och Y", no
-  neighbouring or containing place used as a marker. What the name already
-  carries is fair game — Limhamns kyrka may say Limhamn, and a bridge may say
-  who it is named after. The same rule took the derived line down with it: a
-  street's card said "Huvudgata · i Rönneholm", which was the answer in the
-  subtitle, and a bridge's said what it crossed, which for the four that do not
-  cross Malmö kanal was the same giveaway. A delområde still says its stadsdel,
-  which is coarse enough to give nothing away — "i Fosie" names a tenth of the
-  city.
+  **And it never says where.** The panel is up the whole time you are hunting,
+  so a line like "öster om Möllevången" or "vid Sankt Petri kyrka" would hand
+  over the answer with the question. A description says what the thing is, when
+  it was built, what happened there and what it is known for, and nothing about
+  its position: no compass directions, no "mellan X och Y", no neighbouring or
+  containing place used as a marker. What the name already carries is fair game
+  — Limhamns kyrka may say Limhamn, and a bridge may say who it is named after.
+  The derived line obeys the same rule: a street's card does not name the
+  delområde it runs through, and a bridge's does not say what it crosses. A
+  delområde still says its stadsdel, which is coarse enough to give nothing away
+  — "i Fosie" names a tenth of the city.
 
-  The price is paid in blank cards, and it is the right price: where a line had
+  The price is paid in blank cards, and it is the right price: where a line has
   nothing in it but the position, the line is gone rather than reworded into
-  something that says nothing. Coverage is deliberately uneven and now slightly
-  thinner: 40 of 136 delområden have real text, 53 of 55 landmarks, 13 of 19
-  bridges, 22 of 174 streets. The rest place perfectly well and fall back on
-  what the build can prove — "Delområde · i Fosie", "Bro". A place I know
-  nothing about says nothing rather than something invented. Area text lives in
+  something that says nothing. Coverage is deliberately uneven: 40 of 136
+  delområden have real text, 53 of 55 landmarks, 13 of 19 bridges, 22 of 174
+  streets. The rest place perfectly well and fall back on what the build can
+  prove — "Delområde · i Fosie", "Bro". A place I know nothing about says
+  nothing rather than something invented. Area text lives in
   `learn/about.json`; everything else keeps its text next to its name in its own
   curated file. Every line is a draft marked `verified: false` — the same
   bargain `landmarks.json` already makes about coordinates.
@@ -224,12 +191,12 @@ unreachable from inside a round, for the obvious reason.
   teaches you something false about a real place, and half the street names in
   Malmö are street names in every other Swedish town. Every picture shows who
   took it and under what licence, which is a condition of use rather than a
-  courtesy. The 204 names with none simply have none — mostly the through-roads
-  added last, which Wikipedia has no article about and should not.
+  courtesy. The 204 names with none simply have none — mostly the through-roads,
+  which Wikipedia has no article about and should not.
 
   Coordinates prove the picture is of the right *place*; they cannot prove it is
-  a picture worth showing, so thirteen entries are now hand-pinned. Seven pairs
-  of names shared one file — Wikipedia illustrates two articles with the same
+  a picture worth showing, so thirteen entries are hand-pinned. Seven pairs of
+  names shared one file — Wikipedia illustrates two articles with the same
   photograph, and the quiz then asked two questions with the same picture, which
   at Norra and Södra Sofielund meant two halves of one place looking identical.
   Each pair was split: the name the file is actually of keeps it, and the other
@@ -243,17 +210,18 @@ unreachable from inside a round, for the obvious reason.
 
 ## The map
 
-Everything below describes the map itself, which is both the board the rounds
-are played on and — with its labels back on — the **Utforska** mode you study
-in. It did not change when the app did.
+Everything below describes the map itself — both the board the rounds are
+played on and, with its labels back on, the escape hatch you study in. What you
+study is exactly what you are tested on: everything the quiz asks about is
+drawn, always on.
 
 - **Basemap** — MapLibre GL JS + PMTiles, OpenMapTiles schema, z6–16, own style
   JSON (carved from OSM Liberty, not written from scratch; glyphs + sprite
   self-hosted). The archive is downloaded whole on first load and read from
   memory, so panning never touches the network.
 - **Zoom-dependent labelling** (the core): the widest view is coastline/Öresund
-  and "Malmö"; then the canal ring and major roads; then streets, buildings and
-  landmark icons; z15–16 everything. The ladder lives in
+  and "Malmö"; then the canal ring and major roads; then streets and buildings;
+  z15–16 everything. The ladder lives in
   `scripts/build-style.mjs`, one entry per change with a reason. Note the
   extract is only ~22 km wide, so the whole-city view is z10–11 — the tileset's
   z6–9 exist but can't be reached without leaving Malmö behind.
@@ -298,7 +266,7 @@ in. It did not change when the app did.
 
   Each level says how it sits in the others: a stadsdel lists the delområden it
   covers, a delområde says which stadsdel it is in, a level-3 name lists what it
-  is made of. The 5 stadsområden are kept in the data and in search but not
+  is made of. The 5 stadsområden are kept in the data but not
   drawn: Norr/Söder/Väster/Öster is a division nobody said out loud.
 
   **The parts ride inside level 4.** Gamla Väster, Erikslust, Seved,
@@ -306,46 +274,18 @@ in. It did not change when the app did.
   Malmö. They cannot be a level of their own (an outline is what makes a level a
   division rather than a scatter of words), so they are drawn *with* the
   delområden from z13.4, italic and a size smaller so the two grains never read
-  as one. They have a chip of their own, **Kvarter**, which starts on: turn it
-  off and the ladder is exactly the four levels again.
-- **No pins, until you ask** — the map opens with nothing point-shaped on it:
-  no cafés, no shops, not even the landmarks. Everything of that kind is a
-  **category**, tacked on from the **Lager** panel in the bottom corner — one
-  chip each, stacked, with the icon and colour the map draws them in — and the
-  choice is remembered like the view is. The panel opens closed every time: the
-  map is the app. Two chips start on, and neither is a pin: the street network,
-  and the kvarter names above. Turning a chip on that has nothing to show at
-  this zoom takes you down to where it has, rather than greying out.
-
-  | | drawn from |
-  |---|---|
-  | Mat · Barer · Kultur · Parker · Sport & bad · Butiker · Vård · Samhälle · Hotell · Bil & parkering | the basemap's own POIs, by OpenMapTiles `class`, z14+ |
-  | Landmärken | the curated list (below) |
-  | Cykel | `cycling.geojson` lines + lånecyklar from the tiles |
-  | **Bilvägar** | the basemap's road layers — **the one category that starts on** |
-
-  The table lives in `app/area-levels.mjs`'s neighbour, `app/categories.mjs`,
-  and nowhere else: the chips, the layers, the colours and the card all read it.
-  4,227 POIs are already inside the pmtiles archive, so a category costs a
-  filter rather than a download — and `scripts/poi-inventory.mjs` reads the
-  archive back to say what is in it, which is how the table was written and how
-  `test/categories.test.mjs` checks that no class is left undrawable.
+  as one.
 - **Selection** — tapping anything named gives its name, what kind of thing it
   is, and its shape: a street lit end to end, an area outlined, an icon ringed.
-  What is turned off is not tappable: a pin you cannot see is not a hidden
-  answer.
 - **Landmarks** — hand-curated two-tier list (`landmarks/landmarks.json`, 63
   entries, 61 with coordinates), 12 hand-drawn SVG icons for Tier 1, sprite
-  icons for Tier 2. Tapping one shows its name, district and one line of text.
-- **Search** — client-side fuzzy match over streets, POIs, all three tiers of
-  area, and landmarks (`search.json`, 4,178 entries / 497 KB), each tagged with
-  its district. Selecting pans, drops a pin, and outlines the thing if it has a
-  shape — nothing more.
+  icons for Tier 2, always drawn. Tapping one shows its name, district and one
+  line of text.
 - **Location** — locate button, accuracy circle, heading cone (map never rotates).
 
 **Bounding box** (`config/bbox.json`): W 12.80 / S 55.49 / E 13.16 / N 55.66 —
-coast + bridge landfall to Husie, Arlöv to Klagshamn. Search is clipped to Malmö
-kommun; the map renders the margin but won't find it.
+coast + bridge landfall to Husie, Arlöv to Klagshamn. The margin renders, but
+nothing in it is asked about.
 
 ## Layout
 
@@ -359,30 +299,24 @@ build/      generated artifacts: style.json, data/, site/ (gitignored)
 landmarks/  hand-curated landmark list + SVG icons
 areas/      the in-between names, hand-written with a source each
 learn/      what can be asked about and what is said back:
-            about.json (area text), bridges.json, streets.json
-game/       Förr's photographs: photos.json (hand-ruled) + photos/*.webp,
-            and photo-candidates.md, the sweep they were chosen from
-            (K-samsök before 2000, Wikimedia Commons after)
+            core.json (the Grunden cut), about.json (area text),
+            bridges.json, streets.json, images.json + images/
 ```
 
-The app is twelve files. The map: `index.html`, `app.css`, `app.js` (map,
-chrome, chips, boot), `layers.js` (areas, landmarks, category
-plumbing), `categories.mjs` (the layer menu: what each chip stands for),
+The app is thirteen files. The map: `index.html`, `app.css`, `app.js` (map,
+chrome, boot), `layers.js` (areas and landmarks),
 `area-levels.mjs` (the zoom ladder), `highlight.js` (what you tapped and its
 shape — and what the quiz is graded against and reveals),
-`kinds.js` (what an icon means, in Swedish), `search.js`. The learning:
+`kinds.js` (what an icon means, in Swedish). The learning:
 `rounds.mjs` (what can be asked and what counts as knowing it),
 `learn.js` (the loop and its chrome),
-`progress.mjs` (what you know), `blind.js` (taking the words off the map). Förr:
-`photos.mjs` (what a photograph is worth and which five you get today),
-`photos.js` (the loop and its chrome). Plus
-`sw.js`. No framework, no bundler, no `node_modules`: the browser loads the ES
-modules as written.
+`progress.mjs` (what you know), `blind.js` (taking the words off the map). Plus
+`sw.js` and the manifest. No framework, no bundler, no `node_modules`: the
+browser loads the ES modules as written.
 
-The two asking modes are deliberately the same shape — a pure `.mjs` holding the
-rules so the tests can ask them without a browser, and a `.js` holding the map,
-the DOM and the timers. `photos.js` reuses `blind.js` outright rather than having
-its own opinion about what a blind map is.
+The rules are deliberately separated from the chrome: `rounds.mjs` and
+`progress.mjs` are pure modules the tests can ask without a browser, and
+`learn.js` holds the map, the DOM and the timers.
 
 ## Building the data
 
@@ -391,125 +325,15 @@ Prereqs (macOS): `brew install osmium-tool openjdk@21`; Node ≥ 20.
 
 ```
 scripts/build-basemap.sh            # Sweden pbf → clip → data/cache/malmo.pmtiles (13.3 MB)
-node scripts/build-overlays.mjs     # Overpass → build/data/{food,culture,cycling,transit}.geojson
 node scripts/build-districts.mjs    # OSM boundaries → build/data/districts.geojson
 node scripts/build-areas.mjs        # Malmö stad CC0 → build/data/stadsdelar.geojson + kommun.geojson
 node scripts/build-neighbourhoods.mjs  # areas/areas.json → build/data/{neighbourhoods,parts}.geojson
-node scripts/build-streets.mjs      # pbf → data/cache/streets.json (search intermediate)
+node scripts/build-streets.mjs      # pbf → data/cache/streets.json (street geometry for learn)
 node scripts/build-landmarks.mjs    # landmarks.json → build/data/landmarks.geojson (--resolve fills coords)
-node scripts/build-search.mjs       # everything above → build/data/search.json
 node scripts/build-learn.mjs        # areas + landmarks + learn/*.json → build/data/learn.json
 node scripts/build-images.mjs       # Wikipedia → learn/images/*.webp + learn/images.json
-node scripts/propose-photos.mjs     # K-samsök + Commons → game/photo-candidates.md + photos.draft.json (a hand sweep, not a build step)
-node scripts/build-game.mjs         # game/photos.json → build/data/game.json + game/photos/*.webp
-node scripts/apply-review.mjs       # game/review.json → prunes game/photos.json and marks the rest reviewed
 node scripts/propose-core.mjs       # learn.json + evidence → learn/core-candidates.md (a hand sweep, not a build step)
-node scripts/poi-inventory.mjs      # reads the tileset back: which POI classes it holds
 ```
-
-### Where Förr's photographs come from
-
-Two archives, because neither one is a century.
-
-**K-samsök** — Riksantikvarieämbetet's aggregator, and through it Malmö Museer —
-holds Malmö before 2000 and nothing after it. Filtered to Malmö and to licences
-that permit this (Public Domain Mark, CC BY, CC0), it yields ~35 000 records, of
-which ~3 400 can be placed. `#inc` and `#by-nc-nd` are refused: NC is not our
-call to make on someone else's behalf, and ND makes a resized photograph a
-problem. It has **no coordinates at all** — `geoDataExists=j` returns zero across
-the whole collection — so records are placed by matching the description against
-names the quiz already holds geometry for.
-
-**Wikimedia Commons** is the mirror image: seven usable photographs from before
-2000, then hundreds a year, every one geotagged by the camera that took it. No
-geocoding, no name matching. It is also where the things that *happened* are, and
-where the photographs with people in them are, which the museum's street views
-mostly are not.
-
-Commons is taken from **geosearch only**, never by walking categories. The
-category graph leaks: "People of Malmö" at depth two reaches individual people
-and then photographs of them taken anywhere in the world, and "Eurovision Song
-Contest 2024" returns files from 2004. A coordinate inside the bbox is a fact;
-category membership is somebody's filing decision. Categories are read as a
-*label* — what a photograph is of — and never as evidence that it is of Malmö.
-
-Five things about this data are traps, and every one fails silently. They are why
-`scripts/lib/ksamsok.mjs` and `scripts/lib/commons.mjs` are longer than two URLs:
-
-- **The year is not the first year in the record.** K-samsök records carry
-  several `pres:context` blocks — Fotograferad, Tillverkad, Förvärvad — and
-  Förvärvad is when the museum bought it. Across 2 000 records, taking the first
-  found was off by a median of 84 years and a maximum of 124. Only Fotograferad
-  is read; an unlabelled context is accepted only when it is the record's *only*
-  one, which is what makes RAÄ's 1 854 records usable without reintroducing the
-  bug.
-- **`fromTime`/`toTime` do not mean what they say.** A query for 1980–1989
-  returns records whose own timeLabel reads 1943. So the year range cannot be
-  trusted as a filter, only as a hint — the real distribution has to be measured
-  after parsing, which is how the 1980s turned out to hold sixteen photographs
-  rather than the seven hundred the query claimed.
-- **The place is in the description, not in `pres:content`.** Content is mostly
-  accession numbers and the credit boilerplate "Foto: X / Malmö museum", so
-  matching place names against it makes every photograph a photograph of Malmö
-  Museer: 208 false hits per 2 000 records, against 9 when only the description
-  is read.
-- **The Carlotta image URL does not work as given.** It arrives as `http://` with
-  `+` for spaces, and fetched that way returns *HTTP 200 with an HTML error
-  page*. See `scripts/lib/carlotta.mjs`; the content type is the only thing that
-  says it failed.
-- **A Commons coordinate says where the camera was, not what it was pointed at.**
-  A photograph of a seed-vault storage box, taken in an office in Malmö and
-  geotagged there, is a good file and an impossible question.
-
-**The 1970s to the 1990s are a hole, and it is the archives' rather than the
-pipeline's.** Placeable supply runs to hundreds a decade until 1970 and then
-falls off a cliff: 19 from the 1970s, **1** from the 1980s, 12 from the 1990s.
-Malmö Museer's open material is old because Public Domain Mark and age are the
-same fact, and Commons barely existed before digital cameras. `QUOTA` in
-`propose-photos.mjs` is set to what can actually be had, and the candidates table
-prints supply beside quota so a thin row reads as a fact about Malmö's archives
-instead of a bug.
-
-`game/photos.json` is the hand-ruled list and the only file in that pipeline that
-decides anything. Full provenance — every query, every licence, every trap — is
-in **`game/SOURCES.md`**.
-
-### Reviewing them
-
-The metadata cannot tell you whether a photograph is any good as a question. The
-archives are full of interiors, trade-fair stands, copy work and files geotagged
-where the photographer was sitting rather than where they were pointing, and none
-of that is visible in a catalogue record. It is instantly visible in the picture.
-So there is a page for looking at them:
-
-```
-node scripts/serve.mjs              # then open http://127.0.0.1:8080/review/
-```
-
-One photograph at a time, as large as the window allows, with the year and the
-place beside it and a locator showing the pin against every other pin in the set.
-<kbd>→</kbd> keeps, <kbd>←</kbd> throws away, <kbd>↓</kbd> looks without judging,
-<kbd>U</kbd> undoes. Decisions go to `game/review.json` after every keystroke, so
-it is resumable and closing the tab loses nothing — five hundred photographs is
-more than one sitting.
-
-```
-node scripts/apply-review.mjs       # kept rows get "reviewed": true, dropped rows are cut
-node scripts/build-game.mjs         # rebuilds, and deletes the webp of anything cut
-```
-
-Two steps rather than one on purpose: a page in a browser should not be able to
-rewrite the file that decides what the game asks about. The tool records an
-opinion; applying it is something you run deliberately and can read the diff of.
-
-The review page is served only by the dev server (`scripts/review/`), never built
-into the site. `scripts/serve.mjs` grows one write endpoint for it — the only one
-in this repo — bound to 127.0.0.1 and accepting one shape of one file.
-
-While anything is still unreviewed, `build-game.mjs` treats the size budget as a
-warning rather than a failure: the point of proposing five hundred is to throw
-half of them away, and a candidate pool is allowed to be bigger than the set that
-ships.
 
 `build-learn.mjs` is the one that will stop the build. It joins every curated
 name to geometry that exists and to its text, and a name it cannot place is a
@@ -538,12 +362,8 @@ The images themselves live in `learn/images/` for the same reason the landmark
 icons do — a clone should be complete, and re-downloading 184 files from
 Wikimedia on every build would be rude.
 
-`food.geojson` and `culture.geojson` are still built and still feed the search
-index, but the map no longer draws them: those categories come from the POIs
-already in the tiles, which are more complete and cost no download.
-
 Downloads are cached under `data/` (Sweden extract reused < 30 days, Planetiler
-sources, raw Overpass/Nominatim responses), so re-runs are fast and offline.
+sources, raw Nominatim responses), so re-runs are fast and offline.
 `--refresh` on the Node scripts re-hits the remote APIs.
 
 ## Building and running the app
@@ -566,7 +386,7 @@ console.
 node --test 'test/*.test.mjs'       # no deps, no runner, no config
 ```
 
-Five things here are worth testing, and all for the same reason: their bugs are
+Four things here are worth testing, and all for the same reason: their bugs are
 invisible.
 
 The first is the area ladder — two levels overlapping for
@@ -579,14 +399,7 @@ whether the hand-written groupings still agree with Malmö stad's own
 statistics (`areas/statistikomraden.json`, derived once from the CC0 dataset so
 the check runs offline).
 
-The second is the layer menu. "Everything off by default" is one line of intent
-with six places to leak, so the test asserts the map opens clean — and, because
-the set of POI classes is a property of the extract rather than of this repo, it
-opens the pmtiles archive and reads it: a class that no chip draws and no
-written reason excuses is a POI the map could never show, and it fails here
-instead of being invisible forever.
-
-The third is the blinding, and it is the one that earns its keep. A label layer
+The second is the blinding, and it is the one that earns its keep. A label layer
 that stays on during a round does not look like a bug — it looks like an easy
 question. You would play the round, get it right, learn nothing, and never file
 it. So `test/blind.test.mjs` hands the *real* built style plus the app's own
@@ -595,7 +408,7 @@ draws text survives, that the shapes do (a round played on a white rectangle is
 not a round), and that every outline a round protects is a layer that still
 exists.
 
-The fourth is the quiz. Every failure mode there is quiet: a curated name with
+The third is the quiz. Every failure mode there is quiet: a curated name with
 no geometry is a question that can never be answered; a name in the set twice is
 a question with two right answers, and the grader will mark you wrong for
 finding the second; a chunk over the length cap is a round nobody finishes; an
@@ -607,7 +420,7 @@ the two halves are disjoint and add up to the whole city, that nothing but
 between calls — plus the grader's own rules: nearest-wins, per-kind tolerances,
 and the pixel floor that keeps 250 m from being a dare at a zoomed-out view.
 
-The fifth is the streets, and it needed a different kind of test. A street is
+The fourth is the streets, and it needed a different kind of test. A street is
 the one kind with no geometry of its own: it is a *name* that has to be found
 again at runtime in whatever vector tiles the browser happens to hold, so
 nothing about it can be checked by reading `learn.json` — `learn.json` is fine.
@@ -623,8 +436,8 @@ archive starts naming ordinary streets. All five of those failed at some point,
 and none of them looked like a failure on screen: they looked like the map
 being vague.
 
-`test/areas.test.mjs`, `test/style.test.mjs`, `test/categories.test.mjs`,
-`test/rounds.test.mjs`, `test/streets.test.mjs` and `test/blind.test.mjs` read
+`test/areas.test.mjs`, `test/style.test.mjs`, `test/rounds.test.mjs`,
+`test/streets.test.mjs` and `test/blind.test.mjs` read
 `build/` and `data/`,
 which are gitignored; they skip with a note rather than fail if you haven't
 built yet.
@@ -632,7 +445,7 @@ built yet.
 ## Hosting
 
 ```
-node scripts/build-site.mjs         # → build/site (39.6 MB, 499 files) — upload as-is
+node scripts/build-site.mjs         # → build/site (~24 MB) — upload as-is
 ```
 
 Any static host over HTTPS (geolocation and service workers need it). The only
@@ -644,4 +457,5 @@ first load and only re-fetches when the cache names in `app/sw.js` change (code
 and data are versioned separately, so an app edit doesn't re-download 13 MB).
 
 Rationale for non-obvious choices lives in [DECISIONS.md](DECISIONS.md) — it gets
-a dated bullet only when something non-obvious was actually decided.
+a dated bullet only when something non-obvious was actually decided, and the
+bullet leaves when its subject does.
