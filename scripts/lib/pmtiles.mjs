@@ -1,9 +1,9 @@
 // Reading the tileset back, in Node.
 //
-// The category table in app/categories.mjs is a claim about what is inside
-// malmo.pmtiles — "these classes exist, this many, from this zoom". Believing
-// the OpenMapTiles schema instead of checking would be believing a document
-// about someone else's planet extract, so this reads the archive itself.
+// The app makes claims about what is inside malmo.pmtiles — which streets are
+// named, and from which zoom. Believing the OpenMapTiles schema instead of
+// checking would be believing a document about someone else's planet extract,
+// so this reads the archive itself, and test/streets.test.mjs asks it.
 //
 // Two formats, both only as far as this needs them: the PMTiles v3 directory
 // (to find every tile) and Mapbox Vector Tile (to read one layer's feature

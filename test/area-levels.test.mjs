@@ -120,8 +120,7 @@ test('the ladder ends at the delområden — the parts ride inside level 4', () 
   const part = areaLayers().find((l) => l.id === 'area-label-part');
   assert.ok(part, 'the parts are drawn');
   assert.equal(part.metadata.level, 'delomrade', 'as part of level 4, not as a level of their own');
-  assert.equal(part.metadata.category, 'parts',
-    'and answering to a chip, so the whole experiment can be turned off');
+  assert.equal(part.metadata.role, 'name', 'and as a name, which is all they can be without an outline');
   // The one thing that must not come back: a rung of its own.
   assert.ok(!areaLayers().some((l) => l.metadata.level === 'part'),
     'no layer claims a "part" level');

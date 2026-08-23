@@ -8,8 +8,8 @@
 //
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
-const CODE = 'malmo-code-v13';
-const DATA = 'malmo-data-2026-08-04a';
+const CODE = 'malmo-code-v14';
+const DATA = 'malmo-data-2026-08-23a';
 
 const CODE_FILES = [
   '/',
@@ -17,17 +17,13 @@ const CODE_FILES = [
   '/app.css',
   '/app.js',
   '/area-levels.mjs',
-  '/categories.mjs',
   '/layers.js',
   '/highlight.js',
   '/kinds.js',
-  '/search.js',
   '/learn.js',
   '/rounds.mjs',
   '/progress.mjs',
   '/blind.js',
-  '/photos.js',
-  '/photos.mjs',
   '/manifest.webmanifest',
   '/style.json',
   '/vendor/maplibre-gl.css',
@@ -58,27 +54,18 @@ const DATA_FILES = [
   '/data/kommun.geojson',
   '/data/stadsdelar.geojson',
   '/data/neighbourhoods.geojson',
-  // Drawn from the start (the "Kvarter" chip), so it is not optional offline.
+  // The names finer than a delområde, drawn with them, so not optional offline.
   '/data/parts.geojson',
   '/data/landmarks.geojson',
   // Every name the app can ask about, and everything it says once you have
   // placed it. Without this the front door is empty, so it is the least
   // optional file here after the tiles themselves.
   '/data/learn.json',
-  // The photographs Förr asks about — the list of them, that is; the pictures
-  // themselves come through pictureFiles below.
-  '/data/game.json',
-  '/data/search.json',
-  // The one category that is not in the tiles. food, culture and transit are
-  // still built — the search index is made from them, and a station is worth
-  // finding by name — but nothing on the map draws them any more, so there is
-  // nothing of theirs to precache.
-  '/data/cycling.geojson',
 ];
 
 // A missing file is a build mistake worth seeing in the console, but it must not
-// take the whole install down with it — a map that works offline apart from the
-// cycling overlay still beats no offline map.
+// take the whole install down with it — a map that works offline apart from one
+// picture still beats no offline map.
 async function fillCache(name, urls) {
   const cache = await caches.open(name);
   const results = await Promise.allSettled(urls.map(async (url) => {
@@ -90,29 +77,19 @@ async function fillCache(name, urls) {
   if (failed.length) console.warn(`sw: ${failed.length} of ${urls.length} failed`, failed.map((f) => f.reason?.message));
 }
 
-// The photographs, from both places that hold them. Not in DATA_FILES because
-// there are several hundred and the lists are build outputs, not something to
-// keep in sync by hand — so they are read from the two files that already know.
+// The pictures on the fact cards. Not in DATA_FILES because there are a couple
+// of hundred and the list is a build output, not something to keep in sync by
+// hand — so it is read from the file that already knows.
 //
-// The two are not equally optional. A missing fact-card picture costs a frame on
-// a card that says the same words either way; a missing Förr photograph costs
-// the question itself, because the photograph *is* the question. Neither is
-// worth failing the install over — a day that cannot be played offline still
-// beats a map that will not install — but that is why Förr's are precached at
-// all rather than left to be fetched when their day comes round.
+// A missing one costs a frame on a card that says the same words either way, so
+// it is precached but never worth failing the install over.
 async function pictureFiles() {
-  const from = async (url, pick) => {
-    try {
-      return pick(await fetch(url).then((r) => r.json()));
-    } catch {
-      return [];
-    }
-  };
-  const [facts, photos] = await Promise.all([
-    from('/data/learn.json', (d) => d.items.map((it) => it.image)),
-    from('/data/game.json', (d) => d.photos.map((p) => p.image)),
-  ]);
-  return [...new Set([...facts, ...photos].filter(Boolean))];
+  try {
+    const doc = await fetch('/data/learn.json').then((r) => r.json());
+    return [...new Set(doc.items.map((it) => it.image).filter(Boolean))];
+  } catch {
+    return [];
+  }
 }
 
 self.addEventListener('install', (event) => {
@@ -138,8 +115,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== location.origin) return; // nothing here is cross-origin anyway
 
-  // Photographs are data: they change when the pipeline re-runs, not when I
-  // edit a stylesheet, and they have no business invalidating the code cache.
+  // Pictures are data: they change when the pipeline re-runs, not when I edit a
+  // stylesheet, and they have no business invalidating the code cache.
   const isData = url.pathname.startsWith('/data/')
     || url.pathname.startsWith('/images/')
     || url.pathname.endsWith('.pmtiles');

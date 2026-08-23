@@ -40,8 +40,8 @@
 // parts.geojson (Gamla Väster, Erikslust, Fullriggaren, Seved) is drawn with the
 // delområden rather than as a fifth rung: these names have no boundary anywhere
 // in Malmö, so a level of their own would be words floating over the basemap,
-// which is the failure this ladder is built against. Italic, smaller, and on
-// their own chip in the layer menu, so the experiment is reversible.
+// which is the failure this ladder is built against. Italic and a size smaller,
+// so the two grains never read as one division.
 //
 // This file is the only place the ladder is written down. app/layers.js draws
 // from it, scripts/build-style.mjs caps the basemap's own "Malmö" label at the
@@ -264,15 +264,13 @@ export function areaLayers({ notADistrict = true, notGrouped = true } = {}) {
     // Fullriggaren — names finer than any boundary in Malmö, which is why they
     // have no outline and cannot be a level of their own. They ride along with
     // the delområden instead, italic and a size smaller so the two grains never
-    // read as one division, and they answer to a chip of their own ("Kvarter")
-    // so they can be turned off the moment they crowd the map. The ladder still
-    // ends at four.
+    // read as one division. The ladder still ends at four.
     {
       id: 'area-label-part',
       type: 'symbol',
       source: 'parts',
       minzoom: TIER.delomrade,
-      metadata: { level: 'delomrade', role: 'name', category: 'parts' },
+      metadata: { level: 'delomrade', role: 'name' },
       ...nameStyle(PART, ['interpolate', ['linear'], ['zoom'], TIER.delomrade, 10, 15, 11, 17, 12], {
         'text-font': ['Roboto Condensed Italic'],
         'text-letter-spacing': 0.02,

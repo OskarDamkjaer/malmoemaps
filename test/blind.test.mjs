@@ -30,8 +30,7 @@ function allLayers() {
   const basemap = JSON.parse(readFileSync(FILE, 'utf8')).layers;
   const ladder = areaLayers();
   const landmarks = [11, 12, 13].map((z) => ({ id: `landmark-${z}`, type: 'symbol' }));
-  const categories = [{ id: 'cat-food', type: 'symbol' }, { id: 'cat-culture', type: 'symbol' }];
-  return [...basemap, ...ladder, ...landmarks, ...categories];
+  return [...basemap, ...ladder, ...landmarks];
 }
 
 test('a round leaves no text on the map', { skip }, () => {

@@ -20,7 +20,6 @@
 // only: anything that already knows the name asks for it by name (see
 // `streetPieces`), because a street's own point sits on a junction and
 // proximity there is a coin toss between two streets.
-import { categoryOfLayer } from './categories.mjs';
 import { kindLabel } from './kinds.js';
 
 const SRC = 'highlight';
@@ -52,9 +51,9 @@ export const stadsdelNames = () => stadsdelFeatures.map((f) => f.properties.name
 // Symbol layers whose icons and labels should answer for themselves. The app's
 // own layers are added to this at pick time.
 //
-// The basemap's POI pictograms used to be in here. They are not drawn any more
-// (build-style.mjs drops poi_z15/poi_z16) — the same POIs are the category
-// layers, which come through as app layers when their chip is on.
+// The basemap's POI pictograms used to be in here. They are not drawn at all
+// any more (build-style.mjs drops poi_z14/poi_z15/poi_z16): this map has no
+// pins on it beyond the curated landmark list, which is an app layer.
 const BASEMAP_SYMBOLS = ['place_city', 'place_town', 'place_village',
   'road_shield', 'water_name_point', 'water_name_line'];
 const BASEMAP_AREAS = ['park', 'landuse_cemetery', 'landuse_hospital', 'landuse_school'];
@@ -509,20 +508,6 @@ export function describeHit({ feature, origin }) {
       meta: [kindLabel(p) ?? 'Område', inside && `i ${inside}`].filter(Boolean).join(' · '),
       // Said plainly rather than drawn, because there is nothing to draw.
       description: 'Namn utan egen gräns i kartdatan.',
-    };
-  }
-
-  // A pin from a category: what it is beats which chip drew it — "Bageri" is
-  // the answer, "Mat" only the shelf it was filed under — and it earns the same
-  // "in Möllevången" every other point on this map gets.
-  const category = categoryOfLayer(layer);
-  if (category) {
-    const kind = kindLabel(p);
-    const inside = feature.geometry.type === 'Point' ? stadsdelAt(feature.geometry.coordinates) : null;
-    return {
-      name: p.name || kind || category.label,
-      meta: [p.name ? kind ?? category.label : category.label, inside && `i ${inside}`]
-        .filter(Boolean).join(' · '),
     };
   }
 
