@@ -139,32 +139,14 @@ archive.
   through, and a bridge does not print what it crosses. A delområde still prints
   its stadsdel, which is coarse enough to give nothing away.
 
-- **A picture per name, not per Wikipedia article** (2026-08-04). The picture
-  rule is "prove it is the right place", and coordinates do prove that — but
-  they say nothing about whether the picture is worth showing. Seven pairs of
-  names were sharing one file, because Wikipedia illustrates two articles with
-  the same photograph: Norra and Södra Sofielund were the same picture of the
-  same building, which is the failure the coordinate check was built to prevent,
-  arriving through the front door. One name (Malmö universitet) had a
-  *logotype* rather than a photograph. Three had photographs from before 1920,
-  of which Regementsgatan's is a canal that was filled in — a card that sends
-  you looking for water.
-
-  Fixed by hand-pinning thirteen entries, using the mechanism `images.json`
-  already had. Nine got a new picture chosen from Commons **geosearch**, which
-  is per-file coordinates rather than per-article ones and so is a strictly
-  stronger proof than the build's own; four are pinned to `null`. Not automated:
-  picking between six photographs of the same street is a judgement about what a
-  place looks like, and the build has no business making it.
-
 - **The panel is the question, not the prize** (2026-08-03). The card is up for
-  the whole question — name, what it is, its picture and what is known about it,
-  sitting there while you look for it — and a settled answer advances to the
+  the whole question — name, what it is and what is known about it, sitting
+  there while you look for it — and a settled answer advances to the
   next name on a timer rather than through a button. Three things that bought. A
   question is never a blank: you are not asked for a name you have been told
   nothing about, which for the hundred-odd streets with no description is most
-  of them. The picture gets the whole question to work on you rather than two
-  seconds after you have stopped needing it. And the dismissal tap is gone — it
+  of them. What is known about a place gets the whole question to work on you
+  rather than two seconds after you have stopped needing it. And the dismissal tap is gone — it
   only ever existed to admit you had finished reading, and the reading is done
   before you answer. What the text may say while it sits there is its own
   decision, above.
@@ -265,31 +247,6 @@ archive.
   simply dropped — its description is usually the better written one, since a
   landmark list is written to say what things are and a delområde list is not —
   so the survivor inherits any text it lacks. Nothing is invented, only moved.
-
-- **Pictures are fetched by the build, never by the browser** (2026-08-03). The
-  fact card wanted a photograph, and the obvious way to get one — point an
-  `<img>` at Wikimedia — would have struck three principles in one line: no
-  third-party requests at runtime, nothing leaves the device, works offline. It
-  would also have been worst exactly where the app is most used, since a card on
-  a train would have been a blank frame. So `scripts/build-images.mjs` downloads
-  them when I ask it to, they are served from this origin, and the service
-  worker caches them like everything else. Cost: 5.7 MB of payload. Accepted —
-  a picture of the place does more for "Sofielund is *there*" than another
-  sentence would.
-
-  A picture is only kept if the article's own coordinates land near the point
-  the quiz already grades against. A wrong picture is worse than none, because
-  it teaches you something false about somewhere real, and title matching alone
-  would happily have put Stockholm's Västerbron on Malmö's. An article with no
-  coordinates is not rejected as wrong but as *unproven*, which is the same
-  standard this repo has always held names to. That leaves 180 of 384 with a
-  picture and 204 with none — mostly the through-roads, which have no article
-  and should not. They say nothing rather than showing something that might be
-  somewhere else.
-
-  Every picture carries who took it and under what licence, in the card itself.
-  That is a condition of use, not a courtesy, and this repo already shows its
-  attributions rather than burying them.
 
 - **Two strikes, then the answer** (2026-08-03). A third guess at a name you
   have no idea about is stabbing at the map. The first miss says what you *did*
@@ -552,7 +509,35 @@ archive.
   `openjdk@21`, `tools/planetiler.jar`; all scripts in Node so the data shapes
   are defined once, where the app consumes them.
 
-- **Hosting is plain static files** (2026-07-26). No cron regeneration,
-  content-hash filenames or deploy tooling — machinery for a server that doesn't
-  exist. This is a personal map: rebuild locally, upload. Only hard
-  requirements: HTTPS + Range support for `.pmtiles`.
+- **Hosting is plain static files** (2026-07-26). No cron regeneration or
+  content-hash filenames. This is a personal map. Only hard requirements: HTTPS
+  + Range support for `.pmtiles`.
+
+- **Published to GitHub Pages by a workflow** (2026-08-26). Reverses the "no
+  deploy tooling" half of the bullet above, which was right while there was no
+  server to deploy to and no way to build off this laptop. Pages answers both:
+  it serves Range requests (verified: `206` with a correct `Content-Range`, which
+  is the whole reason `.pmtiles` works), it costs nothing on a public repo, and
+  the build runs on a runner rather than here — so a deploy needs a browser and
+  nothing else. The alternative was an nginx container on the box that already
+  runs Matrix and pokeemerald, with two restricted SSH keys and a symlink flip.
+  That is the right shape when there is a backend to run; there is none here,
+  and it would have been a server and two secrets to own for a folder of files.
+
+- **The site is served at a domain root, never at `/malmoemaps/`** (2026-08-26).
+  The app addresses itself with root-absolute paths, and a project Pages path
+  would 404 on all of them. Making the app base-aware is real work in service of
+  nothing; a CNAME is a DNS record. So the custom domain is not decoration, it
+  is what makes the deployment work at all.
+
+- **The fact-card photographs are deleted** (2026-08-26). 180 files, 5.6 MB —
+  87 % of the repo — plus the 499 in the history before them, dropped when the
+  repo was made public. With them go `scripts/build-images.mjs`, the figure in
+  the card, its CSS, and the `/images/` mount, so nothing deployed asks for a
+  URL that does not exist. What survives is `learn/sources.json`: the article
+  each name's text was found through, which is what `images.json` was quietly
+  also being used for — 178 of the 384 names had no other source link, and
+  deleting the file wholesale would have taken those with it without anything
+  saying so. It is now a frozen table rather than build output, which is honest:
+  the script that generated it is gone.
+

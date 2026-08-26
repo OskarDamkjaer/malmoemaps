@@ -11,9 +11,10 @@
 // unconditionally (the session-start hook does exactly that). It verifies a
 // checksum, so a stale asset is a visible mismatch rather than a silent one.
 //
-// The repo is private, so the download is authenticated. `gh release download`
-// handles that with whatever credential `gh` is logged in with — the one thing
-// a sandbox session can rely on being set up.
+// `gh release download` carries whatever credential `gh` is logged in with,
+// which is the one thing a sandbox session and a CI runner can both rely on
+// being set up. The repo is public, so an unauthenticated fetch would work
+// too — but `gh` keeps this working if it ever goes private again.
 //
 // Usage: node scripts/fetch-dev-assets.mjs
 import { existsSync, rmSync, readFileSync } from 'node:fs';
@@ -23,12 +24,12 @@ import { execSync } from 'node:child_process';
 
 // Pinned: a stale asset is a visible mismatch rather than a silent one. Bump
 // this when the release is rebuilt, and the checksum with it.
-const TAG = 'dev-assets-v1';
+const TAG = 'dev-assets-v2';
 const FILE = 'dev-assets.tar.gz';
 
 // SHA-256 of the asset at the pinned tag. A mismatch means the release was
 // rebuilt without bumping the tag, which is a bug rather than a surprise.
-const SHA256 = '7c8b01e4edaf05db9b71c651fe275ff58db2d75fc4040a799cbd04a64f4ce7bf';
+const SHA256 = '0c05575eb26495147d5ffe8ed37fb375773fe41c96d9db956cfb270136bebd08';
 
 // The four things this unpacks, and the one thing that tells us they are all
 // there: each is a directory or file that is gitignored, so its presence is the
@@ -36,6 +37,10 @@ const SHA256 = '7c8b01e4edaf05db9b71c651fe275ff58db2d75fc4040a799cbd04a64f4ce7bf
 const CHECKS = [
   'build/data/learn.json',
   'data/cache/malmo.pmtiles',
+  // Street geometry, cut from the OSM extract by build-streets.mjs. Without it
+  // build-learn.mjs cannot run at all, which is how the deploy workflow found
+  // it missing from v1.
+  'data/cache/streets.json',
   'app/glyphs/Roboto Regular',
   'app/sprite/osm-liberty.json',
 ];

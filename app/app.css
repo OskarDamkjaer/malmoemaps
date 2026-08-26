@@ -265,7 +265,6 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
 
 @media (max-width: 699px) {
   #factcard.asking { max-height: 38vh; }
-  #factcard.asking #factimage { aspect-ratio: 16 / 9; }
 }
 
 @media (min-width: 700px) {
@@ -280,26 +279,6 @@ svg { fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round
     margin: 0;
   }
 }
-
-/* The picture, when there is one. Fixed aspect and cropped rather than
-   letterboxed: the frame is a consistent shape down the column, and a photo of
-   a square is not improved by bars either side of it. */
-#factfigure { margin: 10px 0 0; }
-#factimage {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  background: #ece7e0;
-  border-radius: 8px;
-}
-#factcredit {
-  margin: 4px 0 0;
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--ink-soft);
-}
-#factcredit a { color: inherit; }
 
 #factverdict {
   margin: 0 0 2px;

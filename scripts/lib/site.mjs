@@ -2,7 +2,9 @@
 //
 // The deployable site is assembled from three places that must not be merged on
 // disk: hand-written app source (versioned), generated data (gitignored), and
-// the big basemap (cached, never copied around casually). Both the dev server
+// the big basemap (cached, never copied around casually). Every entry is
+// load-bearing: if one is missing the build fails rather than shipping a site
+// that 404s. Both the dev server
 // and the site build read this table, so a URL means the same thing in both and
 // "works in dev, 404s in production" can't happen.
 // The list the service worker precaches lives in app/sw.js, next to the code
@@ -14,12 +16,6 @@ export const MOUNTS = [
   // Hand-drawn tier-1 icons: source assets, versioned with the landmark list
   // they belong to rather than copied into the app.
   { url: '/landmark-icons/', dir: 'landmarks/icons' },
-  // Photographs for the fact card. Fetched by scripts/build-images.mjs but kept
-  // here rather than under build/, for the same reason as the icons: they are
-  // the material the app is made of, a clone should be complete without a
-  // network round trip, and re-downloading them from Wikimedia on every build
-  // would be rude to someone else's servers.
-  { url: '/images/', dir: 'learn/images' },
   { url: '/malmo.pmtiles', file: 'data/cache/malmo.pmtiles' },
 ];
 

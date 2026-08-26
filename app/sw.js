@@ -8,8 +8,8 @@
 //
 // Two caches, deliberately: code changes when I edit the app, data changes when
 // I re-run the pipeline. Editing a CSS rule should not re-download 13 MB.
-const CODE = 'malmo-code-v14';
-const DATA = 'malmo-data-2026-08-23a';
+const CODE = 'malmo-code-v15';
+const DATA = 'malmo-data-2026-08-26a';
 
 const CODE_FILES = [
   '/',
@@ -115,10 +115,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== location.origin) return; // nothing here is cross-origin anyway
 
-  // Pictures are data: they change when the pipeline re-runs, not when I edit a
-  // stylesheet, and they have no business invalidating the code cache.
+  // Data changes when the pipeline re-runs, not when I edit a stylesheet, and it
+  // has no business invalidating the code cache.
   const isData = url.pathname.startsWith('/data/')
-    || url.pathname.startsWith('/images/')
     || url.pathname.endsWith('.pmtiles');
 
   event.respondWith((async () => {

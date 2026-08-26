@@ -394,34 +394,6 @@ function say(text, tone) {
 // the moment the name has just become a place.
 
 /**
- * The picture, if the item has one.
- *
- * `image` is a path on this origin, never a remote URL: the app makes no
- * third-party requests at runtime and works on a train, and a card that is
- * blank offline would fail exactly when the app is most used. Whatever fills
- * this field has to be downloaded by the build and cached by the service
- * worker like everything else.
- *
- * `credit` is not optional decoration. A photograph is someone's, and this repo
- * shows its attributions rather than burying them, so an item carrying an image
- * carries who made it and under what licence.
- */
-function showPicture(item) {
-  const figure = el('factfigure');
-  const img = el('factimage');
-  if (!item.image) { figure.hidden = true; img.removeAttribute('src'); return; }
-
-  img.src = item.image;
-  img.alt = `Foto: ${item.name}`;
-  // A picture that will not load leaves no frame behind. The likeliest cause is
-  // a first run that went offline before the service worker finished, which is
-  // not worth a broken-image icon on the one card the app exists to show.
-  img.onerror = () => { figure.hidden = true; };
-  el('factcredit').textContent = item.credit ?? '';
-  el('factcredit').hidden = !item.credit;
-  figure.hidden = false;
-}
-/**
  * The panel, in its two states.
  *
  * With no `outcome` it is **the question**: the name you are being asked for,
@@ -443,7 +415,6 @@ function showFact(item, outcome = null) {
   el('factname').textContent = item.name;
   el('factmeta').textContent = item.meta ?? '';
   el('factmeta').hidden = !item.meta;
-  showPicture(item);
   const text = el('facttext');
   text.textContent = item.about ?? '';
   text.hidden = !item.about;

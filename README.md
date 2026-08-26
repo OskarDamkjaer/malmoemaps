@@ -21,7 +21,7 @@ between questions. The reveal moves the view only when the answer is off screen.
 The panel alongside is the question rather than the reward for answering one:
 what Västra Hamnen was before it was Västra Hamnen, why Augustenborg is famous
 outside Sweden, what Suellsbron is named after — there while you look for it,
-with the picture. That is the point; the placing is what makes you read it.
+with the text. That is the point; the placing is what makes you read it.
 
 Outside a round the map keeps its labels, and everything the quiz asks about is
 drawn on it — tap anything to find out what it is. That is the escape hatch for
@@ -37,9 +37,9 @@ is unreachable from inside a round, for the obvious reason.
 - **No external tile or API calls at runtime.** Everything served from my origin.
 - **Always north-up.** Rotation and pitch disabled — a fixed orientation builds a
   stable mental map.
-- **Offline PWA.** The whole payload is about 21.5 MB (basemap 13.3 MB, fact-card
-  photographs 5.7 MB), so the service worker just caches all of it. Practising
-  on a train with no signal is the normal case, not a degraded one.
+- **Offline PWA.** The whole payload is about 16 MB, most of it the 13.3 MB
+  basemap, so the service worker just caches all of it. Practising on a train
+  with no signal is the normal case, not a degraded one.
 - **Nothing is invented to fill a field.** A place with nothing known about it
   gets a card with nothing on it but what the data can prove. See *What it says
   about a place*, below.
@@ -155,9 +155,9 @@ is unreachable from inside a round, for the obvious reason.
 
 - **What it says about a place.** The panel is why the app exists — a column
   down the right of the map, a sheet along the bottom of a phone — and it is
-  *the question*: the name you are being asked for, what it is, its picture and
+  *the question*: the name you are being asked for, what it is and
   what is known about it, all sitting there while you look for it; place it and
-  the next name arrives on its own. So no question is a blank, and the picture
+  the next name arrives on its own. So no question is a blank, and the text
   has the whole question to work on you.
 
   **And it never says where.** The panel is up the whole time you are hunting,
@@ -183,30 +183,13 @@ is unreachable from inside a round, for the obvious reason.
   curated file. Every line is a draft marked `verified: false` — the same
   bargain `landmarks.json` already makes about coordinates.
 
-- **And shows it.** 180 of the 384 names carry a photograph, fetched from
-  Swedish Wikipedia by `scripts/build-images.mjs` and served from this origin
-  like everything else — no runtime request leaves the device, and the card is
-  the same on a train. A picture is only accepted if the article carries
-  coordinates near the point the quiz already grades against: a wrong picture
-  teaches you something false about a real place, and half the street names in
-  Malmö are street names in every other Swedish town. Every picture shows who
-  took it and under what licence, which is a condition of use rather than a
-  courtesy. The 204 names with none simply have none — mostly the through-roads,
-  which Wikipedia has no article about and should not.
-
-  Coordinates prove the picture is of the right *place*; they cannot prove it is
-  a picture worth showing, so thirteen entries are hand-pinned. Seven pairs of
-  names shared one file — Wikipedia illustrates two articles with the same
-  photograph, and the quiz then asked two questions with the same picture, which
-  at Norra and Södra Sofielund meant two halves of one place looking identical.
-  Each pair was split: the name the file is actually of keeps it, and the other
-  got a picture of its own from Commons, picked by coordinates the same way but
-  per file rather than per article. Nine names were re-pinned that way (Malmö
-  universitet had the university's *logotype*, Kungsparken and Värnhemstorget
-  had photographs from before 1920), and four are pinned to `null`, which means
-  "there is no good picture of this, stop looking" — three streets with no
-  proven photograph of their own, and Regementsgatan, whose only picture is the
-  canal that ran along it in 1910 and would send you looking for water.
+- **And links where it came from.** 180 of the 384 names carry a link to the
+  Swedish Wikipedia article the text was found through, in `learn/sources.json`.
+  These were verified by coordinates when they were collected — an article was
+  only accepted if its own coordinates landed near the point the quiz grades
+  against — so a link is to an article about the right *place*, which matters
+  when half the street names in Malmö are street names in every other Swedish
+  town. A name with a source of its own keeps it; this only fills a gap.
 
 ## The map
 
@@ -300,7 +283,7 @@ landmarks/  hand-curated landmark list + SVG icons
 areas/      the in-between names, hand-written with a source each
 learn/      what can be asked about and what is said back:
             core.json (the Grunden cut), about.json (area text),
-            bridges.json, streets.json, images.json + images/
+            bridges.json, streets.json, sources.json
 ```
 
 The app is thirteen files. The map: `index.html`, `app.css`, `app.js` (map,
@@ -331,7 +314,6 @@ node scripts/build-neighbourhoods.mjs  # areas/areas.json → build/data/{neighb
 node scripts/build-streets.mjs      # pbf → data/cache/streets.json (street geometry for learn)
 node scripts/build-landmarks.mjs    # landmarks.json → build/data/landmarks.geojson (--resolve fills coords)
 node scripts/build-learn.mjs        # areas + landmarks + learn/*.json → build/data/learn.json
-node scripts/build-images.mjs       # Wikipedia → learn/images/*.webp + learn/images.json
 node scripts/propose-core.mjs       # learn.json + evidence → learn/core-candidates.md (a hand sweep, not a build step)
 ```
 
@@ -344,24 +326,6 @@ of kinds, so one added there and forgotten here fails at build time, and for the
 chunker itself, so a chunk grown past the length cap stops the build rather
 than turning up as a sitting nobody finishes.
 
-`build-images.mjs` is the only script that talks to a third party, and it runs
-when I ask it to rather than as part of a build. It reads `learn.json` for the
-names and the points, asks Swedish Wikipedia for an article per name, and keeps
-the picture **only if the article's own coordinates land near the point the quiz
-grades against** — 2 km for a delområde, 4 km for a bridge (Öresundsbron is 8 km
-long and our midpoint sits 2.7 km from Wikipedia's), 400 m for a landmark. An
-article with no coordinates is not rejected as wrong but as unproven, which is
-the same standard this pipeline holds names to. Everything it fetches is cached
-under `data/cache/wiki/`, so re-runs cost four requests rather than six hundred.
-
-Its output, `learn/images.json`, is versioned next to the curated data rather
-than under `build/`: it is reviewable, and a bad pick can be corrected by hand
-and marked `"pinned": true`, after which the script leaves it alone (including a
-deliberate `"image": null` for "there is no good picture of this, stop looking").
-The images themselves live in `learn/images/` for the same reason the landmark
-icons do — a clone should be complete, and re-downloading 184 files from
-Wikimedia on every build would be rude.
-
 Downloads are cached under `data/` (Sweden extract reused < 30 days, Planetiler
 sources, raw Nominatim responses), so re-runs are fast and offline.
 `--refresh` on the Node scripts re-hits the remote APIs.
@@ -371,17 +335,24 @@ sources, raw Nominatim responses), so re-runs are fast and offline.
 A sandboxed session (Claude Code web) can reach GitHub but not geofabrik,
 opendata-api.malmo.se, nominatim, or the glyph/sprite hosts — so the full
 pipeline above is out of reach, and 26 of 51 tests skip. To close that gap
-without putting generated data in git, a release asset holds the four things
+without putting generated data in git, a release asset holds the five things
 the sandbox cannot build:
 
 ```
-node scripts/fetch-dev-assets.mjs   # release → build/data/ + pmtiles + glyphs + sprite
+node scripts/fetch-dev-assets.mjs   # release → build/data/ + pmtiles + streets + glyphs + sprite
 ```
 
 It is a no-op when everything is present, and verifies a SHA-256 checksum so a
 stale asset is a visible mismatch. The release tag is pinned in the script;
 rebuild the asset and bump the tag + checksum when the data changes. The
-`.claude/hooks/session-start.sh` hook calls it automatically in web sessions.
+`.claude/hooks/session-start.sh` hook calls it automatically in web sessions,
+and the deploy workflow uses the same asset — so the thing CI builds from is the
+thing a sandbox develops against.
+
+`data/cache/streets.json` is in there because `build-learn.mjs` cannot run
+without it, which is how `dev-assets-v1` was found to be short a file: the
+deploy workflow rebuilds the derived data rather than trusting the asset's copy,
+and fell over on the first run that tried.
 
 ## Building and running the app
 
@@ -470,13 +441,26 @@ built yet.
 
 ## Hosting
 
+The site is published to GitHub Pages at **https://malmoe.damk.eu** by
+`.github/workflows/deploy.yml`, on every push to `main` and on demand
+(`gh workflow run deploy.yml`). There is no build server and no laptop in the
+loop: the workflow fetches the release asset, rebuilds everything downstream of
+it, runs the tests, and publishes `build/site`. A red test suite is a deploy
+that does not happen.
+
 ```
-node scripts/build-site.mjs         # → build/site (~21.5 MB) — upload as-is
+node scripts/build-site.mjs         # → build/site (~16 MB) — the same folder, locally
 ```
 
-Any static host over HTTPS (geolocation and service workers need it). The only
-requirement beyond "serves files": HTTP **Range** support for `.pmtiles`. Same
-origin as the app, so no CORS.
+It is still just a folder on a static host, and can go on any of them over
+HTTPS (geolocation and service workers need it). The only requirement beyond
+"serves files" is HTTP **Range** support for `.pmtiles`, which Pages provides.
+Same origin as the app, so no CORS.
+
+Pages serves it at the root of a custom domain rather than at
+`/malmoemaps/`, because the app addresses itself with root-absolute paths
+(`/app.css`, `/style.json`, `/malmo.pmtiles`) and a project path would 404 on
+every one of them. `malmoe.damk.eu` is a CNAME to `oskardamkjaer.github.io`.
 
 Cache headers don't matter much: the service worker precaches everything on
 first load and only re-fetches when the cache names in `app/sw.js` change (code

@@ -255,21 +255,16 @@ function merge(lists) {
 
 const { items, merged } = merge([areaItems, landmarkItems, bridgeItems, streetItems]);
 
-// ---- pictures ----------------------------------------------------------------
+// ---- sources -----------------------------------------------------------------
 // Attached after the merge, so a name that lost its own entry still gets the
-// picture found for it. Optional by design: `learn/images.json` is written by
-// scripts/build-images.mjs, which talks to Wikimedia, and this build has to
-// work without a network. No file means a quiz with no photographs, which is
-// what it was last week.
-const pictures = await json('learn/images.json').catch(() => ({}));
+// link found for it. Where a name has no source of its own, the Wikipedia
+// article is the honest thing to point at — and these were verified by
+// coordinates when they were collected, so a link here is about the right
+// place rather than merely the right title. A name with its own source keeps
+// it; this only ever fills a gap.
+const sources = (await json('learn/sources.json').catch(() => ({}))).sources ?? {};
 for (const it of items) {
-  const pic = pictures[it.name];
-  if (!pic?.image) continue;
-  it.image = pic.image;
-  it.credit = pic.credit;
-  // The card already links a source for the text. Where there is no text, the
-  // article the picture came from is the honest thing to point at.
-  if (!it.source && pic.article) it.source = pic.article;
+  if (!it.source && sources[it.name]) it.source = sources[it.name];
 }
 
 // ---- core --------------------------------------------------------------------
