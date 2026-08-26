@@ -1,0 +1,212 @@
+{
+  "_doc": {
+    "purpose": "The bridges worth knowing, hand-curated. This file is the source of truth; scripts/build-learn.mjs only places and validates — it never adds a bridge or writes a description.",
+    "why": [
+      "Malmö's centre is an island. The canal ring is the one piece of the city's shape that explains every other piece — where the old town ends, why the streets bend where they bend — and it is crossed at eighteen named points inside one square kilometre. Learning them is learning the ring.",
+      "Nothing in the pipeline had them: the basemap draws bridges but does not name them, landmarks.json holds only Öresundsbron. So this is the one quizzable category that needed a list of its own."
+    ],
+    "sourcing": "Every name here was read off OSM (man_made=bridge or a named bridge way inside config/bbox.json), never off memory — see scripts/build-learn.mjs --bridges, which re-runs that query and fails if a name has stopped existing. Coordinates come from the same query.",
+    "descriptions": "Swedish, drafted by hand, and deliberately uneven. Says what the thing is, not where it is. The panel is the question now — name, kind, picture and text are all on screen while you are still looking for the place — so a line like \"öster om Möllevången\" or \"vid Sankt Petri kyrka\" hands over the answer with the question. No compass directions, no \"mellan X och Y\", no neighbouring or containing place used as a marker. What the name itself already carries is allowed: Limhamns kyrka may say Limhamn, and a bridge may say who or what it is named after. Where nothing was left but the position, the line is gone rather than reworded into something that says nothing. Six of the nineteen say nothing at all now: all they had was which corner of the canal ring they sit in.",
+    "fields": {
+      "name": "As OSM has it, which is also what the round asks for.",
+      "over": "What it crosses. Malmö kanal unless said otherwise.",
+      "carries": "The street or path across it, where it has one.",
+      "lat/lon": "From the OSM element's centre.",
+      "description": "One or two lines, shown while the bridge is being asked for. Optional, and never a position.",
+      "source": "Where the description came from, when it came from anywhere.",
+      "verified": "Set true once the description has been checked."
+    }
+  },
+  "bridges": [
+    {
+      "name": "Öresundsbron",
+      "over": "Öresund",
+      "carries": "E20 och Öresundsbanan",
+      "lat": 55.56946,
+      "lon": 12.86376,
+      "description": "Öppnad 1 juli 2000. 7 845 meter bro, som efter den konstgjorda ön Peberholm fortsätter i Drogdentunneln — därför är aldrig hela vägen till Danmark bro. Bil ovanpå, tåg inuti.",
+      "source": "https://sv.wikipedia.org/wiki/%C3%96resundsbron",
+      "verified": false
+    },
+    {
+      "name": "Petribron",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.60848,
+      "lon": 13.00211,
+      "description": "Har sitt namn efter Sankt Petri kyrka.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Suellsbron",
+      "over": "Inre hamnen",
+      "carries": null,
+      "lat": 55.60915,
+      "lon": 12.99753,
+      "description": "Namnet efter Frans Suell, köpmannen som drev fram Malmös hamn på 1770-talet.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Slussbron",
+      "over": "Malmö kanal",
+      "carries": "Slussgatan",
+      "lat": 55.60919,
+      "lon": 13.01275,
+      "description": "Har sitt namn efter slussen som en gång skilde kanalen från hamnen.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Skeppsbron",
+      "over": "Inre hamnen",
+      "carries": "Skeppsbron",
+      "lat": 55.60802,
+      "lon": 12.99939,
+      "description": "Bro och kaj med samma namn.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Universitetsbron",
+      "over": "Inre hamnen",
+      "carries": null,
+      "lat": 55.61232,
+      "lon": 12.99627,
+      "description": "Uppkallad efter Malmö universitet.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Slottsbron",
+      "over": "Slottsgraven",
+      "carries": null,
+      "lat": 55.60521,
+      "lon": 12.99021,
+      "description": "Går över den vallgrav som är kvar av Malmöhus försvarsverk.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Paulibron",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.60397,
+      "lon": 13.01069,
+      "description": "Uppkallad efter Sankt Pauli kyrka.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Schougens bro",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.60809,
+      "lon": 13.01323,
+      "description": null,
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Morescobron",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.60096,
+      "lon": 12.99941,
+      "description": null,
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Älvsborgsbron",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.6073,
+      "lon": 12.99611,
+      "description": null,
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Styrmansbron",
+      "over": "Inre hamnen",
+      "carries": null,
+      "lat": 55.60935,
+      "lon": 12.99093,
+      "description": null,
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Neptunibron",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.60746,
+      "lon": 12.985,
+      "description": "Delar namn med Neptunigatan.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Turbinbron",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.6039,
+      "lon": 12.98209,
+      "description": null,
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Varvsbron",
+      "over": "Inre hamnen",
+      "carries": null,
+      "lat": 55.60589,
+      "lon": 12.979,
+      "description": "Uppkallad efter varvet, vars mark har blivit stad.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Västerbron",
+      "over": "Malmö kanal",
+      "carries": null,
+      "lat": 55.60488,
+      "lon": 12.98051,
+      "description": null,
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Parkbron",
+      "over": "Kanalen i Kungsparken",
+      "carries": "gångväg",
+      "lat": 55.60196,
+      "lon": 12.99201,
+      "description": "Gångbro genom en av stadens äldsta parker.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Trädgårdsbron",
+      "over": "Slottsgraven",
+      "carries": "gångväg",
+      "lat": 55.60343,
+      "lon": 12.98948,
+      "description": "Gångbro, uppkallad efter Slottsträdgården.",
+      "source": null,
+      "verified": false
+    },
+    {
+      "name": "Slottsmöllebron",
+      "over": "Malmö kanal",
+      "carries": "gångväg",
+      "lat": 55.60271,
+      "lon": 12.98667,
+      "description": "Gångbro, uppkallad efter väderkvarnen Slottsmöllan.",
+      "source": null,
+      "verified": false
+    }
+  ]
+}

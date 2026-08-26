@@ -1,0 +1,1017 @@
+{
+  "_doc": {
+    "purpose": "Hand-curated landmark list. This file is the source of truth and is meant to be edited by hand — build-landmarks.mjs only fills in coordinates, it never rewrites your entries.",
+    "workflow": [
+      "1. Edit this list: add/remove landmarks, fix names, set tier/icon/min_zoom.",
+      "2. Run: node scripts/build-landmarks.mjs",
+      "3. It resolves any entry missing lat/lon via Nominatim and writes them back here, marked \"verified\": false.",
+      "4. Check each unverified coordinate on the map, correct it if wrong, set \"verified\": true.",
+      "5. Re-run to emit build/data/landmarks.geojson. Unverified entries are still emitted but reported."
+    ],
+    "fields": {
+      "name": "Display name, as shown in search and on the map.",
+      "tier": "1 = drawn custom icon, most prominent. 2 = generic icon.",
+      "icon": "Sprite id in landmarks/icons/. Several landmarks may share one.",
+      "min_zoom": "Zoom at which the icon starts appearing.",
+      "description": "One short line. Says what the thing is, not where it is. The panel is the question now — name, kind, picture and text are all on screen while you are still looking for the place — so a line like \"öster om Möllevången\" or \"vid Sankt Petri kyrka\" hands over the answer with the question. No compass directions, no \"mellan X och Y\", no neighbouring or containing place used as a marker. What the name itself already carries is allowed: Limhamns kyrka may say Limhamn, and a bridge may say who or what it is named after. Where nothing was left but the position, the line is gone rather than reworded into something that says nothing.",
+      "query": "Optional Nominatim search string, when the display name alone is ambiguous.",
+      "lat/lon": "Filled by the resolver; edit freely. null = unresolved.",
+      "verified": "Set true once you have eyeballed the coordinate on the map."
+    },
+    "min_zoom_note": "Defaults follow DECISIONS/STATUS: only Turning Torso and Öresundsbron at z11 (the spec's z11–12 is 'district names, almost nothing else'), other Tier-1 at z12, Tier-2 at z13. Tune with the map visible."
+  },
+  "landmarks": [
+    {
+      "name": "Turning Torso",
+      "tier": 1,
+      "icon": "tower",
+      "min_zoom": 11,
+      "description": "Santiago Calatravas vridna torn, 190 meter och 54 våningar, klart 2005. Nio kuber som vrider sig 90 grader från botten till topp — stadens siluett sedan dess.",
+      "query": "Turning Torso, Malmö",
+      "lat": 55.61333,
+      "lon": 12.97634,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Turning Torso, Lilla Varvsgatan, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, 211 17, Sverige",
+        "type": "apartments",
+        "osm": "way/30926877"
+      }
+    },
+    {
+      "name": "Öresundsbron",
+      "tier": 1,
+      "icon": "bridge",
+      "min_zoom": 11,
+      "description": "Bro, konstgjord ö och tunnel till Köpenhamn, öppnad 2000. Bara halva vägen är bro: vid Peberholm dyker banan ner i Drogdentunneln.",
+      "query": "Öresundsbron, Malmö",
+      "lat": 55.56947,
+      "lon": 12.85529,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Öresundsbron, E 20, Bunkeflostrand, Väster, Bunkeflostrand, Malmö kommun, Skåne län, 218 31, Sverige",
+        "type": "bridge",
+        "osm": "way/370256014"
+      }
+    },
+    {
+      "name": "Malmöhus slott",
+      "tier": 1,
+      "icon": "castle",
+      "min_zoom": 12,
+      "description": "Byggt på 1530-talet av Christian III och Nordens äldsta bevarade renässansslott. Fängelse i nästan hela 1800-talet, i dag Malmö Museer.",
+      "query": "Malmöhus slott, Malmö",
+      "lat": 55.60477,
+      "lon": 12.9881,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmöhus slott, Malmöhusvägen, Malmö Hus, Norr, Malmö, Malmö kommun, Skåne län, 211 18, Sverige",
+        "type": "castle",
+        "osm": "relation/282978"
+      }
+    },
+    {
+      "name": "Malmö Centralstation",
+      "tier": 1,
+      "icon": "station",
+      "min_zoom": 12,
+      "description": "Stationen från 1856. Byggdes om när Citytunneln öppnade 2010 och fick underjordiska spår.",
+      "query": "Malmö Centralstation",
+      "lat": 55.60917,
+      "lon": 12.99984,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö centralstation, Centralplan, Inre Hamnen, Norr, Malmö, Malmö kommun, Skåne län, 211 20, Sverige",
+        "type": "train_station",
+        "osm": "way/330653386"
+      }
+    },
+    {
+      "name": "Stortorget",
+      "tier": 1,
+      "icon": "square",
+      "min_zoom": 12,
+      "description": "Anlagt på 1530-talet och då Nordens största torg. Rådhuset står på östra sidan, Karl X Gustav till häst i mitten.",
+      "query": "Stortorget, Malmö",
+      "lat": 55.60612,
+      "lon": 13.00062,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Stortorget, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "square",
+        "osm": "relation/3614792"
+      }
+    },
+    {
+      "name": "Lilla Torg",
+      "tier": 1,
+      "icon": "square",
+      "min_zoom": 12,
+      "description": "Blev till på 1590-talet när Stortorget visade sig vara för stort. Korsvirkeshusen runt om är stadens bäst bevarade, och uteserveringarna Malmös tätaste.",
+      "query": "Lilla Torg, Malmö",
+      "lat": 55.60509,
+      "lon": 12.99877,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Lilla Torg, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "square",
+        "osm": "relation/2577882"
+      }
+    },
+    {
+      "name": "Gustav Adolfs torg",
+      "tier": 1,
+      "icon": "square",
+      "min_zoom": 12,
+      "description": "Det stora torget i 1800-talets stadsplan, anlagt när staden växte ur sina vallar.",
+      "query": "Gustav Adolfs torg, Malmö",
+      "lat": 55.6027,
+      "lon": 13.00124,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Gustav Adolfs torg, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 39, Sverige",
+        "type": "square",
+        "osm": "relation/2086362"
+      }
+    },
+    {
+      "name": "Möllevångstorget",
+      "tier": 1,
+      "icon": "square",
+      "min_zoom": 12,
+      "description": "Torghandel sedan tidigt 1900-tal. Monumentet Arbetets ära står mitt på torget.",
+      "query": "Möllevångstorget, Malmö",
+      "lat": 55.59166,
+      "lon": 13.00812,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Möllevångstorget, Möllevången, Innerstaden, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "square",
+        "osm": "relation/2148806"
+      }
+    },
+    {
+      "name": "Sankt Petri kyrka",
+      "tier": 1,
+      "icon": "church",
+      "min_zoom": 12,
+      "description": "Malmös äldsta byggnad, tegelgotik från 1300-talet efter mönster från Lübeck. Krämarkapellet har kvar sina medeltida målningar.",
+      "query": "Sankt Petri kyrka, Malmö",
+      "lat": 55.60695,
+      "lon": 13.00332,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Sankt Petri kyrka, Sankt Petrigången, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 35, Sverige",
+        "type": "place_of_worship",
+        "osm": "way/28415187"
+      }
+    },
+    {
+      "name": "Malmö Live",
+      "tier": 1,
+      "icon": "concert",
+      "min_zoom": 12,
+      "description": "Konserthus, kongress och hotell, öppnat 2015. Hem för Malmö SymfoniOrkester.",
+      "query": "Malmö Live",
+      "lat": 55.6073,
+      "lon": 12.99363,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Live, 4, Dag Hammarskjölds torg, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, 211 21, Sverige",
+        "type": "yes",
+        "osm": "way/332179782"
+      }
+    },
+    {
+      "name": "Slottsparken",
+      "tier": 1,
+      "icon": "park",
+      "min_zoom": 12,
+      "description": "En av de fyra parkerna som bildar det gröna stråket genom staden.",
+      "query": "Slottsparken, Malmö",
+      "lat": 55.6013,
+      "lon": 12.98903,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Slottsparken, Malmö Hus, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "way/30025167"
+      }
+    },
+    {
+      "name": "Pildammsparken",
+      "tier": 1,
+      "icon": "park",
+      "min_zoom": 12,
+      "description": "Kring de gamla vattendammarna, formad av Baltiska utställningen 1914. Tallriken — den runda gräsytan — är utställningens kvarleva.",
+      "query": "Pildammsparken, Malmö",
+      "lat": 55.59059,
+      "lon": 12.99157,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Pildammsparken, Innerstaden, Malmö, Malmö kommun, Skåne län, 214 66, Sverige",
+        "type": "park",
+        "osm": "way/22953383"
+      }
+    },
+    {
+      "name": "Kungsparken",
+      "tier": 1,
+      "icon": "park",
+      "min_zoom": 12,
+      "description": "Malmös äldsta anlagda park, från 1870-talet.",
+      "query": "Kungsparken, Malmö",
+      "lat": 55.60368,
+      "lon": 12.99286,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Kungsparken, Malmö Hus, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "relation/12887996"
+      }
+    },
+    {
+      "name": "Folkets Park",
+      "tier": 1,
+      "icon": "amusement",
+      "min_zoom": 12,
+      "description": "Sveriges äldsta folkets park, grundad 1891 av arbetarrörelsen. Moriskan i mitten är parkens signatur.",
+      "query": "Folkets Park, Malmö",
+      "lat": 55.59337,
+      "lon": 13.01386,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Folkets park, Möllevången, Innerstaden, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "way/28417392"
+      }
+    },
+    {
+      "name": "Ribersborgsstranden",
+      "tier": 1,
+      "icon": "beach",
+      "min_zoom": 12,
+      "description": "Ribban: två och en halv kilometer anlagd strand mot Öresund.",
+      "query": "Ribersborgsstranden, Malmö",
+      "lat": 55.60207,
+      "lon": 12.96664,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Ribersborgsstranden, Innerstaden, Malmö, Malmö kommun, Skåne län, 213 44, Sverige",
+        "type": "administrative",
+        "osm": "relation/3050078"
+      }
+    },
+    {
+      "name": "Malmö Arena",
+      "tier": 1,
+      "icon": "stadium",
+      "min_zoom": 12,
+      "description": "Inomhusarena från 2008, hemmaplan för Malmö Redhawks. Här hölls Eurovision 2013.",
+      "query": "Malmö Arena",
+      "lat": 55.56439,
+      "lon": 12.97633,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Arena, 2, Hyllie stationstorg, Hyllie, Hyllievång, Väster, Malmö, Malmö kommun, Skåne län, 215 32, Sverige",
+        "type": "sports_centre",
+        "osm": "way/30651501"
+      }
+    },
+    {
+      "name": "Emporia",
+      "tier": 1,
+      "icon": "shopping",
+      "min_zoom": 12,
+      "description": "Köpcentrum från 2012, med Wingårdhs böljande gula glasfasad.",
+      "query": "Emporia, Malmö",
+      "lat": 55.56428,
+      "lon": 12.97321,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Emporia, 19, Hyllie boulevard, Hyllie, Hyllievång, Väster, Malmö, Malmö kommun, Skåne län, 215 32, Sverige",
+        "type": "mall",
+        "osm": "way/147530612"
+      }
+    },
+    {
+      "name": "Malmö Konsthall",
+      "tier": 2,
+      "icon": "museum",
+      "min_zoom": 13,
+      "description": "Klas Anshelms byggnad från 1975, en av Europas största utställningshallar. Ljuset uppifrån genom taket är hela poängen med huset.",
+      "query": "Malmö Konsthall",
+      "lat": 55.59527,
+      "lon": 12.99938,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö konsthall, Munkgatan, Rådmansvången, Norr, Malmö, Malmö kommun, Skåne län, 205 05, Sverige",
+        "type": "arts_centre",
+        "osm": "way/28482240"
+      }
+    },
+    {
+      "name": "Moderna Museet Malmö",
+      "tier": 2,
+      "icon": "museum",
+      "min_zoom": 13,
+      "description": "Modern konst i det gamla Elverket sedan 2009, med en orange perforerad tillbyggnad som syns långt.",
+      "query": "Moderna Museet Malmö",
+      "lat": 55.60463,
+      "lon": 13.00957,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Moderna Museet, 2-4, Stora Nygatan, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 29, Sverige",
+        "type": "museum",
+        "osm": "way/35724417"
+      }
+    },
+    {
+      "name": "Malmö Museer",
+      "tier": 2,
+      "icon": "museum",
+      "min_zoom": 13,
+      "description": "Stadens museer inne på Malmöhus: historia, natur och konst under samma tak.",
+      "query": "Malmö Museer",
+      "lat": 55.60475,
+      "lon": 12.98698,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Museer Slottsholmen, 6, Malmöhusvägen, Malmö Hus, Norr, Malmö, Malmö kommun, Skåne län, 211 18, Sverige",
+        "type": "museum",
+        "osm": "node/4895458698"
+      }
+    },
+    {
+      "name": "Form/Design Center",
+      "tier": 2,
+      "icon": "museum",
+      "min_zoom": 13,
+      "description": "Form och arkitektur i Hedmanska gården, ett korsvirkeskvarter från 1500-talet.",
+      "query": "Form Design Center, Malmö",
+      "lat": 55.6045,
+      "lon": 12.99921,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Form Design Center, Hjulhamnsgatan, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 201 80, Sverige",
+        "type": "museum",
+        "osm": "node/6797013185"
+      }
+    },
+    {
+      "name": "Teknikens och sjöfartens hus",
+      "tier": 2,
+      "icon": "museum",
+      "min_zoom": 13,
+      "description": "Teknik- och sjöfartsmuseum, med ubåten U3 uppdragen på land.",
+      "query": "Teknikens och sjöfartens hus, Malmö",
+      "lat": 55.60484,
+      "lon": 12.98287,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Teknikens och sjöfartens hus, Malmöhusvägen, Malmö Hus, Norr, Malmö, Malmö kommun, Skåne län, 217 56, Sverige",
+        "type": "museum",
+        "osm": "way/50139701"
+      }
+    },
+    {
+      "name": "Disgusting Food Museum",
+      "tier": 2,
+      "icon": "museum",
+      "min_zoom": 13,
+      "description": "Museum om mat som väcker avsky — och om varför avsky är kulturellt inlärt.",
+      "query": "Disgusting Food Museum, Malmö",
+      "lat": 55.60089,
+      "lon": 13.00131,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Disgusting Food Museum, 2, Södra Förstadsgatan, Lugnet, Norr, Malmö, Malmö kommun, Skåne län, 211 20, Sverige",
+        "type": "museum",
+        "osm": "way/1036504155"
+      }
+    },
+    {
+      "name": "Malmö Opera",
+      "tier": 2,
+      "icon": "theatre",
+      "min_zoom": 13,
+      "description": "Operahuset från 1944, med en av Europas största scener när det byggdes.",
+      "query": "Malmö Opera",
+      "lat": 55.59613,
+      "lon": 12.99637,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Opera, 20, Östra Rönneholmsvägen, Teatern, Innerstaden, Malmö, Malmö kommun, Skåne län, 211 47, Sverige",
+        "type": "theatre",
+        "osm": "way/28414605"
+      }
+    },
+    {
+      "name": "Malmö Stadsteater",
+      "tier": 2,
+      "icon": "theatre",
+      "min_zoom": 13,
+      "description": "Stadens talscen, med Hipp som huvudscen.",
+      "query": "Malmö Stadsteater",
+      "lat": 55.60572,
+      "lon": 13.00379,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Stadsteater, Kalendegatan, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 36, Sverige",
+        "type": "theatre",
+        "osm": "node/9937628281"
+      }
+    },
+    {
+      "name": "Malmö Stadsbibliotek",
+      "tier": 2,
+      "icon": "library",
+      "min_zoom": 13,
+      "description": "Henning Larsens Ljusets kalender från 1997, byggd ihop med det gamla biblioteksslottet från 1946.",
+      "query": "Malmö Stadsbibliotek",
+      "lat": 55.60047,
+      "lon": 12.9944,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Stadsbibliotek, 11, Kung Oscars väg, Malmö Hus, Norr, Malmö, Malmö kommun, Skåne län, 211 48, Sverige",
+        "type": "library",
+        "osm": "way/37892687"
+      }
+    },
+    {
+      "name": "Malmö Saluhall",
+      "tier": 2,
+      "icon": "market",
+      "min_zoom": 13,
+      "description": "Mathall i ett gammalt godsmagasin, öppnad 2016.",
+      "query": "Malmö Saluhall",
+      "lat": 55.60786,
+      "lon": 12.99097,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Saluhall, 6, Gibraltargatan, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, 211 18, Sverige",
+        "type": "marketplace",
+        "osm": "way/187072516"
+      }
+    },
+    {
+      "name": "Sankt Johannes kyrka",
+      "tier": 2,
+      "icon": "church",
+      "min_zoom": 13,
+      "description": "Jugendkyrka från 1907.",
+      "query": "Sankt Johannes kyrka, Malmö",
+      "lat": 55.5942,
+      "lon": 13.00174,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Sankt Johannes kyrka, Sankt Johannesplan, Rådmansvången, Norr, Malmö, Malmö kommun, Skåne län, 205 05, Sverige",
+        "type": "place_of_worship",
+        "osm": "way/28482245"
+      }
+    },
+    {
+      "name": "Sankt Pauli kyrka",
+      "tier": 2,
+      "icon": "church",
+      "min_zoom": 13,
+      "description": "Nygotisk tegelkyrka från 1880-talet.",
+      "query": "Sankt Pauli kyrka, Malmö",
+      "lat": 55.60299,
+      "lon": 13.01438,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Sankt Pauli kyrka, Kungsgatan, Rörsjöstaden, Norr, Malmö, Malmö kommun, Skåne län, 211 49, Sverige",
+        "type": "place_of_worship",
+        "osm": "way/28481855"
+      }
+    },
+    {
+      "name": "Caroli kyrka",
+      "tier": 2,
+      "icon": "church",
+      "min_zoom": 13,
+      "description": "Nygotisk kyrka från 1880-talet, byggd där den äldre tyska församlingskyrkan stod.",
+      "query": "Caroli kyrka, Malmö",
+      "lat": 55.60743,
+      "lon": 13.00667,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Caroli kyrka, 16b, Östergatan, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 26, Sverige",
+        "type": "church",
+        "osm": "way/34732336"
+      }
+    },
+    {
+      "name": "Limhamns kyrka",
+      "tier": 2,
+      "icon": "church",
+      "min_zoom": 13,
+      "description": "Limhamns församlingskyrka, från tiden då Limhamn var ett eget samhälle.",
+      "query": "Limhamns kyrka, Malmö",
+      "lat": 55.57483,
+      "lon": 12.94474,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Limhamns kyrka, Norra Hyllievägen, Djupadal, Väster, Malmö, Malmö kommun, Skåne län, 216 17, Sverige",
+        "type": "place_of_worship",
+        "osm": "way/28576312"
+      }
+    },
+    {
+      "name": "Malmö synagoga",
+      "tier": 2,
+      "icon": "synagogue",
+      "min_zoom": 13,
+      "description": "Invigd 1903, byggd i morisk stil.",
+      "query": "Malmö synagoga",
+      "lat": 55.59953,
+      "lon": 13.01082,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö synagoga, Föreningsgatan, Rörsjöstaden, Norr, Malmö, Malmö kommun, Skåne län, 211 56, Sverige",
+        "type": "place_of_worship",
+        "osm": "way/37253592"
+      }
+    },
+    {
+      "name": "Malmö moské",
+      "tier": 2,
+      "icon": "mosque",
+      "min_zoom": 13,
+      "description": "Sveriges första byggda moské, öppnad 1984. Utsatt för mordbrand 2003 och återuppbyggd.",
+      "query": "Malmö Islamic Center",
+      "lat": 55.57501,
+      "lon": 13.05127,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Islamic Center, 1, Västra Skrävlinge kyrkoväg, Jägersro, Öster, Malmö, Malmö kommun, Skåne län, 213 69, Sverige",
+        "type": "place_of_worship",
+        "osm": "relation/2835333"
+      }
+    },
+    {
+      "name": "Ribersborgs Kallbadhus",
+      "tier": 2,
+      "icon": "bath",
+      "min_zoom": 13,
+      "description": "Kallbadhus ute i vattnet, från 1898. Bastu och havsbad året om.",
+      "query": "Ribersborgs Kallbadhus",
+      "lat": 55.60522,
+      "lon": 12.96572,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Ribersborgs Kallbadhus, Brygga 1, Limhamnsvägen, Fridhem, Innerstaden, Malmö, Malmö kommun, Skåne län, 217 59, Sverige",
+        "type": "public_bath",
+        "osm": "relation/5698988"
+      }
+    },
+    {
+      "name": "Limhamns kalkbrott",
+      "tier": 2,
+      "icon": "quarry",
+      "min_zoom": 13,
+      "description": "Hålet efter kalkbrytningen som byggde Limhamn — 65 meter djupt och 1,5 kilometer brett. I dag naturreservat med pilgrimsfalk.",
+      "query": "Limhamns kalkbrott",
+      "lat": 55.56763,
+      "lon": 12.93328,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Limhamns kalkbrott, Väster, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "protected_area",
+        "osm": "way/24215163"
+      }
+    },
+    {
+      "name": "Klagshamns udde",
+      "tier": 2,
+      "icon": "nature",
+      "min_zoom": 13,
+      "description": "Udden byggd av restmassor från Klagshamns kalkbruk, nu naturområde och fågellokal.",
+      "query": "Klagshamns udde"
+    },
+    {
+      "name": "Sibbarps badplats",
+      "tier": 2,
+      "icon": "beach",
+      "min_zoom": 13,
+      "description": "Badplats vid Öresund, långgrund och grillbar.",
+      "query": "Sibbarp, Malmö",
+      "lat": 55.57451,
+      "lon": 12.91179,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Sibbarp, Väster, Bunkeflostrand, Malmö kommun, Skåne län, Sverige",
+        "type": "administrative",
+        "osm": "relation/3050089"
+      }
+    },
+    {
+      "name": "Scaniaparken",
+      "tier": 2,
+      "icon": "park",
+      "min_zoom": 13,
+      "description": "Anlagd där varvets Scaniaplan låg, med utsikt över sundet.",
+      "query": "Scaniaparken, Malmö",
+      "lat": 55.6177,
+      "lon": 12.9756,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Scaniaparken, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "way/30053816"
+      }
+    },
+    {
+      "name": "Daniaparken",
+      "tier": 2,
+      "icon": "park",
+      "min_zoom": 13,
+      "description": "Havspark med betongterrasser ner mot vattnet och stadens mest använda hoppkajer.",
+      "query": "Daniaparken, Malmö",
+      "lat": 55.61395,
+      "lon": 12.97192,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Daniaparken, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "relation/19412138"
+      }
+    },
+    {
+      "name": "Öresundsparken",
+      "tier": 2,
+      "icon": "park",
+      "min_zoom": 13,
+      "description": "Strandpark mot Öresund.",
+      "query": "Öresundsparken, Malmö",
+      "lat": 55.60323,
+      "lon": 12.97455,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Öresundsparken, Limhamnsvägen, Ribersborgsstranden, Innerstaden, Malmö, Malmö kommun, Skåne län, 217 57, Sverige",
+        "type": "bus_stop",
+        "osm": "node/1435542275"
+      }
+    },
+    {
+      "name": "Rörsjöparken",
+      "tier": 2,
+      "icon": "park",
+      "min_zoom": 13,
+      "description": "Kvarterspark från 1800-talets stadsutvidgning.",
+      "query": "Rörsjöparken, Malmö",
+      "lat": 55.60514,
+      "lon": 13.01779,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Rörsjöparken, Rörsjöstaden, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "way/28461042"
+      }
+    },
+    {
+      "name": "Beijers park",
+      "tier": 2,
+      "icon": "park",
+      "min_zoom": 13,
+      "description": "Uppkallad efter industrimannen Gottfrid Beijer.",
+      "query": "Beijers park, Malmö",
+      "lat": 55.61046,
+      "lon": 13.05003,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Beijers park, Kirseberg, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "relation/10344681"
+      }
+    },
+    {
+      "name": "Bulltofta rekreationsområde",
+      "tier": 2,
+      "icon": "park",
+      "min_zoom": 13,
+      "description": "Malmös största rekreationsområde, anlagt på det som var Bulltofta flygplats fram till 1972.",
+      "query": "Bulltofta rekreationsområde",
+      "lat": 55.60154,
+      "lon": 13.06985,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Bulltofta rekreationsområde, Öster, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "park",
+        "osm": "relation/11076658"
+      }
+    },
+    {
+      "name": "Toftanäs våtmarkspark",
+      "tier": 2,
+      "icon": "nature",
+      "min_zoom": 13,
+      "description": "Anlagd våtmark som renar dagvatten och samtidigt blivit en av stadens bästa fågellokaler.",
+      "query": "Toftanäs våtmarkspark"
+    },
+    {
+      "name": "Katrinetorp",
+      "tier": 2,
+      "icon": "castle",
+      "min_zoom": 13,
+      "description": "Herrgård från tidigt 1800-tal, med bevarad trädgård i empirstil.",
+      "query": "Katrinetorp, Malmö",
+      "lat": 55.55079,
+      "lon": 13.00541,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Katrinetorp, Lindängen, Söder, Malmö, Malmö kommun, Skåne län, 215 74, Sverige",
+        "type": "farm",
+        "osm": "node/7486506461"
+      }
+    },
+    {
+      "name": "Eleda Stadion",
+      "tier": 2,
+      "icon": "stadium",
+      "min_zoom": 13,
+      "description": "Malmö FF:s arena från 2009.",
+      "query": "Eleda Stadion, Malmö",
+      "lat": 55.58373,
+      "lon": 12.98774,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Eleda Stadion, Kroksbäcksstigen, Stadion, Väster, Malmö, Malmö kommun, Skåne län, 217 62, Sverige",
+        "type": "stadium",
+        "osm": "way/175446799"
+      }
+    },
+    {
+      "name": "Malmö Stadion",
+      "tier": 2,
+      "icon": "stadium",
+      "min_zoom": 13,
+      "description": "Byggt till fotbolls-VM 1958, då Malmös stora arena. I dag friidrott och träning.",
+      "query": "Malmö Stadion",
+      "lat": 55.58585,
+      "lon": 12.99087,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö Stadion, Stadion, Väster, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "construction",
+        "osm": "relation/53037"
+      }
+    },
+    {
+      "name": "Baltiska hallen",
+      "tier": 2,
+      "icon": "stadium",
+      "min_zoom": 13,
+      "description": "Handbollens och gymnastikens hemmaplan i Malmö.",
+      "query": "Baltiska hallen, Malmö",
+      "lat": 55.58361,
+      "lon": 12.99165,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Baltiska Hallen, Lennart Strands stig, Stadion, Väster, Malmö, Malmö kommun, Skåne län, 214 67, Sverige",
+        "type": "sports_centre",
+        "osm": "way/28654785"
+      }
+    },
+    {
+      "name": "Jägersro travbana",
+      "tier": 2,
+      "icon": "stadium",
+      "min_zoom": 13,
+      "description": "Trav- och galoppbana, en av Sveriges största.",
+      "query": "Travbanan, Malmö",
+      "lat": 55.57252,
+      "lon": 13.05804,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Travbanan, Agnesfridsvägen, Jägersro, Öster, Malmö, Malmö kommun, Skåne län, 212 37, Sverige",
+        "type": "bus_stop",
+        "osm": "node/1529240937"
+      }
+    },
+    {
+      "name": "Malmö universitet",
+      "tier": 2,
+      "icon": "university",
+      "min_zoom": 13,
+      "description": "Grundat som högskola 1998 på gammal varvsmark, universitet sedan 2018.",
+      "query": "Malmö universitet",
+      "lat": 55.60889,
+      "lon": 12.99322,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Malmö universitet, Triangeln, Lugnet, Norr, Malmö, Malmö kommun, Skåne län, 211 43, Sverige",
+        "type": "university",
+        "osm": "relation/2220493"
+      }
+    },
+    {
+      "name": "Orkanen",
+      "tier": 2,
+      "icon": "library",
+      "min_zoom": 13,
+      "description": "Universitetets bibliotek och lärarutbildning, invigt 2005.",
+      "query": "Orkanen, Malmö",
+      "lat": 55.61079,
+      "lon": 12.99542,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Orkanen, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "city_block",
+        "osm": "way/250375424"
+      }
+    },
+    {
+      "name": "Triangeln station",
+      "tier": 2,
+      "icon": "station",
+      "min_zoom": 13,
+      "description": "Underjordisk station från Citytunneln 2010, mitt under Triangeln.",
+      "query": "Triangeln station, Malmö",
+      "lat": 55.59329,
+      "lon": 13.00104,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Triangeln, Sankt Johannesplan, Rådmansvången, Norr, Malmö, Malmö kommun, Skåne län, 205 05, Sverige",
+        "type": "station",
+        "osm": "node/8559657094"
+      }
+    },
+    {
+      "name": "Hyllie station",
+      "tier": 2,
+      "icon": "station",
+      "min_zoom": 13,
+      "description": "Station på Citytunneln, öppnad 2010.",
+      "query": "Hyllie station",
+      "lat": 55.56275,
+      "lon": 12.97587,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Hyllie, Hyllie stationstorg, Hyllie, Hyllievång, Väster, Malmö, Malmö kommun, Skåne län, 215 32, Sverige",
+        "type": "station",
+        "osm": "node/12839729423"
+      }
+    },
+    {
+      "name": "Värnhemstorget",
+      "tier": 2,
+      "icon": "square",
+      "min_zoom": 13,
+      "description": "Bytespunkt där många av stadens busslinjer möts.",
+      "query": "Värnhemstorget, Malmö",
+      "lat": 55.60553,
+      "lon": 13.02289,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Värnhemstorget, Rörsjöstaden, Norr, Malmö, Malmö kommun, Skåne län, 212 12, Sverige",
+        "type": "pedestrian",
+        "osm": "way/1530557086"
+      }
+    },
+    {
+      "name": "Drottningtorget",
+      "tier": 2,
+      "icon": "square",
+      "min_zoom": 13,
+      "description": null,
+      "query": "Drottningtorget, Malmö",
+      "lat": 55.6082,
+      "lon": 13.00995,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Drottningtorget, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "square",
+        "osm": "way/1039326780"
+      }
+    },
+    {
+      "name": "Davidshallstorg",
+      "tier": 2,
+      "icon": "square",
+      "min_zoom": 13,
+      "description": "Torget mitt i Davidshalls funkiskvarter.",
+      "query": "Davidshallstorg, Malmö",
+      "lat": 55.59936,
+      "lon": 12.99837,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Davidshallstorg, Davidshall, Norr, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "square",
+        "osm": "relation/3851569"
+      }
+    },
+    {
+      "name": "Södervärn",
+      "tier": 2,
+      "icon": "square",
+      "min_zoom": 13,
+      "description": "Knutpunkt med busstation, där många av stadens linjer möts.",
+      "query": "Södervärn, Malmö",
+      "lat": 55.5868,
+      "lon": 13.00854,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Södervärn, Innerstaden, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "administrative",
+        "osm": "relation/3050099"
+      }
+    },
+    {
+      "name": "Rosengård Centrum",
+      "tier": 2,
+      "icon": "shopping",
+      "min_zoom": 13,
+      "description": "Rosengårds centrum med torg, butiker och stadsdelens mötesplats.",
+      "query": "Rosengård Centrum",
+      "lat": 55.58603,
+      "lon": 13.04549,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Rosengård Centrum, Öster, Malmö, Malmö kommun, Skåne län, 213 68, Sverige",
+        "type": "administrative",
+        "osm": "relation/3050080"
+      }
+    },
+    {
+      "name": "Mobilia",
+      "tier": 2,
+      "icon": "shopping",
+      "min_zoom": 13,
+      "description": "Köpcentrum i det som var Malmö Yllefabrik — fabriksbyggnaderna står kvar runt gallerian.",
+      "query": "Mobilia, Malmö",
+      "lat": 55.58182,
+      "lon": 13.00444,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Mobilia, Flensburg, Innerstaden, Malmö, Malmö kommun, Skåne län, 214 32, Sverige",
+        "type": "retail",
+        "osm": "way/591084148"
+      }
+    },
+    {
+      "name": "Kv. Caroli",
+      "tier": 2,
+      "icon": "shopping",
+      "min_zoom": 13,
+      "description": "Kvarteret vid Caroli kyrka, byggt om från galleria till bostäder och kontor.",
+      "query": "Kv. Caroli, Malmö",
+      "lat": 55.60767,
+      "lon": 13.00738,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Kv. Caroli, 12, Östergatan, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 26, Sverige",
+        "type": "mall",
+        "osm": "node/4397767524"
+      }
+    },
+    {
+      "name": "Hansacompagniet",
+      "tier": 2,
+      "icon": "shopping",
+      "min_zoom": 13,
+      "description": null,
+      "query": "Hansacompagniet, Malmö",
+      "lat": 55.60317,
+      "lon": 13.00412,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Hansacompagniet, Malmborgsgatan, Gamla Staden, Norr, Malmö, Malmö kommun, Skåne län, 211 38, Sverige",
+        "type": "mall",
+        "osm": "way/28414267"
+      }
+    },
+    {
+      "name": "Augustenborg",
+      "tier": 2,
+      "icon": "nature",
+      "min_zoom": 13,
+      "description": "Ekostaden Augustenborg: 1950-talsområde ombyggt med öppen dagvattenhantering och gröna tak, internationellt känt.",
+      "query": "Augustenborg, Malmö",
+      "lat": 55.57956,
+      "lon": 13.02477,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Augustenborg, Söder, Malmö, Malmö kommun, Skåne län, Sverige",
+        "type": "administrative",
+        "osm": "relation/3049998"
+      }
+    },
+    {
+      "name": "Kockum Fritid",
+      "tier": 2,
+      "icon": "stadium",
+      "min_zoom": 13,
+      "description": "Sim- och ishall, uppkallad efter varvet Kockums.",
+      "query": "Kockum Fritid, Malmö",
+      "lat": 55.60822,
+      "lon": 12.97733,
+      "verified": false,
+      "_resolved": {
+        "display_name": "Kockum Fritid, Västra Varvsgatan, Västra Hamnen, Norr, Malmö, Malmö kommun, Skåne län, 211 11, Sverige",
+        "type": "sports_centre",
+        "osm": "way/28937823"
+      }
+    }
+  ]
+}

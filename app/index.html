@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Lär dig Malmö</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<meta name="description" content="Lär dig var Malmös namn ligger. Fungerar offline.">
+<meta name="theme-color" content="#f8f4f0">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="stylesheet" href="/vendor/maplibre-gl.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div id="map"></div>
+
+<!-- The front door, and the only one: the city in two halves — the names Malmö
+     expects of you and everything else — and a row per kind inside each, with a
+     bar saying how much of it you can already place. Everything else on this
+     page is either a round in progress or the map you go and study on. -->
+<div id="learn" hidden>
+  <header id="learnhead">
+    <div>
+      <h1>Lär dig Malmö</h1>
+      <p>Placera namnen på kartan. Kartan är avskalad från text medan du gissar —
+         annars vore det ett lästest.</p>
+      <p id="learnsub"></p>
+    </div>
+    <button id="toexplore" type="button">Utforska kartan</button>
+  </header>
+  <div id="roundlist"></div>
+  <footer id="learnfoot">
+    <button id="forget" type="button">Glöm allt jag lärt mig</button>
+  </footer>
+</div>
+
+<!-- A round in progress. The map underneath is blind: no labels anywhere, only
+     the outlines of whatever is being asked about. -->
+<div id="play" hidden>
+  <div id="playbar">
+    <button id="quit" type="button" aria-label="Avsluta rundan">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <p id="prompt"></p>
+    <span id="tally"></span>
+  </div>
+
+  <p id="verdict" role="status" hidden></p>
+
+  <!-- The point of the app: the name has just become a place, so say something
+       about the place, and show it. A panel down the right on anything wide
+       enough to spare the room, a sheet along the bottom on a phone — the map
+       is the thing being learned, so the card takes an edge rather than the
+       middle. -->
+  <div id="factcard" hidden>
+    <p id="factverdict"></p>
+    <h2 id="factname"></h2>
+    <p id="factmeta"></p>
+    <!-- Hidden unless the item actually has a picture, which most do not; an
+         empty frame says "missing" where nothing should be said at all. -->
+    <figure id="factfigure" hidden>
+      <img id="factimage" alt="">
+      <figcaption id="factcredit"></figcaption>
+    </figure>
+    <p id="facttext"></p>
+    <a id="factsource" target="_blank" rel="noopener" hidden>Källa</a>
+    <button id="next" type="button">Nästa</button>
+  </div>
+
+  <div id="summary" hidden>
+    <h2 id="summaryhead"></h2>
+    <p id="summarysub"></p>
+    <ul id="summarylist"></ul>
+    <div class="summaryactions">
+      <button id="summaryagain" type="button">En gång till</button>
+      <button id="summarydone" type="button">Klart</button>
+    </div>
+  </div>
+</div>
+
+<!-- Selected feature: name, what it is, which district. Nothing actionable. -->
+<div id="card" hidden>
+  <button id="cardclose" aria-label="Stäng">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2 id="cardname"></h2>
+  <p id="cardmeta"></p>
+  <p id="carddesc"></p>
+</div>
+
+<!-- The way back from studying to being asked. -->
+<button id="tolearn" type="button" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h6a2 2 0 0 1 2 2v11a2 2 0 0 0-2-2H4zM20 5.5h-6a2 2 0 0 0-2 2v11a2 2 0 0 1 2-2h6z"/></svg>
+  <span>Öva</span>
+</button>
+
+<div id="boot"><p id="bootmsg">Laddar kartan…</p></div>
+
+<script src="/vendor/pmtiles.js"></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
